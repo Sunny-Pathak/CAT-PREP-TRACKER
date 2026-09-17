@@ -3,7 +3,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import DailyTrackerView from '../DailyTrackerView';
 import DashboardView from '../DashboardView';
+import App from '../../App';
 import { getInitialState } from '../../utils/storage';
+
+import StudyContributionHeatmap from '../StudyContributionHeatmap';
+import WeekContributionHeatmap from '../WeekContributionHeatmap';
 
 describe('Mobile View & Component Test Cases', () => {
   let mockState;
@@ -71,5 +75,33 @@ describe('Mobile View & Component Test Cases', () => {
     expect(quantCheckboxes.length).toBeGreaterThan(0);
     fireEvent.click(quantCheckboxes[0]);
     expect(updated).toBe(true);
+  });
+
+  it('renders mobile navigation dock on mobile screen width', () => {
+    window.innerWidth = 375;
+    localStorage.setItem('catalyze_guest_mode', 'true');
+    const { container } = render(<App />);
+    
+    // Floating overlay dock is rendered
+    expect(container.querySelector('.sidebar.floating-overlay-dock')).not.toBeNull();
+  });
+
+  it('renders WeekContributionHeatmap and StudyContributionHeatmap with responsive labels and 7-day grid', () => {
+    const { container } = render(
+      <div>
+        <WeekContributionHeatmap tracker={mockState.tracker} startDateStr={mockState.settings?.startDate} />
+        <StudyContributionHeatmap tracker={mockState.tracker} startDateStr={mockState.settings?.startDate} />
+      </div>
+    );
+
+    // Week matrix track has 7 day columns including Sun
+    const cols = container.querySelectorAll('.week-matrix-col');
+    expect(cols.length).toBe(7);
+    expect(screen.getAllByText('Sun').length).toBeGreaterThan(0);
+
+    // Heatmap month tabs has responsive All labels and 4 month headers
+    expect(container.querySelector('.month-tab-all-full')).toBeDefined();
+    expect(container.querySelector('.month-tab-all-short')).toBeDefined();
+    expect(container.querySelectorAll('.heatmap-month-label-short').length).toBe(4);
   });
 });

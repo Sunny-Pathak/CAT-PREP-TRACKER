@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Icons } from './AspirantIcons';
 import SmoothCaretInput from './animations/SmoothCaretInput';
+import AnimatedInputBar from './AnimatedInputBar';
+import StackedChips from './StackedChips';
 import MistakeLogModal from './MistakeLogModal';
 import {
   getStoredMistakes,
@@ -196,7 +198,7 @@ export default function ErrorLogView({ state, onDayClick, onOpenTimer }) {
 
       {/* 1. Theme-Consistent Minimal Hero Section */}
       <div className="minimal-hero-section">
-        <div className="minimal-hero-tag">// SYS / ERROR LOG &amp; NOTES</div>
+        <div className="minimal-hero-tag">ERROR LOG &amp; NOTES</div>
         <div className="minimal-hero-main">
           <div className="minimal-hero-titles">
             <h1 className="minimal-headline">
@@ -221,17 +223,26 @@ export default function ErrorLogView({ state, onDayClick, onOpenTimer }) {
               </button>
             )}
 
-            <button
-              type="button"
-              className="minimal-btn-primary"
-              onClick={() => {
-                setEditingCard(null);
+            {/* Reacticx Stacked Chips for Note Card Creation & Scratchpad Toggle */}
+            <StackedChips
+              onCreateNote={(subject) => {
+                if (subject) {
+                  setEditingCard({
+                    subject: subject,
+                    title: '',
+                    content: '',
+                    takeawayRule: '',
+                    source: '',
+                    tags: []
+                  });
+                } else {
+                  setEditingCard(null);
+                }
                 setIsModalOpen(true);
               }}
-            >
-              <span>New Note Card</span>
-              <span className="btn-arrow">+</span>
-            </button>
+              onToggleScratchpad={() => setShowScratchpad(prev => !prev)}
+              isScratchpadOpen={showScratchpad}
+            />
 
             <button
               type="button"
@@ -241,16 +252,6 @@ export default function ErrorLogView({ state, onDayClick, onOpenTimer }) {
             >
               <Icons.Download size={14} />
               <span>Export (.md)</span>
-            </button>
-
-            <button
-              type="button"
-              className="minimal-btn-secondary"
-              onClick={() => setShowScratchpad(!showScratchpad)}
-              title="Toggle quick scratchpad"
-            >
-              <Icons.FileText size={14} />
-              <span>{showScratchpad ? 'Hide Scratchpad' : 'Scratchpad'}</span>
             </button>
           </div>
         </div>
@@ -280,80 +281,26 @@ export default function ErrorLogView({ state, onDayClick, onOpenTimer }) {
         </div>
       </div>
 
-      {/* Optional Animated Scratchpad Drawer */}
+      {/* Reacticx Animated Input Bar Scratchpad */}
       {showScratchpad && (
-        <div className="minimal-hero-section scratchpad-animated-section" style={{ padding: '24px', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-            <div>
-              <span className="minimal-hero-tag" style={{ fontSize: '10px' }}>DISK STORAGE // RAPID JOT</span>
-              <h3 style={{ margin: '2px 0 0', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Quick Scratchpad &amp; Local File Vault
-              </h3>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {onOpenTimer && (
-                <button
-                  type="button"
-                  className="minimal-btn-primary"
-                  style={{ padding: '7px 12px', fontSize: '12px' }}
-                  onClick={onOpenTimer}
-                  title="Launch Zen Focus Session"
-                >
-                  <Icons.Clock size={12} />
-                  <span>Start Focus Session ↗</span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                className="minimal-btn-secondary"
-                style={{ padding: '7px 12px', fontSize: '12px' }}
-                onClick={handleSaveScratchpadToPC}
-                disabled={saveStatus === 'saving'}
-              >
-                <Icons.Download size={13} />
-                <span>Save to PC (.txt)</span>
-              </button>
-
-              <button
-                type="button"
-                className="minimal-btn-secondary"
-                style={{ padding: '7px 12px', fontSize: '12px' }}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Icons.Folder size={13} />
-                <span>Open File from PC</span>
-              </button>
-            </div>
-          </div>
-
-          <textarea
-            className="vault-textarea scratchpad-animated-textarea"
-            style={{ minHeight: '120px', fontSize: '13px' }}
-            placeholder="Type quick notes, formulas, or copy-paste problem text here... Auto-saved locally."
+        <div style={{ marginBottom: '24px' }}>
+          <AnimatedInputBar
             value={scratchpadText}
             onChange={handleScratchpadChange}
+            placeholders={[
+              'Capture tricky question traps & error patterns...',
+              'Jot formulas, mental models, or shortcuts...',
+              'Paste problem text or diagnostic notes here...',
+              'Auto-saved locally to your hard drive in real-time...',
+              'Document revision notes for mock exam review...'
+            ]}
+            minHeight={110}
+            maxHeight={300}
+            onSaveToPC={handleSaveScratchpadToPC}
+            onOpenFile={() => fileInputRef.current?.click()}
+            onStartFocusSession={onOpenTimer}
+            saveStatus={isTypingScratchpad ? 'saving' : 'saved'}
           />
-
-          {/* Animated Scratchpad Status & Telemetry */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-            <div className="scratchpad-pulse-indicator">
-              <span className={`scratchpad-pulse-dot ${isTypingScratchpad ? 'typing' : 'saved'}`} />
-              <span>{isTypingScratchpad ? 'Auto-saving notes...' : 'Locally synced & saved'}</span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '11px', fontFamily: 'JetBrains Mono', color: 'var(--text-tertiary)' }}>
-                {scratchpadStats.words} {scratchpadStats.words === 1 ? 'Word' : 'Words'} • {scratchpadStats.chars} Chars
-              </span>
-              {statusMessage && (
-                <span className="vault-status-pill">
-                  {statusMessage}
-                </span>
-              )}
-            </div>
-          </div>
         </div>
       )}
 

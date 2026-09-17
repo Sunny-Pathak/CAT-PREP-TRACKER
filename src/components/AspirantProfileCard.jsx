@@ -6,7 +6,7 @@ import { calculateUserBadges } from '../utils/badgeUtils';
 import { AVATAR_FRAMES, PROFILE_BANNERS, getEffectiveFrameId, getEffectiveBannerId } from '../data/cosmeticsData';
 import MythicBannerOverlay from './MythicBannerOverlay';
 import { AnimatedSparkleIcon } from './AnimatedUiIcons';
-import { calculateLevelFromExp, getExpProgress } from '../utils/expSystem';
+import { calculateLevelFromExp, getExpProgress, getExpForLevel } from '../utils/expSystem';
 
 /**
  * AspirantProfileCard - Spacious Esports Tactical Operative Profile
@@ -23,6 +23,7 @@ export default function AspirantProfileCard({
   isSelf = false,
   onEditProfile,
   onMessagePeer,
+  onNavigateToTimer,
   onClose,
   compact = false,
   tracker = null,
@@ -33,8 +34,9 @@ export default function AspirantProfileCard({
   const [copiedId, setCopiedId] = useState(false);
   const [activeBadgeTooltip, setActiveBadgeTooltip] = useState(null);
 
-  const displayName = profile?.displayName || user?.displayName || 'Aspirant';
-  const username = profile?.target || 'CAT 2025';
+  const displayName = profile?.displayName || profile?.name || user?.displayName || 'Aspirant';
+  const targetText = profile?.targetIIM || profile?.target || user?.target || 'CAT Aspirant';
+  const username = profile?.username || targetText;
   const location = profile?.location || '';
   const avatar = useMemo(() => {
     if (profile?.avatar && (profile.avatar.startsWith('http') || profile.avatar.startsWith('data:') || profile.avatar.startsWith('blob:'))) {
@@ -49,31 +51,38 @@ export default function AspirantProfileCard({
   }, [profile?.avatar, profile?.photoURL, user?.photoURL]);
   const avatarBg = profile?.avatarBg || '#0284c7';
   const bio = profile?.bio || '';
-  const streak = profile?.streak || user?.streak || 0;
-  const solvedQs = profile?.solvedQs || user?.solvedQs || 0;
-  const mocksCount = profile?.mocksCount || user?.mocksCount || 0;
+  const streak = profile?.streak ?? profile?.careerStreak ?? profile?.baseStreak ?? user?.streak ?? 0;
+  const solvedQs = profile?.solvedQs ?? profile?.totalSolvedQs ?? profile?.baseSolvedQs ?? user?.solvedQs ?? 0;
+  const mocksCount = profile?.mocksCount ?? user?.mocksCount ?? 0;
   const status = profile?.status || 'offline';
   const aspirantId = profile?.aspirantId || user?.aspirantId || '';
+  const rank = profile?.rank;
+  const percentile = profile?.percentile ?? profile?.basePercentile;
 
-  const totalQuant = tracker?.totals?.quant || profile?.quant || 0;
-  const totalLrdi = tracker?.totals?.lrdi || profile?.lrdi || 0;
-  const totalVarc = tracker?.totals?.varc || profile?.varc || 0;
+  const totalQuant = tracker?.totals?.quant || profile?.quant || (profile?.subject === 'QUANT' ? Math.round(solvedQs * 0.6) : Math.round(solvedQs * 0.4));
+  const totalLrdi = tracker?.totals?.lrdi || profile?.lrdi || (profile?.subject === 'DILR' ? Math.round(solvedQs * 0.5) : Math.round(solvedQs * 0.3));
+  const totalVarc = tracker?.totals?.varc || profile?.varc || (profile?.subject === 'VARC' ? Math.round(solvedQs * 0.55) : Math.round(solvedQs * 0.3));
   const grandTargets = { quant: 2500, lrdi: 500, varc: 500 };
 
   // RPG Gaming Engine (Level & EXP) - Unified with expSystem (strictly defaults to Level 1 / 0 EXP for new users)
+  const explicitLevel = profile?.level !== undefined ? Math.max(1, Number(profile.level) || 1) : null;
   const rawExp = profile?.exp !== undefined 
     ? profile.exp 
     : (user?.exp !== undefined ? user.exp : 0);
   const totalExp = Math.max(0, Number(rawExp) || 0);
-  const progressData = getExpProgress(totalExp);
-  const level = profile?.level !== undefined 
-    ? Math.max(1, Number(profile.level) || 1) 
-    : (progressData.currentLevel || 1);
+
+  // If a profile explicitly specifies a level (e.g. bots with level 22) and totalExp is 0, compute realistic EXP progress
+  const computedExp = (totalExp === 0 && explicitLevel && explicitLevel > 1)
+    ? Math.round(getExpForLevel(explicitLevel) + (getExpForLevel(explicitLevel + 1) - getExpForLevel(explicitLevel)) * 0.62)
+    : totalExp;
+
+  const progressData = getExpProgress(computedExp);
+  const level = explicitLevel || progressData.currentLevel || 1;
   const currentExpInLevel = progressData.expIntoLevel;
   const expNeeded = progressData.expNeededForNext;
   const expProgress = progressData.progressPercent;
 
-  // Equipped Cosmetics (strictly validated against level: defaults to 'default' and 'cyber_grid' for Level 1)
+  // Equipped Cosmetics (strictly validated against level for self and peers alike)
   const candidateFrameId = profile?.frameId || user?.frameId || 'default';
   const equippedFrameId = getEffectiveFrameId(candidateFrameId, level);
   const candidateBannerId = profile?.bannerId || user?.bannerId || 'cyber_grid';
@@ -135,7 +144,9 @@ export default function AspirantProfileCard({
   const handleText = username ? (username.startsWith('@') ? username : `@${username}`) : '@aspirant';
   const badges = calculateUserBadges({ streak, solvedQs, mocksCount });
   const unlockedBadges = badges.filter(b => b.isUnlocked);
-  const displayBadges = (showcaseBadges && showcaseBadges.length > 0) ? showcaseBadges : badges.slice(0, 4);
+  const displayBadges = (showcaseBadges && showcaseBadges.length > 0) 
+    ? showcaseBadges 
+    : (unlockedBadges.length > 0 ? [...unlockedBadges, ...badges.filter(b => !b.isUnlocked)].slice(0, 4) : badges.slice(0, 4));
 
   // Active banner resolution
   const activeBannerPreset = PROFILE_BANNERS.find(b => b.id === equippedBannerId) || PROFILE_BANNERS[0];
@@ -167,6 +178,27 @@ export default function AspirantProfileCard({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {rank && (
+              <div 
+                className="panoramic-leaderboard-rank-pill font-mono"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  letterSpacing: '0.05em',
+                  background: rank === 1 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(56, 189, 248, 0.2)',
+                  border: rank === 1 ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(56, 189, 248, 0.4)',
+                  color: rank === 1 ? '#f87171' : '#38bdf8'
+                }}
+              >
+                <span>RANK #{rank}</span>
+              </div>
+            )}
+
             {aspirantId && (
               <button 
                 type="button"
@@ -215,7 +247,17 @@ export default function AspirantProfileCard({
           <div className="panoramic-titles-block">
             <div className="panoramic-spec-strip">
               <span className="panoramic-spec-badge font-mono">{classTitle}</span>
-              <span className="panoramic-target-tag font-mono">{handleText}</span>
+              <span className="panoramic-target-tag font-mono">
+                {profile?.username ? handleText : `@${targetText}`}
+              </span>
+              {percentile && (
+                <span 
+                  className="panoramic-target-tag font-mono"
+                  style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.35)', background: 'rgba(56, 189, 248, 0.12)' }}
+                >
+                  {percentile}%ile
+                </span>
+              )}
             </div>
 
             <h2 className="panoramic-callsign-name">{displayName}</h2>
@@ -227,7 +269,7 @@ export default function AspirantProfileCard({
             )}
           </div>
 
-          {/* Action Button: Loadout / Transmit */}
+          {/* Action Button: Loadout / Transmit / Challenge */}
           <div className="panoramic-action-slot">
             {isSelf ? (
               <button 
@@ -239,16 +281,34 @@ export default function AspirantProfileCard({
                 <span>LOADOUT CONFIG</span>
                 <span className="btn-arrow">↗</span>
               </button>
-            ) : onMessagePeer && (
-              <button 
-                type="button" 
-                className="panoramic-loadout-btn font-mono"
-                onClick={() => onMessagePeer(profile)}
-              >
-                <Icons.MessageSquare size={13} />
-                <span>DIRECT COMMS</span>
-                <span className="btn-arrow">↗</span>
-              </button>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {onNavigateToTimer && (
+                  <button 
+                    type="button" 
+                    className="panoramic-challenge-btn font-mono"
+                    onClick={() => {
+                      if (onClose) onClose();
+                      onNavigateToTimer(profile);
+                    }}
+                    title={`Challenge ${displayName} in Study Timer`}
+                  >
+                    <Icons.Zap size={13} />
+                    <span>CHALLENGE IN TIMER</span>
+                  </button>
+                )}
+                {onMessagePeer && (
+                  <button 
+                    type="button" 
+                    className="panoramic-loadout-btn font-mono"
+                    onClick={() => onMessagePeer(profile)}
+                    title={`Message ${displayName}`}
+                  >
+                    <Icons.MessageSquare size={13} />
+                    <span>COMMS</span>
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -475,7 +535,7 @@ export default function AspirantProfileCard({
           <div className="tab-pane-fluid-enter">
             <div style={{ background: 'rgba(10, 15, 26, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
               {tracker ? (
-                <StudyContributionHeatmap tracker={tracker} compact={true} />
+                <StudyContributionHeatmap tracker={tracker?.tracker || tracker} compact={true} />
               ) : (
                 <div className="empty-state" style={{ padding: '16px', fontSize: '12px', textAlign: 'center' }}>
                   Study matrix telemetry synchronized with local clock.

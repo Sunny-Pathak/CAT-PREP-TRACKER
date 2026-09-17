@@ -9,18 +9,138 @@ import {
   AnimatedFlameIcon 
 } from './AnimatedUiIcons';
 import { 
-  MOCK_COMMUNITY_STATS, 
-  MOCK_LEADERBOARD_ASPIRANTS 
+  MOCK_COMMUNITY_STATS 
 } from '../data/leaderboardData';
 import SmoothCaretInput from './animations/SmoothCaretInput';
+import { getDynamicLeaderboard } from '../utils/aspirantBotEngine';
 
-export default function StudyLounge({
+// Memoized Ladder Match Row to prevent full-table re-rendering on parent updates
+const LadderRowItem = React.memo(function LadderRowItem({ asp, timeframe, onInspect }) {
+  const hoursVal = timeframe === 'today' 
+    ? `${Number(asp.studyHoursToday || 0).toFixed(1)} hrs` 
+    : timeframe === 'weekly' 
+    ? `${Number(asp.weeklyHours || 0).toFixed(1)} hrs` 
+    : `${Number(asp.allTimeHours || 0).toFixed(1)} hrs`;
+
+  const isStudying = asp.status === 'studying';
+
+  return (
+    <div 
+      className={`ladder-match-row ${asp.isSelf ? 'user-self-row' : ''}`}
+      onClick={() => onInspect(asp)}
+    >
+      {/* Top Header on Mobile / Direct flex items on Desktop */}
+      <div className="match-card-top-row">
+        {/* Positional Rank */}
+        <div className="match-rank-col">
+          <span className="match-rank-num">#{asp.rank}</span>
+          <span className={`match-trend-badge ${asp.trend}`}>
+            {asp.trend === 'up' ? `▲ ${asp.trendDiff || 1}` : asp.trend === 'down' ? `▼ ${Math.abs(asp.trendDiff || 1)}` : '—'}
+          </span>
+        </div>
+
+        {/* Combatant Name & Live Action */}
+        <div className="match-profile-col">
+          <div className="match-avatar-frame">
+            <AvatarRenderer 
+              name={asp.name}
+              avatarBg={asp.avatarBg}
+              size={38}
+              status={asp.status}
+              frameId={asp.frameId}
+            />
+          </div>
+          <div className="match-info-meta">
+            <div className="match-name-line">
+              <span className={`match-player-name ${asp.isSelf ? 'user-self-name' : ''}`}>
+                {asp.name} {asp.isSelf ? '(YOU)' : ''}
+              </span>
+              <span className="match-id-badge">#{asp.aspirantId}</span>
+              <span className={`match-tier-tag ${asp.tier.toLowerCase()}`}>
+                {asp.tier}
+              </span>
+            </div>
+            {/* Desktop Task Line (inside profile) */}
+            <div className="match-task-line match-desktop-only">
+              {isStudying ? (
+                <span className="match-live-combat">
+                  <span className="live-combat-dot" />
+                  LIVE: {asp.subject} • {asp.activeTask}
+                </span>
+              ) : (
+                <span className="match-completed-quota">
+                  Conquered Quota • {asp.activeTask}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Top-Right Percentile */}
+        <div className="match-score-col match-mobile-only">
+          <span className="match-percentile-num">{asp.percentile}%</span>
+        </div>
+      </div>
+
+      {/* Mobile Full-Width Task Strip */}
+      <div className="match-task-line match-mobile-only">
+        {isStudying ? (
+          <span className="match-live-combat">
+            <span className="live-combat-dot" />
+            LIVE: {asp.subject} • {asp.activeTask}
+          </span>
+        ) : (
+          <span className="match-completed-quota">
+            Conquered Quota • {asp.activeTask}
+          </span>
+        )}
+      </div>
+
+      {/* Stats Cluster: Institute + Hours + Quota + Streak + Desktop Score */}
+      <div className="match-stats-cluster">
+        {/* Target Institute */}
+        <div className="match-target-col">
+          <span className="match-institute-pill">{asp.targetIIM}</span>
+        </div>
+
+        {/* Focus Hours */}
+        <div className="match-hours-col">
+          <span className="match-hours-val">{hoursVal}</span>
+        </div>
+
+        {/* Daily Quota Status */}
+        <div className="match-quota-col">
+          <span className={`match-quota-tag ${asp.drillsCompleted === asp.drillsTotal ? 'cleared' : ''}`}>
+            <Icons.Check size={11} />
+            <span>{asp.drillsCompleted}/{asp.drillsTotal} Done</span>
+          </span>
+        </div>
+
+        {/* Active Streak with Animated Living Flame */}
+        <div className="match-streak-col">
+          <div className="match-streak-badge">
+            <AnimatedFlameIcon size={13} />
+            <span>{asp.streak}d</span>
+          </div>
+        </div>
+
+        {/* Desktop Percentile Rating */}
+        <div className="match-score-col match-desktop-only">
+          <span className="match-percentile-num">{asp.percentile}%</span>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+function StudyLounge({
   peers = [],
   friends = [],
   onInspectFriend,
   currentUser = null,
   userProfile = null,
   timerState = null,
+  todayTotalHours = 0,
   onNavigateToTimer = null,
   onNavigateToFriends = null
 }) {
@@ -29,28 +149,16 @@ export default function StudyLounge({
   const [timeframe, setTimeframe] = useState('today'); // 'today' | 'weekly' | 'allTime'
   const [selectedTier, setSelectedTier] = useState('ALL'); // 'ALL' | 'Diamond' | 'Platinum' | 'Gold'
   const [searchQuery, setSearchQuery] = useState('');
-  const [inspectingAspirant, setInspectingAspirant] = useState(null);
+
+  const handleInspect = React.useCallback((aspirant) => {
+    if (!aspirant) return;
+    if (onInspectFriend) {
+      onInspectFriend(aspirant);
+    }
+  }, [onInspectFriend]);
 
   // Container ref for GSAP scoped animations
   const arenaContainerRef = useRef(null);
-
-  // Live battle ticker index simulation
-  const [tickerIndex, setTickerIndex] = useState(0);
-
-  const LIVE_BATTLE_EVENTS = [
-    { name: 'Ananya V.', event: 'logged 2.4h Quant Sectional', score: '+45 pts', time: '1m ago' },
-    { name: 'Rohan I.', event: 'cleared DILR Games & Tournaments', score: '+30 pts', time: '3m ago' },
-    { name: 'Kabir M.', event: 'extended streak to 25 Days', score: '2.5x Multiplier', time: '6m ago' },
-    { name: 'Shreya S.', event: 'completed 3/3 Daily Quotas', score: '+60 pts', time: '9m ago' },
-    { name: 'Vikramaditya', event: 'climbed 3 ranks to #6', score: '+75 pts', time: '12m ago' }
-  ];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTickerIndex((prev) => (prev + 1) % LIVE_BATTLE_EVENTS.length);
-    }, 4500);
-    return () => clearInterval(interval);
-  }, []);
 
   // GSAP animations on tier or timeframe switch
   useEffect(() => {
@@ -59,56 +167,62 @@ export default function StudyLounge({
       gsap.fromTo(
         '.podium-pillar',
         { opacity: 0, y: 18 },
-        { opacity: 1, y: 0, duration: 0.45, stagger: 0.08, ease: 'power2.out' }
+        { opacity: 1, y: 0, duration: 0.35, stagger: 0.05, ease: 'power2.out', force3D: true }
       );
       gsap.fromTo(
         '.ladder-match-row',
-        { opacity: 0, x: -12 },
-        { opacity: 1, x: 0, duration: 0.35, stagger: 0.035, ease: 'power1.out' }
+        { opacity: 0, x: -10 },
+        { opacity: 1, x: 0, duration: 0.25, stagger: 0.02, ease: 'power1.out', force3D: true }
       );
     }, arenaContainerRef);
 
     return () => ctx.revert();
   }, [selectedTier, timeframe]);
 
-  // User live activity
-  const isUserStudying = timerState && (timerState.isRunning || timerState.isPaused);
-  const userTodayHours = userProfile?.studyHoursToday || 0.4;
-  const userStreak = userProfile?.streak || 2;
-  const userSolvedQs = userProfile?.solvedQs || 54;
-  const userName = userProfile?.displayName || currentUser?.displayName || 'You';
+  // User live activity - extract primitives so ticking seconds don't invalidate dynamicBoard
+  const isUserStudying = Boolean(timerState && (timerState.isRunning || timerState.isPaused));
+  const timerSubject = (timerState?.subject || 'QUANT').toUpperCase();
+  const effectiveUserHours = todayTotalHours > 0 
+    ? todayTotalHours 
+    : (userProfile?.studyHoursToday || 0.4);
 
-  // Current user standing
-  const currentUserRecord = useMemo(() => ({
-    id: currentUser?.uid || 'self',
-    isSelf: true,
-    rank: 11,
-    name: userName,
-    aspirantId: userProfile?.aspirantId || 'CAT-YOU',
-    targetIIM: userProfile?.target || 'IIM Ahmedabad',
-    percentile: 96.4,
-    studyHoursToday: isUserStudying ? userTodayHours + 0.2 : userTodayHours,
-    weeklyHours: 14.8,
-    allTimeHours: 64.0,
-    drillsCompleted: 1,
-    drillsTotal: 3,
-    streak: userStreak,
-    solvedQs: userSolvedQs,
-    tier: 'Gold',
-    status: isUserStudying ? 'studying' : 'ready',
-    subject: (timerState?.subject || 'QUANT').toUpperCase(),
-    activeTask: isUserStudying ? `${timerState?.subject || 'Quant'} Focus Session` : '1 / 3 Daily Quotas Conquered',
-    avatarBg: userProfile?.avatarBg || '#5865f2',
-    trend: 'up',
-    trendDiff: 1
-  }), [currentUser, userProfile, timerState, isUserStudying, userTodayHours, userStreak, userSolvedQs, userName]);
+  // Dynamic ranking of 12 autonomous bots + current user with twice-daily sync
+  const dynamicBoard = useMemo(() => {
+    return getDynamicLeaderboard(
+      userProfile,
+      currentUser,
+      effectiveUserHours,
+      isUserStudying,
+      timerSubject
+    );
+  }, [
+    userProfile?.displayName,
+    userProfile?.studyHoursToday,
+    userProfile?.streak,
+    userProfile?.solvedQs,
+    userProfile?.target,
+    userProfile?.avatarBg,
+    currentUser?.uid,
+    effectiveUserHours,
+    isUserStudying,
+    timerSubject
+  ]);
 
-  // Next rival immediately ahead of the user
-  const nextRival = MOCK_LEADERBOARD_ASPIRANTS.find((a) => a.rank === 10) || MOCK_LEADERBOARD_ASPIRANTS[9];
+  const {
+    rankedLeaderboard,
+    currentUserRecord,
+    userRank,
+    nextRival,
+    gapHours,
+    top1,
+    top2,
+    top3,
+    batchInfo
+  } = dynamicBoard;
 
   // Filtered leaderboard
   const filteredAspirants = useMemo(() => {
-    return MOCK_LEADERBOARD_ASPIRANTS.filter((a) => {
+    return rankedLeaderboard.filter((a) => {
       if (selectedTier !== 'ALL' && a.tier !== selectedTier) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -117,17 +231,12 @@ export default function StudyLounge({
       }
       return true;
     });
-  }, [selectedTier, searchQuery]);
-
-  // Top 3 Podium
-  const top1 = MOCK_LEADERBOARD_ASPIRANTS[0];
-  const top2 = MOCK_LEADERBOARD_ASPIRANTS[1];
-  const top3 = MOCK_LEADERBOARD_ASPIRANTS[2];
+  }, [rankedLeaderboard, selectedTier, searchQuery]);
 
   // Ranks 4+
   const ladderRoster = filteredAspirants.filter((a) => a.rank > 3);
 
-  const activeEvent = LIVE_BATTLE_EVENTS[tickerIndex];
+
 
   return (
     <div ref={arenaContainerRef} className="battleground-arena-wrapper fade-in">
@@ -136,38 +245,43 @@ export default function StudyLounge({
       <div className="war-room-header-strip">
         <div className="war-room-meta-col">
           <div className="battle-season-badge">
-            <span className="live-radar-ping"></span>
-            <span className="season-txt">RANKED LADDER • SEASON 2026</span>
-            <span className="arena-live-count">{MOCK_COMMUNITY_STATS.activeStudyingNow} COMBATANTS IN SESSION</span>
+            <div className="battle-season-primary">
+              <span className="live-radar-ping"></span>
+              <span className="season-txt">
+                <span className="season-txt-full">RANKED LADDER • SEASON 2026</span>
+                <span className="season-txt-short">SEASON 2026</span>
+              </span>
+              <span className="arena-live-count font-mono">
+                <span className="arena-live-full">{MOCK_COMMUNITY_STATS.activeStudyingNow} COMBATANTS IN SESSION</span>
+                <span className="arena-live-short">{MOCK_COMMUNITY_STATS.activeStudyingNow} IN SESSION</span>
+              </span>
+            </div>
+            <span className="arena-sync-pill font-mono" title={`Batch locked at ${batchInfo?.displayTime || '06:00 AM'}. Next batch update: ${batchInfo?.nextSyncTime || '18:00 PM'}`}>
+              <span className="sync-pill-full">SYNC: TWICE DAILY • NEXT {batchInfo?.nextSyncTime ? batchInfo.nextSyncTime.toUpperCase() : '18:00 PM'}</span>
+              <span className="sync-pill-short">SYNC: {batchInfo?.nextSyncTime ? batchInfo.nextSyncTime.toUpperCase() : '18:00 PM'}</span>
+            </span>
           </div>
 
           <h1 className="battleground-title">
             ASPIRANT <span className="title-highlight">BATTLEGROUND</span>
           </h1>
 
-          {/* Live Activity Ticker */}
-          <div className="battle-live-ticker">
-            <span className="ticker-tag">LIVE TICKER</span>
-            <div className="ticker-content" key={tickerIndex}>
-              <span className="ticker-name">{activeEvent.name}</span>
-              <span className="ticker-event">{activeEvent.event}</span>
-              <span className="ticker-score">{activeEvent.score}</span>
-              <span className="ticker-time">• {activeEvent.time}</span>
-            </div>
-          </div>
+
         </div>
 
         {/* Rival Overtake Challenge Card */}
         <div className="rival-overtake-widget">
           <div className="rival-widget-header">
             <span className="widget-label">TARGET TO OVERTAKE</span>
-            <span className="widget-gap-pill">GAP: 0.8 HRS</span>
+            <span className="widget-gap-pill font-mono">
+              {userRank === 1 ? 'RANK #1 APEX DEFENDED' : `GAP: ${gapHours} HRS`}
+            </span>
           </div>
 
           <div className="rival-versus-row">
             {/* You */}
             <div className="versus-player you">
-              <span className="versus-rank">#11</span>
+              <span className="versus-rank">#{userRank}</span>
               <span className="versus-name">YOU</span>
               <span className="versus-stat">{currentUserRecord.studyHoursToday.toFixed(1)}h today</span>
             </div>
@@ -178,10 +292,25 @@ export default function StudyLounge({
             </div>
 
             {/* Rival */}
-            <div className="versus-player rival">
-              <span className="versus-rank">#10</span>
-              <span className="versus-name">{nextRival.name.split(' ')[0]}</span>
-              <span className="versus-stat">{nextRival.studyHoursToday}h today</span>
+            <div 
+              className="versus-player rival"
+              style={{ cursor: 'pointer' }}
+              onClick={() => handleInspect(userRank === 1 ? top2 : nextRival)}
+              title="Inspect Rival Dossier"
+            >
+              {userRank === 1 ? (
+                <>
+                  <span className="versus-rank">#2</span>
+                  <span className="versus-name">{top2?.name ? top2.name.split(' ')[0] : 'Rival'}</span>
+                  <span className="versus-stat">Chasing You</span>
+                </>
+              ) : (
+                <>
+                  <span className="versus-rank">#{nextRival?.rank || userRank - 1}</span>
+                  <span className="versus-name">{nextRival?.name ? nextRival.name.split(' ')[0] : 'Rival'}</span>
+                  <span className="versus-stat">{Number(nextRival?.studyHoursToday || 0).toFixed(1)}h today</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -192,7 +321,13 @@ export default function StudyLounge({
               onClick={onNavigateToTimer}
             >
               <AnimatedLightningIcon size={14} color="#ffffff" />
-              <span>{isUserStudying ? 'Push Ahead in Timer' : 'Overtake Rank #10'}</span>
+              <span>
+                {userRank === 1
+                  ? (isUserStudying ? 'Defending Rank #1 in Timer' : 'Extend Apex Lead')
+                  : (isUserStudying 
+                      ? `Push Ahead of Rank #${nextRival?.rank || userRank - 1}` 
+                      : `Overtake Rank #${nextRival?.rank || userRank - 1}`)}
+              </span>
             </button>
           )}
         </div>
@@ -205,7 +340,7 @@ export default function StudyLounge({
         {top2 && (
           <div 
             className="podium-pillar rank-2"
-            onClick={() => setInspectingAspirant(top2)}
+            onClick={() => handleInspect(top2)}
           >
             <div className="pillar-step-pedestal silver">
               <div className="pedestal-rank-tag">
@@ -218,9 +353,10 @@ export default function StudyLounge({
                   avatarBg={top2.avatarBg}
                   size={52}
                   status={top2.status}
+                  frameId={top2.frameId}
                 />
               </div>
-              <h3 className="pillar-player-name">{top2.name}</h3>
+              <h3 className="pillar-player-name">{top2.name} {top2.isSelf ? '(YOU)' : ''}</h3>
               <span className="pillar-target-tag">{top2.targetIIM}</span>
               
               <div className="pillar-elo-score">
@@ -229,7 +365,7 @@ export default function StudyLounge({
               </div>
 
               <div className="pillar-stat-chips">
-                <span className="stat-chip">{top2.studyHoursToday}h Today</span>
+                <span className="stat-chip">{Number(top2.studyHoursToday || 0).toFixed(1)}h Today</span>
                 <span className="stat-chip flame">
                   <AnimatedFlameIcon size={12} />
                   <span>{top2.streak}d Streak</span>
@@ -244,7 +380,7 @@ export default function StudyLounge({
         {top1 && (
           <div 
             className="podium-pillar rank-1 champion"
-            onClick={() => setInspectingAspirant(top1)}
+            onClick={() => handleInspect(top1)}
           >
             <div className="pillar-step-pedestal gold">
               <div className="pedestal-crown-halo">
@@ -257,9 +393,10 @@ export default function StudyLounge({
                   avatarBg={top1.avatarBg}
                   size={64}
                   status={top1.status}
+                  frameId={top1.frameId}
                 />
               </div>
-              <h3 className="pillar-player-name apex">{top1.name}</h3>
+              <h3 className="pillar-player-name apex">{top1.name} {top1.isSelf ? '(YOU)' : ''}</h3>
               <span className="pillar-target-tag gold">{top1.targetIIM}</span>
               
               <div className="pillar-elo-score gold">
@@ -268,7 +405,7 @@ export default function StudyLounge({
               </div>
 
               <div className="pillar-stat-chips">
-                <span className="stat-chip gold">{top1.studyHoursToday}h Focus</span>
+                <span className="stat-chip gold">{Number(top1.studyHoursToday || 0).toFixed(1)}h Focus</span>
                 <span className="stat-chip flame">
                   <AnimatedFlameIcon size={12} />
                   <span>{top1.streak}d Streak</span>
@@ -284,7 +421,7 @@ export default function StudyLounge({
         {top3 && (
           <div 
             className="podium-pillar rank-3"
-            onClick={() => setInspectingAspirant(top3)}
+            onClick={() => handleInspect(top3)}
           >
             <div className="pillar-step-pedestal bronze">
               <div className="pedestal-rank-tag bronze">
@@ -297,9 +434,10 @@ export default function StudyLounge({
                   avatarBg={top3.avatarBg}
                   size={52}
                   status={top3.status}
+                  frameId={top3.frameId}
                 />
               </div>
-              <h3 className="pillar-player-name">{top3.name}</h3>
+              <h3 className="pillar-player-name">{top3.name} {top3.isSelf ? '(YOU)' : ''}</h3>
               <span className="pillar-target-tag">{top3.targetIIM}</span>
               
               <div className="pillar-elo-score">
@@ -308,7 +446,7 @@ export default function StudyLounge({
               </div>
 
               <div className="pillar-stat-chips">
-                <span className="stat-chip">{top3.studyHoursToday}h Today</span>
+                <span className="stat-chip">{Number(top3.studyHoursToday || 0).toFixed(1)}h Today</span>
                 <span className="stat-chip flame">
                   <AnimatedFlameIcon size={12} />
                   <span>{top3.streak}d Streak</span>
@@ -403,95 +541,14 @@ export default function StudyLounge({
         </div>
 
         <div className="ladder-board-rows">
-          {ladderRoster.map((asp) => {
-            const hoursVal = timeframe === 'today' 
-              ? `${asp.studyHoursToday} hrs` 
-              : timeframe === 'weekly' 
-              ? `${asp.weeklyHours} hrs` 
-              : `${asp.allTimeHours} hrs`;
-
-            const isStudying = asp.status === 'studying';
-
-            return (
-              <div 
-                key={asp.id} 
-                className="ladder-match-row"
-                onClick={() => setInspectingAspirant(asp)}
-              >
-                {/* Positional Rank */}
-                <div className="match-rank-col">
-                  <span className="match-rank-num">#{asp.rank}</span>
-                  <span className={`match-trend-badge ${asp.trend}`}>
-                    {asp.trend === 'up' ? `▲ ${asp.trendDiff || 1}` : asp.trend === 'down' ? `▼ ${Math.abs(asp.trendDiff || 1)}` : '—'}
-                  </span>
-                </div>
-
-                {/* Combatant Name & Live Action */}
-                <div className="match-profile-col">
-                  <div className="match-avatar-frame">
-                    <AvatarRenderer 
-                      name={asp.name}
-                      avatarBg={asp.avatarBg}
-                      size={38}
-                      status={asp.status}
-                    />
-                  </div>
-                  <div className="match-info-meta">
-                    <div className="match-name-line">
-                      <span className="match-player-name">{asp.name}</span>
-                      <span className="match-id-badge">#{asp.aspirantId}</span>
-                      <span className={`match-tier-tag ${asp.tier.toLowerCase()}`}>
-                        {asp.tier}
-                      </span>
-                    </div>
-                    <div className="match-task-line">
-                      {isStudying ? (
-                        <span className="match-live-combat">
-                          <span className="live-combat-dot" />
-                          LIVE: {asp.subject} • {asp.activeTask}
-                        </span>
-                      ) : (
-                        <span className="match-completed-quota">
-                          Conquered Quota • {asp.activeTask}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Target Institute */}
-                <div className="match-target-col">
-                  <span className="match-institute-pill">{asp.targetIIM}</span>
-                </div>
-
-                {/* Focus Hours */}
-                <div className="match-hours-col">
-                  <span className="match-hours-val">{hoursVal}</span>
-                </div>
-
-                {/* Daily Quota Status */}
-                <div className="match-quota-col">
-                  <span className={`match-quota-tag ${asp.drillsCompleted === asp.drillsTotal ? 'cleared' : ''}`}>
-                    <Icons.Check size={11} />
-                    <span>{asp.drillsCompleted}/{asp.drillsTotal} Done</span>
-                  </span>
-                </div>
-
-                {/* Active Streak with Animated Living Flame */}
-                <div className="match-streak-col">
-                  <div className="match-streak-badge">
-                    <AnimatedFlameIcon size={13} />
-                    <span>{asp.streak}d</span>
-                  </div>
-                </div>
-
-                {/* Percentile Rating */}
-                <div className="match-score-col">
-                  <span className="match-percentile-num">{asp.percentile}%</span>
-                </div>
-              </div>
-            );
-          })}
+          {ladderRoster.map((asp) => (
+            <LadderRowItem 
+              key={asp.id} 
+              asp={asp} 
+              timeframe={timeframe} 
+              onInspect={handleInspect} 
+            />
+          ))}
         </div>
       </div>
 
@@ -538,99 +595,8 @@ export default function StudyLounge({
           )}
         </div>
       </div>
-
-      {/* 6. COMBATANT DOSSIER MODAL */}
-      {inspectingAspirant && (
-        <div 
-          className="battle-modal-overlay"
-          onClick={() => setInspectingAspirant(null)}
-        >
-          <div 
-            className="battle-dossier-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="dossier-modal-head">
-              <div className="dossier-player-block">
-                <AvatarRenderer 
-                  name={inspectingAspirant.name}
-                  avatarBg={inspectingAspirant.avatarBg}
-                  size={56}
-                  status={inspectingAspirant.status}
-                />
-                <div>
-                  <div className="dossier-title-row">
-                    <h3>{inspectingAspirant.name}</h3>
-                    <span className="dossier-rank-pill">RANK #{inspectingAspirant.rank}</span>
-                  </div>
-                  <span className="dossier-target-text">{inspectingAspirant.targetIIM} • #{inspectingAspirant.aspirantId}</span>
-                </div>
-              </div>
-
-              <button 
-                type="button" 
-                className="dossier-close-btn"
-                onClick={() => setInspectingAspirant(null)}
-              >
-                <Icons.Close size={16} />
-              </button>
-            </div>
-
-            <div className="dossier-modal-content">
-              <div className="dossier-combat-matrix">
-                <div className="combat-stat-cell">
-                  <span className="stat-name">ESTIMATED PERCENTILE</span>
-                  <span className="stat-big-val cyan">{inspectingAspirant.percentile}%</span>
-                </div>
-                <div className="combat-stat-cell">
-                  <span className="stat-name">CURRENT STREAK</span>
-                  <span className="stat-big-val amber">{inspectingAspirant.streak} Days</span>
-                </div>
-                <div className="combat-stat-cell">
-                  <span className="stat-name">TODAY'S LOGGED FOCUS</span>
-                  <span className="stat-big-val">{inspectingAspirant.studyHoursToday} Hours</span>
-                </div>
-                <div className="combat-stat-cell">
-                  <span className="stat-name">TOTAL DRILLS SOLVED</span>
-                  <span className="stat-big-val">{inspectingAspirant.solvedQs} Questions</span>
-                </div>
-              </div>
-
-              <div className="dossier-mission-log">
-                <span className="mission-log-header">MISSION COMBAT LOG</span>
-                <p className="mission-log-text">
-                  {inspectingAspirant.status === 'studying' 
-                    ? `Actively drilling ${inspectingAspirant.subject}: ${inspectingAspirant.activeTask}. Currently holding Rank #${inspectingAspirant.rank} with ${inspectingAspirant.studyHoursToday}h logged.`
-                    : `Finished all 3 daily drill objectives. Rank defended with ${inspectingAspirant.studyHoursToday}h today and ${inspectingAspirant.solvedQs} total problems solved.`}
-                </p>
-              </div>
-            </div>
-
-            <div className="dossier-modal-actions">
-              <button 
-                type="button" 
-                className="dossier-dismiss-btn"
-                onClick={() => setInspectingAspirant(null)}
-              >
-                Dismiss
-              </button>
-              {onNavigateToTimer && (
-                <button 
-                  type="button" 
-                  className="dossier-engage-btn"
-                  onClick={() => {
-                    setInspectingAspirant(null);
-                    onNavigateToTimer();
-                  }}
-                >
-                  <AnimatedLightningIcon size={14} color="#ffffff" />
-                  <span>Challenge in Study Timer</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
+
+export default React.memo(StudyLounge);

@@ -169,7 +169,7 @@ export default function TimelineView({
       <div className="plan-expedition-hero">
         <div className="expedition-hero-left">
           <div className="expedition-protocol-tag">
-            <span>// STRATEGIC BLUEPRINT • 16-WEEK CURRICULUM</span>
+            <span>STRATEGIC BLUEPRINT • 16-WEEK CURRICULUM</span>
           </div>
           <h1 className="expedition-headline">
             THE 16-WEEK <span className="expedition-headline-serif">Roadmap.</span>

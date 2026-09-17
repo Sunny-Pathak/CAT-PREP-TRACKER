@@ -18,6 +18,8 @@ import {
   AnimatedFlameIcon 
 } from './AnimatedUiIcons';
 import { playSoftZenChime } from '../utils/audioUtils';
+import AnimatedChip from './AnimatedChip';
+import GooeyThemeSwitch from './GooeyThemeSwitch';
 import { 
   getAllExams, 
   getActiveExamConfig, 
@@ -45,7 +47,14 @@ export default function SettingsView({
   targetExam = 'cat',
   onSelectTargetExam = () => {},
   onOpenOnboarding = () => {},
-  onOpenPatchNotes = () => {}
+  onOpenPatchNotes = () => {},
+  showTopBarThemeSwitch = false,
+  onToggleTopBarThemeSwitch = () => {},
+  onOpenDataAuditModal = () => {},
+  syncStatus = 'saved',
+  lastSyncedTimeStr = '',
+  hasUnsyncedCloudChanges = false,
+  onTriggerManualSync = async () => {}
 }) {
   // Navigation Category Tab ('themes' | 'typography' | 'schedule' | 'cloud' | 'exam')
   const [activeTab, setActiveTab] = useState('themes');
@@ -393,58 +402,48 @@ export default function SettingsView({
       )}
 
       {/* ========================================================
-          SEGMENTED CATEGORY NAVIGATION (4 PILLARS)
+          SEGMENTED CATEGORY NAVIGATION (4 PILLARS) - REACTICX ANIMATED CHIPS
          ======================================================== */}
-      <div className="settings-category-nav-bar">
-        <button
-          type="button"
-          className={`category-nav-btn ${activeTab === 'themes' ? 'active' : ''}`}
+      <div className="settings-category-nav-bar animated-chips-wrapper">
+        <AnimatedChip
+          icon={() => <AnimatedSparkleIcon size={14} color="#38bdf8" />}
+          label="Appearance & Themes"
+          mobileLabel="Themes"
+          active={activeTab === 'themes'}
           onClick={() => setActiveTab('themes')}
-        >
-          <AnimatedSparkleIcon size={14} color="#38bdf8" />
-          <span className="nav-btn-desktop">Appearance & Themes</span>
-          <span className="nav-btn-mobile">Themes</span>
-        </button>
+        />
 
-        <button
-          type="button"
-          className={`category-nav-btn ${activeTab === 'typography' ? 'active' : ''}`}
+        <AnimatedChip
+          icon={() => <Icons.Edit3 size={14} />}
+          label="Typography Studio"
+          mobileLabel="Typography"
+          active={activeTab === 'typography'}
           onClick={() => setActiveTab('typography')}
-        >
-          <Icons.Edit3 size={14} />
-          <span className="nav-btn-desktop">Typography Studio</span>
-          <span className="nav-btn-mobile">Typography</span>
-        </button>
+        />
 
-        <button
-          type="button"
-          className={`category-nav-btn ${activeTab === 'schedule' ? 'active' : ''}`}
+        <AnimatedChip
+          icon={() => <Icons.Calendar size={14} />}
+          label="Schedule & Sounds"
+          mobileLabel="Schedule"
+          active={activeTab === 'schedule'}
           onClick={() => setActiveTab('schedule')}
-        >
-          <Icons.Calendar size={14} />
-          <span className="nav-btn-desktop">Schedule & Sounds</span>
-          <span className="nav-btn-mobile">Schedule</span>
-        </button>
+        />
 
-        <button
-          type="button"
-          className={`category-nav-btn ${activeTab === 'exam' ? 'active' : ''}`}
+        <AnimatedChip
+          icon={() => <Icons.Target size={14} />}
+          label="Target Exam & Blueprint"
+          mobileLabel="Exam"
+          active={activeTab === 'exam'}
           onClick={() => setActiveTab('exam')}
-        >
-          <Icons.Target size={14} />
-          <span className="nav-btn-desktop">Target Exam & Blueprint</span>
-          <span className="nav-btn-mobile">Exam</span>
-        </button>
+        />
 
-        <button
-          type="button"
-          className={`category-nav-btn ${activeTab === 'cloud' ? 'active' : ''}`}
+        <AnimatedChip
+          icon={() => <Icons.Cloud size={14} />}
+          label="Cloud & Portability"
+          mobileLabel="Cloud"
+          active={activeTab === 'cloud'}
           onClick={() => setActiveTab('cloud')}
-        >
-          <Icons.Cloud size={14} />
-          <span className="nav-btn-desktop">Cloud & Portability</span>
-          <span className="nav-btn-mobile">Cloud</span>
-        </button>
+        />
       </div>
 
       {/* ========================================================
@@ -453,6 +452,72 @@ export default function SettingsView({
       {activeTab === 'themes' && (
         <div className="settings-pane-content fade-in">
           
+          {/* Reacticx-Inspired Gooey Theme Switcher for Quick Dual Favorite Toggle */}
+          <GooeyThemeSwitch 
+            currentTheme={currentTheme}
+            onSelectTheme={onSelectTheme}
+          />
+
+          {/* Quick Dual Theme Flip Top Bar Setting */}
+          <div 
+            className="settings-topbar-toggle-card"
+            style={{
+              margin: '12px 0 16px',
+              padding: '12px 18px',
+              borderRadius: '12px',
+              background: 'rgba(15, 23, 42, 0.65)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '8px', 
+                  background: 'rgba(56, 189, 248, 0.1)', 
+                  color: 'var(--accent-color, #38bdf8)' 
+                }}
+              >
+                <Icons.Layers size={16} />
+              </div>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary, #f8fafc)' }}>
+                  Pin Quick Theme Switch to Top Bar
+                </div>
+                <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #94a3b8)' }}>
+                  Show the compact dual-theme toggle directly in the top navigation cluster.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`topbar-toggle-pill-btn ${showTopBarThemeSwitch ? 'is-active' : ''}`}
+              onClick={() => onToggleTopBarThemeSwitch(!showTopBarThemeSwitch)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '999px',
+                border: showTopBarThemeSwitch ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.16)',
+                background: showTopBarThemeSwitch ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255, 255, 255, 0.06)',
+                color: showTopBarThemeSwitch ? '#38bdf8' : 'var(--text-muted, #94a3b8)',
+                fontSize: '11.5px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease'
+              }}
+              aria-pressed={showTopBarThemeSwitch}
+            >
+              {showTopBarThemeSwitch ? 'Pinned to Top' : 'Off'}
+            </button>
+          </div>
+
           {/* Active Theme Spotlight Card - Fixed & Stable to Eliminate Layout Jitter */}
           <div 
             className="theme-spotlight-card"
@@ -977,6 +1042,122 @@ export default function SettingsView({
                 </form>
               </div>
             )}
+          </div>
+
+          {/* User Data & Cloud Sync Audit Log */}
+          <div className="settings-sub-panel" style={{ marginBottom: '24px' }}>
+            <div className="sub-panel-header">
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <AnimatedRadarBeaconIcon size={18} color="var(--accent-color, #38bdf8)" />
+                  <span className="font-mono" style={{ fontSize: '11px', fontWeight: '700', color: 'var(--accent-color, #38bdf8)', letterSpacing: '0.08em' }}>
+                    TRANSPARENCY & AUDIT LEDGER
+                  </span>
+                </div>
+                <h3 className="sub-panel-title">User Data & Cloud Sync Audit</h3>
+                <p className="sub-panel-subtitle">
+                  Inspect login session history, review all data collected on your machine, and monitor local-first cloud replication.
+                </p>
+              </div>
+            </div>
+
+            <div 
+              className="audit-settings-summary-card"
+              style={{
+                padding: '16px 20px',
+                borderRadius: '14px',
+                background: 'rgba(15, 23, 42, 0.75)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '16px'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span 
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: hasUnsyncedCloudChanges ? '#f59e0b' : '#22c55e',
+                      boxShadow: hasUnsyncedCloudChanges ? '0 0 10px #f59e0b' : '0 0 10px #22c55e'
+                    }}
+                  />
+                  <span style={{ fontSize: '13.5px', fontWeight: '700', color: 'var(--text-primary, #f8fafc)' }}>
+                    {hasUnsyncedCloudChanges ? 'Pending Cloud Flush (Local Edits Queued)' : 'Cloud Replica Up To Date'}
+                  </span>
+                  <span 
+                    className="font-mono" 
+                    style={{ 
+                      fontSize: '10px', 
+                      padding: '2px 8px', 
+                      borderRadius: '999px', 
+                      background: 'rgba(16, 185, 129, 0.14)', 
+                      border: '1px solid rgba(16, 185, 129, 0.3)', 
+                      color: '#34d399' 
+                    }}
+                  >
+                    Local-First Engine
+                  </span>
+                </div>
+                <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #94a3b8)' }}>
+                  Last cloud sync: <strong style={{ color: 'var(--text-secondary, #cbd5e1)' }}>{lastSyncedTimeStr || 'Current session start'}</strong> · All modifications saved immediately to local disk.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={onTriggerManualSync}
+                  disabled={!user}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    color: '#38bdf8',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: !user ? 'not-allowed' : 'pointer',
+                    opacity: !user ? 0.5 : 1,
+                    transition: 'all 0.18s ease'
+                  }}
+                  title={!user ? 'Sign in to sync with cloud' : 'Force cloud synchronization now'}
+                >
+                  <Icons.RefreshCw size={12} />
+                  <span>Sync Now</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onOpenDataAuditModal}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.28) 0%, rgba(14, 165, 233, 0.16) 100%)',
+                    border: '1px solid rgba(56, 189, 248, 0.45)',
+                    color: '#38bdf8',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    boxShadow: '0 0 14px rgba(56, 189, 248, 0.2)',
+                    transition: 'all 0.18s ease'
+                  }}
+                >
+                  <Icons.Activity size={12} />
+                  <span>Open Audit & Data Ledger</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Data Portability Suite */}

@@ -29,6 +29,15 @@ graphify-out/
 # Android build artifacts
 *.apk
 
+# Audio and Media Binaries
+*.wav
+*.mp3
+*.ogg
+
+# Local Visualizations & Scratch
+graph.html
+graph.json
+
 # Environment & Secrets
 .env
 .env.*

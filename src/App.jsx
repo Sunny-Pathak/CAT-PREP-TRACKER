@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
-import { loadState, saveState, exportStateAsFile, getInitialState, mergeTrackerStates } from './utils/storage';
+import { loadState, saveState, exportStateAsFile, getInitialState, mergeTrackerStates, validateAndSanitizeBackup } from './utils/storage';
 import { 
   auth, 
   isFirebaseConfigured, 
@@ -28,6 +28,8 @@ import {
 } from './utils/dateUtils';
 import { stripEmojis } from './utils/textUtils';
 import HeaderProfileDropdown from './components/HeaderProfileDropdown';
+import DataSyncAuditModal from './components/DataSyncAuditModal';
+import GooeyThemeSwitch from './components/GooeyThemeSwitch';
 
 import DashboardView from './components/DashboardView';
 import FloatingTimerWidget from './components/FloatingTimerWidget';
@@ -558,6 +560,25 @@ export default function App() {
     });
   };
 
+  // Data Transparency & Cloud Sync Audit Modal State
+  const [isDataAuditOpen, setIsDataAuditOpen] = useState(false);
+
+  // Pin Quick Theme Switch to Top Bar option
+  const [showTopBarThemeSwitch, setShowTopBarThemeSwitch] = useState(() => {
+    try {
+      return localStorage.getItem('catalyze_topbar_theme_switch') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleTopBarThemeSwitch = (val) => {
+    setShowTopBarThemeSwitch(val);
+    try {
+      localStorage.setItem('catalyze_topbar_theme_switch', String(val));
+    } catch (e) {}
+  };
+
   // Compute today's position based on start date
   const todayPos = getTodayTrackerPosition(state.settings?.startDate);
 
@@ -903,6 +924,37 @@ export default function App() {
     }
   }, [state, isCloudLoaded]);
 
+  // On-Demand Manual Cloud Sync Trigger
+  const handleTriggerManualSync = async () => {
+    if (!user?.uid) {
+      throw new Error("You must be logged in to sync data with the cloud.");
+    }
+    setSyncStatus('syncing');
+    try {
+      await saveTrackerToCloud(
+        user.uid,
+        state.tracker,
+        state.studyPlan,
+        state.mocks,
+        activeStreak,
+        totalSolved,
+        Date.now()
+      );
+      setHasUnsyncedCloudChanges(false);
+      setSyncStatus('synced');
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setLastSyncedTimeStr(timeStr);
+      try {
+        localStorage.setItem('catalyze_last_synced_time', timeStr);
+      } catch {}
+      return true;
+    } catch (err) {
+      setSyncStatus('error');
+      console.warn("Manual cloud sync failed:", err);
+      throw err;
+    }
+  };
+
   // Listen to Firebase Auth state with Anti-Overwrite & Non-Destructive Merge
   useEffect(() => {
     if (isFirebaseConfigured && auth) {
@@ -1188,6 +1240,18 @@ export default function App() {
     };
   }, [user?.uid, state.tracker, state.settings?.startDate]);
 
+  // When browser regains network connectivity, automatically flush unsynced changes to cloud
+  useEffect(() => {
+    const handleNetworkReconnected = () => {
+      if (isFirebaseConfigured && user?.uid && hasUnsyncedCloudChanges && navigator.onLine) {
+        handleRecordDayProgress(true);
+      }
+    };
+
+    window.addEventListener('online', handleNetworkReconnected);
+    return () => window.removeEventListener('online', handleNetworkReconnected);
+  }, [user?.uid, hasUnsyncedCloudChanges, state]);
+
   // Real-time listener for current user's profile document (syncs friends list, display name, target, etc.)
   useEffect(() => {
     if (!isFirebaseConfigured || !user?.uid) return;
@@ -1351,29 +1415,47 @@ export default function App() {
     }
 
     const peerUid = friendProfile.uid || friendProfile.id;
-    setSelectedFriend({
+    const isBot = String(peerUid || '').startsWith('bot-') || String(peerUid || '').startsWith('asp-');
+    const isSelfUser = !peerUid || peerUid === 'self' || peerUid === 'self_user';
+
+    const enrichedFriend = {
       ...friendProfile,
+      displayName: friendProfile.displayName || friendProfile.name || 'Aspirant',
       id: peerUid,
       uid: peerUid
-    });
-    setSelectedFriendTracker(null);
-    setLoadingFriendTracker(true);
+    };
 
-    try {
-      if (isFirebaseConfigured && peerUid && peerUid !== 'self' && peerUid !== 'self_user') {
+    setSelectedFriend(enrichedFriend);
+
+    if (isBot) {
+      try {
+        const { generateBotTracker } = await import('./utils/aspirantBotEngine');
+        const botBundle = generateBotTracker(enrichedFriend);
+        setSelectedFriendTracker(botBundle);
+      } catch (_e) {
+        setSelectedFriendTracker(null);
+      }
+      setLoadingFriendTracker(false);
+      return;
+    }
+
+    if (isFirebaseConfigured && !isSelfUser) {
+      setLoadingFriendTracker(true);
+      try {
         const cloudData = await loadTrackerFromCloud(peerUid);
         if (cloudData) {
           setSelectedFriendTracker(cloudData);
         } else {
-          setSelectedFriendTracker({ tracker: null, studyPlan: null, mocks: null });
+          setSelectedFriendTracker(null);
         }
-      } else {
-        setSelectedFriendTracker({ tracker: null, studyPlan: null, mocks: null });
+      } catch (err) {
+        console.error("Error inspecting friend tracker:", err);
+        setSelectedFriendTracker(null);
+      } finally {
+        setLoadingFriendTracker(false);
       }
-    } catch (err) {
-      console.error("Error inspecting friend tracker:", err);
-      setSelectedFriendTracker({ tracker: null, studyPlan: null, mocks: null });
-    } finally {
+    } else {
+      setSelectedFriendTracker(null);
       setLoadingFriendTracker(false);
     }
   };
@@ -1883,26 +1965,32 @@ export default function App() {
     exportStateAsFile(state);
   };
 
-  // Import backup data
+  // Import backup data with strict validation, schema normalization & prototype pollution defense
   const handleImport = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Backup file exceeds maximum limit of 10MB.");
+      e.target.value = '';
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const imported = JSON.parse(event.target.result);
-        if (imported.tracker && imported.studyPlan && imported.mocks) {
-          setState({ ...imported, lastUpdated: Date.now() });
-          if (imported.settings?.theme) {
-            setTheme(imported.settings.theme);
-          }
-          alert("Backup data imported successfully!");
-        } else {
-          alert("Invalid backup file structure.");
+        const sanitized = validateAndSanitizeBackup(event.target.result);
+        const saved = saveState(sanitized);
+        setState(saved);
+        if (saved.settings?.theme) {
+          setTheme(saved.settings.theme);
         }
+        setHasUnsyncedCloudChanges(true);
+        alert("Backup data imported and verified successfully!");
       } catch (err) {
-        alert("Failed to parse the backup file: " + err.message);
+        alert("Failed to parse or validate backup: " + (err?.message || "Invalid file"));
+      } finally {
+        e.target.value = '';
       }
     };
     reader.readAsText(file);
@@ -2679,7 +2767,6 @@ export default function App() {
 
             <div className="cyber-protocol-badge desktop-only">
               <span className="cyber-pulse-dot" />
-              <span className="cyber-protocol-tag">// SYS /</span>
               <span className="cyber-page-name" key={activeTab}>
                 {activeTab === 'dashboard' ? 'DASHBOARD' : activeTab === 'recovery' ? 'BACKLOG RECOVERY' : activeTab === 'lounge' ? 'STUDY LOUNGE' : activeTab === 'timeline' ? 'STUDY PLAN' : activeTab === 'timer' ? 'FOCUS SANCTUARY' : activeTab === 'daily' ? 'DAILY DRILLS' : activeTab === 'mocks' ? 'MOCK TESTS' : activeTab === 'achievements' ? 'ACHIEVEMENTS' : activeTab === 'errors' ? 'ERROR LOG' : activeTab === 'profile' ? 'PROFILE' : activeTab === 'settings' ? 'SETTINGS' : 'DASHBOARD'}
               </span>
@@ -2687,6 +2774,15 @@ export default function App() {
           </div>
 
           <div className="header-stats cyber-bento-cluster">
+            {/* Optional Top Bar Quick Dual Theme Flip */}
+            {showTopBarThemeSwitch && (
+              <GooeyThemeSwitch
+                compact={true}
+                currentTheme={theme}
+                onSelectTheme={handleSelectTheme}
+              />
+            )}
+
             {/* Release Notes & System Updates Pill */}
             <button 
               type="button" 
@@ -2718,6 +2814,8 @@ export default function App() {
               }}
               timerState={timerState}
               onOpenPatchNotes={() => setIsPatchNotesOpen(true)}
+              onOpenDataAuditModal={() => setIsDataAuditOpen(true)}
+              hasUnsyncedCloudChanges={hasUnsyncedCloudChanges}
             />
           </div>
 
@@ -2824,6 +2922,7 @@ export default function App() {
               onOpenCheckpoint={handleOpenCheckpoint}
               onNavigateToBacklog={() => setActiveTab('recovery')}
               hasBacklog={overallBacklog.hasBacklog}
+              overallBacklog={overallBacklog}
             />
           )}
           {activeTab === 'mocks' && (
@@ -2874,6 +2973,7 @@ export default function App() {
               currentUser={user}
               userProfile={userProfile}
               timerState={timerState}
+              todayTotalHours={todayTotalHours}
               onNavigateToTimer={() => setActiveTab('timer')}
               onNavigateToFriends={() => {
                 setProfileSubTab('friends');
@@ -2941,6 +3041,13 @@ export default function App() {
               onSelectTargetExam={handleSelectTargetExam}
               onOpenOnboarding={() => setIsOnboardingOpen(true)}
               onOpenPatchNotes={() => setIsPatchNotesOpen(true)}
+              showTopBarThemeSwitch={showTopBarThemeSwitch}
+              onToggleTopBarThemeSwitch={handleToggleTopBarThemeSwitch}
+              onOpenDataAuditModal={() => setIsDataAuditOpen(true)}
+              syncStatus={syncStatus}
+              lastSyncedTimeStr={lastSyncedTimeStr}
+              hasUnsyncedCloudChanges={hasUnsyncedCloudChanges}
+              onTriggerManualSync={handleTriggerManualSync}
             />
           )}
           </Suspense>
@@ -3063,6 +3170,10 @@ export default function App() {
               setActiveTab('profile');
             }}
             onMessagePeer={handleOpenDirectMessage}
+            onNavigateToTimer={() => {
+              setSelectedFriend(null);
+              setActiveTab('timer');
+            }}
             currentUser={user}
           />
         </Suspense>
@@ -3182,6 +3293,19 @@ export default function App() {
           />
         </Suspense>
       )}
+
+      {/* Data Transparency & Cloud Sync Audit Modal */}
+      <DataSyncAuditModal
+        isOpen={isDataAuditOpen}
+        onClose={() => setIsDataAuditOpen(false)}
+        user={user}
+        userProfile={userProfile}
+        syncStatus={syncStatus}
+        lastSyncedTimeStr={lastSyncedTimeStr}
+        hasUnsyncedCloudChanges={hasUnsyncedCloudChanges}
+        onTriggerManualSync={handleTriggerManualSync}
+        state={state}
+      />
     </div>
   );
 }

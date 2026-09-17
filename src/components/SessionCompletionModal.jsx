@@ -18,15 +18,14 @@ export default function SessionCompletionModal({
   activeWeekDays = [],
   activeWeekName = 'This Week'
 }) {
-  if (!isOpen || !sessionData) return null;
-
+  const safeSessionData = sessionData || {};
   const {
     subject = 'Quant',
     durationMinutes = 1,
     startTimeStr = '',
     endTimeStr = '',
     initialNotes = ''
-  } = sessionData;
+  } = safeSessionData;
 
   const cleanSubject = stripEmojis(subject || 'General');
   const subjKey = cleanSubject.toLowerCase().trim();
@@ -146,6 +145,8 @@ export default function SessionCompletionModal({
       markCompleted: isDrillSubject ? markCompleted : false
     });
   };
+
+  if (!isOpen || !sessionData) return null;
 
   return (
     <div className="session-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="session-modal-title">

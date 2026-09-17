@@ -1,0 +1,3424 @@
+/**
+ * App.gamified.jsx - Roguelike Meta-Progression & Torii Zanshin Arena Gauntlet Edition
+ * 
+ * Contains the full gamified update:
+ * - Torii Zanshin Roguelike Gauntlet & 1v1 AI Bots Battle Room
+ * - Sanctuary Bazaar & Shop with Koban/Aether currency
+ * - Permanent Study Relics, Matcha Bowl 2x Buffs, Cryo Streak Shields
+ * - Sanctuary Desk Decor artifacts and dynamic combat damage HUD
+ * 
+ * To load this version, change `src/main.jsx`:
+ *   import App from './App.gamified.jsx'
+ */
+
+import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
+import { loadState, saveState, exportStateAsFile, getInitialState, mergeTrackerStates } from './utils/storage';
+import { 
+  auth, 
+  isFirebaseConfigured, 
+  saveTrackerToCloud, 
+  loadTrackerFromCloud, 
+  fetchFriendsProgress,
+  updateUserPresence,
+  setUserOffline,
+  subscribeToStudyLounge,
+  subscribeToFriendRequests,
+  subscribeToUserProfile,
+  subscribeToFriendsLive,
+  updateUserProfile,
+  getUserProfile,
+  claimDailyLoginExp,
+  claimPreviousDayObjectiveExp,
+  signOutUser
+} from './utils/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { 
+  getTodayTrackerPosition, 
+  fetchWebOrOsDate, 
+  formatDateShort,
+  formatDateISO,
+  getMondayOfWeek 
+} from './utils/dateUtils';
+import { stripEmojis } from './utils/textUtils';
+import HeaderProfileDropdown from './components/HeaderProfileDropdown';
+
+import DashboardView from './components/DashboardView';
+import FloatingTimerWidget from './components/FloatingTimerWidget';
+import ThemeSelectorDropdown from './components/ThemeSelectorDropdown';
+import ThemeSwitchToast from './components/ThemeSwitchToast';
+import { getUnlockedThemes } from './utils/themeRedemption';
+import { getStampRallyData, saveStampRallyData, awardDailyQuotaStamp, redeemStampReward } from './utils/stampRallyStorage';
+import UpdateNotificationToast from './components/UpdateNotificationToast';
+import ActivityNotificationToast from './components/ActivityNotificationToast';
+import { checkForAppUpdate } from './utils/versionCheck';
+import { audioEngine } from './utils/audioUtils';
+import { calculateUserBadges } from './utils/badgeUtils';
+import AuthScreen from './components/AuthScreen';
+import CookieConsentBanner from './components/CookieConsentBanner';
+import CustomCursor from './components/CustomCursor';
+import MorphFabStatusHub from './components/MorphFabStatusHub';
+
+// Code-split lazy views for high-performance initial bundle
+const TimelineView = lazy(() => import('./components/TimelineView'));
+const DailyTrackerView = lazy(() => import('./components/DailyTrackerView'));
+const MockTrackerView = lazy(() => import('./components/MockTrackerView'));
+const ErrorLogView = lazy(() => import('./components/ErrorLogView'));
+const ProfileView = lazy(() => import('./components/ProfileView'));
+const StudyTimerView = lazy(() => import('./components/StudyTimerView'));
+const StudyLounge = lazy(() => import('./components/StudyLounge.gamified'));
+const SettingsView = lazy(() => import('./components/SettingsView'));
+const AchievementsView = lazy(() => import('./components/AchievementsView'));
+const BacklogRecoveryView = lazy(() => import('./components/BacklogRecoveryView'));
+const SanctuaryShopView = lazy(() => import('./components/SanctuaryShopView'));
+
+// Code-split lazy modals
+const ThemeRedeemModal = lazy(() => import('./components/ThemeRedeemModal'));
+const JapaneseCatStampRallyModal = lazy(() => import('./components/JapaneseCatStampRallyModal'));
+const SanctuaryBazaarModal = lazy(() => import('./components/SanctuaryBazaarModal'));
+const TermsAndPrivacyModal = lazy(() => import('./components/TermsAndPrivacyModal'));
+const OnboardingWelcomeModal = lazy(() => import('./components/OnboardingWelcomeModal'));
+const PeerInspectorModal = lazy(() => import('./components/PeerInspectorModal'));
+const LevelUpModal = lazy(() => import('./components/LevelUpModal'));
+const AdaptiveWeekReviewModal = lazy(() => import('./components/AdaptiveWeekReviewModal'));
+const PatchNotesHubModal = lazy(() => import('./components/PatchNotesHubModal'));
+
+import {
+  calculateWeekProgress,
+  applyCatchUpBlitzToState,
+  applyWeekendSprintToState,
+  applyScheduleShiftToState,
+  calculateOverallBacklog,
+  sanitizeTrackerState
+} from './utils/adaptiveStudyEngine';
+import { recordBehaviorTelemetry } from './utils/studyBehaviorEngine';
+import DitherBackground from './components/DitherBackground';
+import LiquidIntroLoader from './components/LiquidIntroLoader';
+import ClickSpark from './components/ClickSpark';
+import AnimatedStreakBadge from './components/AnimatedStreakBadge';
+import { 
+  AnimatedSwordsIcon,
+  AnimatedMatchaBowlIcon,
+  AnimatedCryoShieldIcon,
+  AnimatedRelicPrismIcon,
+  AnimatedSparkleIcon
+} from './components/AnimatedUiIcons';
+import { AnimatedAetherIcon } from './components/AnimatedCombatIcons';
+import { 
+  getKobanData, 
+  awardKoban, 
+  sanitizeActiveBuffs, 
+  equipSanctuaryItem 
+} from './utils/kobanStorage';
+import GamifiedStatusBorderOverlay from './components/GamifiedStatusBorderOverlay';
+import ComicPeekingCatBuddy from './components/ComicPeekingCatBuddy';
+import FocusTransitionPortal from './components/FocusTransitionPortal';
+import { Dock, DockItem } from './components/animations/Dock';
+import { initSmoothScroll, scrollToTop } from './utils/smoothScroll';
+import { animatePageEntrance, makeMagnetic, triggerThemeWave } from './utils/gsapAnimations';
+import { dealStudyDamageToBot } from './utils/arenaStorage';
+import LiquidMetalLogo from './components/LiquidMetalLogo';
+
+const Icons = {
+  Logo: ({ size = 24, className = "" }) => <LiquidMetalLogo size={size} className={className} />,
+  Settings: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  ),
+  Chat: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+  ),
+  Award: ({ size = 20 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <circle cx="12" cy="8" r="7"></circle>
+      <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+    </svg>
+  ),
+  Trophy: ({ size = 20 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+      <path d="M4 22h16"></path>
+      <path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1h10c.55 0 1-.45 1-1v-1c0-.55-.45-1-1-1h-2c-.55 0-1-.45-1-1v-2.34"></path>
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+    </svg>
+  ),
+  Home: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <rect x="3" y="3" width="7" height="9"></rect>
+      <rect x="14" y="3" width="7" height="5"></rect>
+      <rect x="14" y="12" width="7" height="9"></rect>
+      <rect x="3" y="16" width="7" height="5"></rect>
+    </svg>
+  ),
+  Plan: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+    </svg>
+  ),
+  Drills: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <path d="M12 20h9"></path>
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+    </svg>
+  ),
+  Mocks: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+      <line x1="16" y1="13" x2="8" y2="13"></line>
+      <line x1="16" y1="17" x2="8" y2="17"></line>
+      <polyline points="10 9 9 9 8 9"></polyline>
+    </svg>
+  ),
+  Shop: ({ size = 20 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  ),
+  Errors: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      <line x1="11" y1="8" x2="11" y2="14"></line>
+      <line x1="8" y1="11" x2="14" y2="11"></line>
+    </svg>
+  ),
+  Cloud: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"></path>
+      <line x1="8" y1="16" x2="8.01" y2="16"></line>
+      <line x1="8" y1="20" x2="8.01" y2="20"></line>
+      <line x1="12" y1="18" x2="12.01" y2="18"></line>
+      <line x1="12" y1="22" x2="12.01" y2="22"></line>
+      <line x1="16" y1="16" x2="16.01" y2="16"></line>
+      <line x1="16" y1="20" x2="16.01" y2="20"></line>
+    </svg>
+  ),
+  Download: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+  ),
+  Calendar: ({ size = 15 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+    </svg>
+  ),
+  Zap: ({ size = 15 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+    </svg>
+  ),
+  Target: ({ size = 15 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+    </svg>
+  ),
+  Sun: ({ size = 15 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  ),
+  Moon: ({ size = 15 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  ),
+  ChevronLeft: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+  ),
+  ChevronRight: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  ),
+  Timer: ({ size = 20 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <circle cx="12" cy="12" r="10"></circle>
+      <polyline points="12 6 12 12 16 14"></polyline>
+    </svg>
+  ),
+  Menu: ({ size = 20 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  ),
+  GripVertical: ({ size = 14, className = "" }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="9" cy="12" r="1.5" fill="currentColor" />
+      <circle cx="9" cy="5" r="1.5" fill="currentColor" />
+      <circle cx="9" cy="19" r="1.5" fill="currentColor" />
+      <circle cx="15" cy="12" r="1.5" fill="currentColor" />
+      <circle cx="15" cy="5" r="1.5" fill="currentColor" />
+      <circle cx="15" cy="19" r="1.5" fill="currentColor" />
+    </svg>
+  )
+};
+
+function ViewLoadingFallback() {
+  return (
+    <div className="view-loading-skeleton" aria-busy="true" aria-label="Loading module">
+      <div className="skeleton-spinner" />
+      <span className="skeleton-text font-mono">INITIALIZING MODULE...</span>
+    </div>
+  );
+}
+
+export default function App() {
+  const [state, setState] = useState(() => loadState());
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [theme, setTheme] = useState(state.settings?.theme || 'dark');
+  const [showThemeToast, setShowThemeToast] = useState(false);
+  const [unlockedThemes, setUnlockedThemes] = useState(() => getUnlockedThemes());
+  const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
+  const [redeemPreselectTheme, setRedeemPreselectTheme] = useState(null);
+  const [stampRallyData, setStampRallyData] = useState(() => getStampRallyData());
+  const [isStampRallyOpen, setIsStampRallyOpen] = useState(false);
+  const [isBazaarOpen, setIsBazaarOpen] = useState(false);
+  const [kobanData, setKobanData] = useState(() => getKobanData());
+  const [isPatchNotesOpen, setIsPatchNotesOpen] = useState(false);
+  const [triggerStampAnimation, setTriggerStampAnimation] = useState(false);
+  const [appLoading, setAppLoading] = useState(true);
+  const [isInitialEntrance, setIsInitialEntrance] = useState(false);
+
+  const [topBarActivationAlert, setTopBarActivationAlert] = useState(null);
+
+  // Sync Koban state and perk activation alerts globally across views
+  useEffect(() => {
+    const handleKobanSync = (e) => {
+      if (e?.detail) setKobanData(e.detail);
+    };
+    const handleKobanActivated = (e) => {
+      if (e?.detail) {
+        setTopBarActivationAlert(e.detail);
+        setTimeout(() => {
+          setTopBarActivationAlert(null);
+        }, 4500);
+      }
+    };
+    window.addEventListener('koban_updated', handleKobanSync);
+    window.addEventListener('koban_activated', handleKobanActivated);
+    return () => {
+      window.removeEventListener('koban_updated', handleKobanSync);
+      window.removeEventListener('koban_activated', handleKobanActivated);
+    };
+  }, []);
+
+  const handleAwardKoban = (amount, reason) => {
+    const updated = awardKoban(amount, reason);
+    setKobanData(updated);
+  };
+
+  const [levelUpModalData, setLevelUpModalData] = useState({
+    isOpen: false,
+    oldLevel: 1,
+    newLevel: 2,
+    totalExp: 0,
+    isMilestone: false
+  });
+
+  // Global event listener for level-up pop-up events from anywhere in the app
+  useEffect(() => {
+    const handleExternalLevelUp = (e) => {
+      if (e.detail) {
+        setLevelUpModalData({
+          isOpen: true,
+          oldLevel: e.detail.oldLevel || 1,
+          newLevel: e.detail.newLevel || 2,
+          totalExp: e.detail.totalExp || 0,
+          isMilestone: Boolean(e.detail.isMilestone)
+        });
+      }
+    };
+    window.addEventListener('catalyze_trigger_levelup', handleExternalLevelUp);
+    return () => window.removeEventListener('catalyze_trigger_levelup', handleExternalLevelUp);
+  }, []);
+
+  // Auto-sanitize any duplicate stacked extended weeks from legacy state
+  useEffect(() => {
+    setState(prev => {
+      const sanitized = sanitizeTrackerState(prev);
+      if (sanitized !== prev) {
+        saveState(sanitized);
+        return sanitized;
+      }
+      return prev;
+    });
+  }, []);
+
+  const [checkpointWeekData, setCheckpointWeekData] = useState(null);
+  const [isCheckpointModalOpen, setIsCheckpointModalOpen] = useState(false);
+
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
+    try {
+      return (localStorage.getItem('catalyze_onboarding_completed') || localStorage.getItem('aspiranto_onboarding_completed')) !== 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [shouldPromptCatTimer, setShouldPromptCatTimer] = useState(false);
+
+  useEffect(() => {
+    window.__openOnboarding = () => setIsOnboardingOpen(true);
+    return () => {
+      delete window.__openOnboarding;
+    };
+  }, []);
+
+  const handleCompleteOnboarding = useCallback((data) => {
+    setIsOnboardingOpen(false);
+    if (!timerState?.isRunning) {
+      setTimeout(() => {
+        setShouldPromptCatTimer(true);
+      }, 500);
+    }
+    if (data?.targetExam) {
+      setState(prev => {
+        const nextSettings = {
+          ...(prev.settings || {}),
+          targetExam: data.targetExam,
+          targetYear: data.targetYear,
+          dailyHoursGoal: data.dailyHoursGoal,
+          dailyQuotas: data.dailyQuotas
+        };
+        const updated = {
+          ...prev,
+          settings: nextSettings
+        };
+        saveState(updated);
+        return updated;
+      });
+    }
+  }, []);
+
+  const handleSelectTargetExam = useCallback((examId) => {
+    try {
+      localStorage.setItem('catalyze_target_exam', examId);
+    } catch (e) {}
+    setState(prev => {
+      const updated = {
+        ...prev,
+        settings: {
+          ...(prev.settings || {}),
+          targetExam: examId
+        }
+      };
+      saveState(updated);
+      return updated;
+    });
+  }, []);
+
+  const handleOpenStampRally = (shouldAnimate = false) => {
+    setTriggerStampAnimation(shouldAnimate);
+    setIsStampRallyOpen(true);
+  };
+
+  const handleAwardStamp = (dateStr, dayName) => {
+    const res = awardDailyQuotaStamp(dateStr, dayName);
+    if (res.updatedData) {
+      setStampRallyData(res.updatedData);
+      if (res.newStampAwarded) {
+        handleOpenStampRally(true);
+      }
+    }
+  };
+
+  const handleRedeemStampTheme = (themeId) => {
+    const res = redeemStampReward(themeId);
+    if (res.success) {
+      setStampRallyData(res.updatedData);
+      setUnlockedThemes(getUnlockedThemes());
+      setTheme(themeId);
+      setShowThemeToast(true);
+      setState(prev => ({
+        ...prev,
+        settings: { ...(prev.settings || {}), theme: themeId }
+      }));
+    }
+  };
+
+  // Draggable Floating Overlay Dock State (allows users to freely position the dock anywhere)
+  const [dockPos, setDockPos] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cat_floating_dock_pos');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [isDraggingDock, setIsDraggingDock] = useState(false);
+  const dragStartRef = useRef({ mouseX: 0, mouseY: 0, dockX: 0, dockY: 0 });
+
+  const handleDockPointerDown = useCallback((e) => {
+    // Only initiate drag if clicking drag-handle or dock background padding (not icon buttons)
+    if (e.target.closest('.reactbits-dock-item')) return;
+
+    const sidebarEl = e.currentTarget;
+    const rect = sidebarEl.getBoundingClientRect();
+
+    dragStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      dockX: rect.left,
+      dockY: rect.top
+    };
+    setIsDraggingDock(true);
+
+    const onPointerMove = (moveEvt) => {
+      const dx = moveEvt.clientX - dragStartRef.current.mouseX;
+      const dy = moveEvt.clientY - dragStartRef.current.mouseY;
+
+      const newX = Math.max(8, Math.min(window.innerWidth - 64, dragStartRef.current.dockX + dx));
+      const newY = Math.max(88, Math.min(window.innerHeight - 490, dragStartRef.current.dockY + dy));
+
+      setDockPos({ x: newX, y: newY });
+    };
+
+    const onPointerUp = (upEvt) => {
+      setIsDraggingDock(false);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+
+      const dx = upEvt.clientX - dragStartRef.current.mouseX;
+      const dy = upEvt.clientY - dragStartRef.current.mouseY;
+      const finalX = Math.max(8, Math.min(window.innerWidth - 64, dragStartRef.current.dockX + dx));
+      const finalY = Math.max(88, Math.min(window.innerHeight - 490, dragStartRef.current.dockY + dy));
+      const pos = { x: Math.round(finalX), y: Math.round(finalY) };
+      setDockPos(pos);
+      try {
+        localStorage.setItem('cat_floating_dock_pos', JSON.stringify(pos));
+      } catch (err) {}
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  }, []);
+
+  const handleResetDockPos = useCallback((e) => {
+    e?.stopPropagation();
+    setDockPos(null);
+    try {
+      localStorage.removeItem('cat_floating_dock_pos');
+    } catch (err) {}
+  }, []);
+  const [user, setUser] = useState(null);
+  const [isGuestMode, setIsGuestMode] = useState(() => {
+    return (localStorage.getItem('catalyze_guest_mode') || localStorage.getItem('aspiranto_guest_mode')) === 'true';
+  });
+  const [friends, setFriends] = useState([]);
+  const [peers, setPeers] = useState([]);
+  const [selectedFriend, setSelectedFriend] = useState(null);
+  const [selectedFriendTracker, setSelectedFriendTracker] = useState(null);
+  const [loadingFriendTracker, setLoadingFriendTracker] = useState(false);
+  const [isEditProfileDirectOpen, setIsEditProfileDirectOpen] = useState(false);
+  const [profileSubTab, setProfileSubTab] = useState('profile');
+
+  // Responsive Mobile Detection for Top Right Status Cluster & Morph FAB
+  const [isMobileScreen, setIsMobileScreen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth <= 820;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth <= 820);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleOpenDirectMessage = (friend) => {
+    if (!friend) return;
+    setSelectedFriend(null);
+    setProfileSubTab('friends');
+    setActiveTab('profile');
+  };
+
+  // Restore UI Font Scale and Font on Initial Mount
+  useEffect(() => {
+    const savedScale = localStorage.getItem('catalyze_font_scale') || localStorage.getItem('aspiranto_font_scale') || '100';
+    const ratio = Number(savedScale) / 100;
+    document.documentElement.style.setProperty('--ui-scale', ratio);
+    document.documentElement.style.zoom = ratio;
+    document.documentElement.style.setProperty('--ui-font-scale', ratio);
+    document.documentElement.style.fontSize = `${14 * ratio}px`;
+    window.dispatchEvent(new CustomEvent('catalyze_scale_change', { detail: { ratio } }));
+    window.dispatchEvent(new CustomEvent('aspiranto_scale_change', { detail: { ratio } }));
+
+    const savedFont = localStorage.getItem('catalyze_font_choice') || localStorage.getItem('aspiranto_font_choice');
+    if (savedFont) {
+      document.documentElement.style.setProperty('--font-sans', `'${savedFont}', -apple-system, BlinkMacSystemFont, sans-serif`);
+    }
+
+    const boldBoost = (localStorage.getItem('catalyze_bold_boost') || localStorage.getItem('aspiranto_bold_boost')) === 'true';
+    if (boldBoost) {
+      document.documentElement.classList.add('ui-bold-boost');
+    }
+  }, []);
+
+  const [availableUpdate, setAvailableUpdate] = useState(null);
+
+  // Auto-check for over-the-air updates on mount and periodically
+  useEffect(() => {
+    const runUpdateCheck = async () => {
+      const update = await checkForAppUpdate();
+      if (update) {
+        setAvailableUpdate(update);
+      }
+    };
+    runUpdateCheck();
+    const interval = setInterval(runUpdateCheck, 3 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Collapsible sidebar state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar_collapsed') === 'true';
+  });
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
+  // Compute today's position based on start date
+  const todayPos = getTodayTrackerPosition(state.settings?.startDate);
+
+  // Daily tracker active selectors - initialized to TODAY's month & week
+  const [activeMonth, setActiveMonth] = useState(todayPos.activeMonth);
+  const [activeWeek, setActiveWeek] = useState(todayPos.activeWeek);
+  const [activeDayName, setActiveDayName] = useState(todayPos.dayName || 'Monday');
+
+  // Synchronize active tracking selectors if startDate changes
+  useEffect(() => {
+    const pos = getTodayTrackerPosition(state.settings?.startDate);
+    setActiveMonth(pos.activeMonth);
+    setActiveWeek(pos.activeWeek);
+    setActiveDayName(pos.dayName || 'Monday');
+  }, [state.settings?.startDate]);
+
+  // Live calculation of remaining daily objectives for minimal dock notification badge
+  const todayObjectivesTelemetry = useMemo(() => {
+    try {
+      const pos = getTodayTrackerPosition(state.settings?.startDate);
+      const monthData = state.tracker?.[pos.activeMonth];
+      const weekData = monthData?.find(w => w.week === pos.activeWeek);
+      const dayData = weekData?.days?.find(d => d.day === pos.dayName);
+
+      if (!dayData) return { total: 3, done: 0, left: 3 };
+
+      const hasCustom = Boolean(dayData.hasCustomObjective);
+      const total = hasCustom ? 4 : 3;
+      let done = 0;
+      if (dayData.quantCompleted) done++;
+      if (dayData.lrdiCompleted) done++;
+      if (dayData.varcCompleted) done++;
+      if (hasCustom && dayData.customCompleted) done++;
+
+      const left = Math.max(0, total - done);
+      return { total, done, left };
+    } catch (e) {
+      return { total: 3, done: 0, left: 3 };
+    }
+  }, [state.tracker, state.settings?.startDate]);
+
+  // Live calculation of syllabus backlog and deficits for dedicated recovery cockpit tab
+  const overallBacklog = useMemo(() => {
+    try {
+      const pos = getTodayTrackerPosition(state.settings?.startDate);
+      const mNum = parseInt(pos.activeMonth?.replace(/\D/g, ''), 10) || 1;
+      const wNum = parseInt(pos.activeWeek?.replace(/\D/g, ''), 10) || 1;
+      const gWeek = Math.min(16, Math.max(1, (mNum - 1) * 4 + wNum));
+      return calculateOverallBacklog(state, gWeek);
+    } catch (_e) {
+      return { hasBacklog: false, totalDeficitDrills: 0, backlogWeeks: [] };
+    }
+  }, [state]);
+
+  // If user is currently on recovery tab but has no backlog (e.g., newly started account), redirect to daily drills
+  useEffect(() => {
+    if (activeTab === 'recovery' && !overallBacklog.hasBacklog) {
+      setActiveTab('daily');
+    }
+  }, [activeTab, overallBacklog.hasBacklog]);
+
+  // Focus Timer State with persistent local storage hydration & drift reconciliation
+  const [timerState, setTimerState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cat_active_timer_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.isRunning || parsed.isPaused)) {
+          if (parsed.isRunning && parsed.lastTickMs) {
+            const nowMs = Date.now();
+            const deltaSecs = Math.max(0, Math.floor((nowMs - parsed.lastTickMs) / 1000));
+            if (parsed.mode === 'stopwatch') {
+              return {
+                ...parsed,
+                secondsLeft: (parsed.secondsLeft || 0) + deltaSecs,
+                lastTickMs: nowMs
+              };
+            } else {
+              const remaining = (parsed.secondsLeft || 0) - deltaSecs;
+              if (remaining > 0) {
+                return {
+                  ...parsed,
+                  secondsLeft: remaining,
+                  lastTickMs: nowMs
+                };
+              }
+              return {
+                ...parsed,
+                secondsLeft: 0,
+                isRunning: false,
+                isPaused: true,
+                lastTickMs: nowMs
+              };
+            }
+          }
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return {
+      secondsLeft: 25 * 60,
+      totalSeconds: 25 * 60,
+      isRunning: false,
+      isPaused: false,
+      mode: 'pomodoro',
+      visualTheme: 'forest',
+      subject: 'Quant',
+      startTimeStr: null,
+      startTimeMs: null,
+      lastTickMs: null,
+      sessionNotes: ''
+    };
+  });
+
+  // Live Browser Tab Title Synchronization (Only logo and timer on tab)
+  useEffect(() => {
+    if (timerState?.isRunning) {
+      const totalSecs = timerState.secondsLeft || 0;
+      const mins = Math.floor(totalSecs / 60);
+      const secs = totalSecs % 60;
+      const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      document.title = `${timeStr} • CATalyze`;
+    } else if (timerState?.isPaused && (timerState?.secondsLeft || 0) > 0) {
+      const mins = Math.floor((timerState.secondsLeft || 0) / 60);
+      const secs = (timerState.secondsLeft || 0) % 60;
+      const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      document.title = `${timeStr} (Paused) • CATalyze`;
+    } else {
+      document.title = 'CATalyze';
+    }
+  }, [timerState?.isRunning, timerState?.isPaused, timerState?.secondsLeft]);
+
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('catalyze_intro_viewed'));
+  const [isFocusTransitioning, setIsFocusTransitioning] = useState(false);
+
+  // Ensure focus transition portal never leaks onto dashboard or other tabs
+  useEffect(() => {
+    if (activeTab !== 'timer' && isFocusTransitioning) {
+      setIsFocusTransitioning(false);
+    }
+  }, [activeTab, isFocusTransitioning]);
+
+  const handleIntroComplete = useCallback(() => {
+    sessionStorage.setItem('catalyze_intro_viewed', 'true');
+    setShowIntro(false);
+  }, []);
+
+  // Calculate Today's sessions and total hours
+  const todayPositionNow = getTodayTrackerPosition(state.settings?.startDate);
+  const todayMonthObj = state.tracker[todayPositionNow.activeMonth];
+  const todayWeekObj = todayMonthObj?.find(w => w.week === todayPositionNow.activeWeek);
+  const todayDayObj = todayWeekObj?.days?.find(d => d.day === todayPositionNow.dayName);
+  const todaySessions = todayDayObj?.sessions || [];
+  const todayTotalHours = todayDayObj?.studyHours || (todaySessions.reduce((acc, s) => acc + (s.durationMinutes || 0) / 60, 0));
+
+  // Initial mount application hydration
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAppLoading(false);
+    }, 750);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const fileInputRef = useRef(null);
+
+  // Memoized Global Progress & Streak Metrics Calculation
+  const { totalSolved, activeStreak, totalMocksCount } = useMemo(() => {
+    let totalQuant = 0;
+    let totalLrdi = 0;
+    let totalVarc = 0;
+    const allDays = [];
+
+    if (state?.tracker) {
+      for (const weeks of Object.values(state.tracker)) {
+        if (Array.isArray(weeks)) {
+          weeks.forEach(week => {
+            if (Array.isArray(week.days)) {
+              week.days.forEach(day => {
+                totalQuant += Number(day.quantCount) || 0;
+                totalLrdi += Number(day.lrdiCount) || 0;
+                totalVarc += Number(day.varcCount) || 0;
+                allDays.push(Boolean(day.quantCompleted || day.lrdiCompleted || day.varcCompleted));
+              });
+            }
+          });
+        }
+      }
+    }
+
+    let streak = 0;
+    for (let i = allDays.length - 1; i >= 0; i--) {
+      if (allDays[i]) {
+        streak++;
+      } else if (streak > 0) {
+        break;
+      }
+    }
+
+    const mocksCount = (state?.mocks || []).filter(m => m.status === 'Taken').length;
+
+    return {
+      totalSolved: totalQuant + totalLrdi + totalVarc,
+      activeStreak: streak,
+      totalMocksCount: mocksCount
+    };
+  }, [state?.tracker, state?.mocks]);
+
+  const userBadges = useMemo(() => {
+    return calculateUserBadges({
+      streak: activeStreak,
+      solvedQs: totalSolved,
+      mocksCount: totalMocksCount
+    });
+  }, [activeStreak, totalSolved, totalMocksCount]);
+
+  const handleOpenRedeemModal = (themeId = null) => {
+    setRedeemPreselectTheme(themeId);
+    setIsRedeemModalOpen(true);
+  };
+
+  const handleThemeUnlocked = (newUnlockedList, appliedThemeId = null, shouldApply = false) => {
+    if (newUnlockedList) {
+      setUnlockedThemes(newUnlockedList);
+    } else {
+      setUnlockedThemes(getUnlockedThemes());
+    }
+    if (shouldApply && appliedThemeId) {
+      handleSelectTheme(appliedThemeId);
+    }
+  };
+
+  // Initialize Lenis Smooth Scroll Engine synchronized with GSAP
+  useEffect(() => {
+    const scrollInstance = initSmoothScroll();
+    return () => {
+      if (scrollInstance) scrollInstance.destroy();
+    };
+  }, []);
+
+  // Animate Clean Bottom Fade-In & Reset Scroll Position when activeTab changes
+  useEffect(() => {
+    scrollToTop({ immediate: true });
+    const timer = setTimeout(() => {
+      animatePageEntrance('.main-content');
+    }, 20);
+    return () => clearTimeout(timer);
+  }, [activeTab]);
+
+  // Listen for arena exit to dashboard event
+  useEffect(() => {
+    const handleExitArena = () => setActiveTab('dashboard');
+    window.addEventListener('arena_exit_to_app', handleExitArena);
+    return () => window.removeEventListener('arena_exit_to_app', handleExitArena);
+  }, []);
+
+  // Attach Magnetic Damping Physics to Interactive Sidebar & Header Elements
+  useEffect(() => {
+    const cleanupFns = [];
+    const elements = document.querySelectorAll('.sidebar-toggle-btn, .theme-dropdown-trigger');
+    elements.forEach(el => {
+      cleanupFns.push(makeMagnetic(el, 0.22));
+    });
+    return () => cleanupFns.forEach(fn => fn());
+  }, [isSidebarCollapsed, activeTab]);
+
+  // Sync theme changes to HTML
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  // Sync state changes to local storage
+  useEffect(() => {
+    saveState({
+      ...state,
+      settings: {
+        ...state.settings,
+        theme
+      }
+    });
+  }, [state, theme]);
+
+  // Request browser notification permissions
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  // Periodic checker for push notifications (reminders)
+  useEffect(() => {
+    const checkDailyReminders = () => {
+      const now = new Date();
+      const hours = now.getHours();
+      
+      // Fire reminder after 9:00 PM (21:00)
+      if (hours >= 21) {
+        const currentTodayPos = getTodayTrackerPosition(state.settings?.startDate);
+        const monthData = state.tracker[currentTodayPos.activeMonth];
+        const weekData = monthData?.find(w => w.week === currentTodayPos.activeWeek);
+        const todayData = weekData?.days.find(d => d.day === currentTodayPos.dayName);
+        
+        if (todayData && (!todayData.quantCompleted || !todayData.lrdiCompleted || !todayData.varcCompleted)) {
+          const lastSent = localStorage.getItem('last_drill_notification_date');
+          const dateStr = now.toDateString();
+          
+          if (lastSent !== dateStr) {
+            if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+              new Notification("CATalyze Prep Reminder", {
+                body: "You haven't completed your daily exam prep checklist for today! Keep the momentum up.",
+                icon: "/favicon.svg"
+              });
+              localStorage.setItem('last_drill_notification_date', dateStr);
+            }
+          }
+        }
+      }
+    };
+
+    checkDailyReminders();
+    const interval = setInterval(checkDailyReminders, 30000);
+    return () => clearInterval(interval);
+  }, [state, activeMonth, activeWeek]);
+
+  const [isCloudLoaded, setIsCloudLoaded] = useState(false);
+  const [userProfile, setUserProfile] = useState(() => {
+    try {
+      const guest = localStorage.getItem('catalyze_guest_profile');
+      if (guest) return JSON.parse(guest);
+      const localCosmetics = localStorage.getItem('local_aspirant_cosmetics');
+      if (localCosmetics) return JSON.parse(localCosmetics);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [syncStatus, setSyncStatus] = useState('saved'); // 'saved' | 'syncing' | 'synced' | 'error'
+  const [lastSyncedTimeStr, setLastSyncedTimeStr] = useState(() => {
+    return localStorage.getItem('catalyze_last_synced_time') || localStorage.getItem('aspiranto_last_synced_time') || '';
+  });
+  const [activityNotification, setActivityNotification] = useState(null);
+  const [hasUnsyncedCloudChanges, setHasUnsyncedCloudChanges] = useState(false);
+
+  // Mark unsynced changes whenever local state updates after initial cloud load
+  useEffect(() => {
+    if (isCloudLoaded) {
+      setHasUnsyncedCloudChanges(true);
+    }
+  }, [state, isCloudLoaded]);
+
+  // Listen to Firebase Auth state with Anti-Overwrite & Non-Destructive Merge
+  useEffect(() => {
+    if (isFirebaseConfigured && auth) {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          setUser(firebaseUser);
+          try {
+            // Fetch Profile Data
+            const prof = await getUserProfile(firebaseUser.uid);
+            if (prof) {
+              if (firebaseUser.photoURL && (!prof.avatar || prof.avatar === 'rocket')) {
+                prof.avatar = firebaseUser.photoURL;
+              }
+              if (firebaseUser.photoURL && !prof.photoURL) {
+                prof.photoURL = firebaseUser.photoURL;
+              }
+              setUserProfile(prof);
+            }
+
+            // Claim / Check Daily Login EXP for authenticated users (Stored in Firestore)
+            try {
+              const dailyExpRes = await claimDailyLoginExp(firebaseUser.uid);
+              if (dailyExpRes && dailyExpRes.awarded) {
+                setUserProfile(prev => ({
+                  ...(prev || {}),
+                  exp: dailyExpRes.newExp,
+                  level: dailyExpRes.newLevel,
+                  lastDailyLoginDate: new Date().toISOString().split('T')[0],
+                  loginStreak: dailyExpRes.streak
+                }));
+                if (dailyExpRes.leveledUp) {
+                  setLevelUpModalData({
+                    isOpen: true,
+                    oldLevel: dailyExpRes.oldLevel,
+                    newLevel: dailyExpRes.newLevel,
+                    totalExp: dailyExpRes.newExp,
+                    isMilestone: dailyExpRes.isMilestone
+                  });
+                }
+              }
+            } catch (expErr) {
+              console.warn("Daily login EXP check skipped:", expErr);
+            }
+
+            // Fetch Cloud tracker data
+            const cloudData = await loadTrackerFromCloud(firebaseUser.uid);
+            if (cloudData && cloudData.tracker) {
+              // Intelligently merge local state and cloud state so no offline work is ever wiped
+              setState(prev => {
+                const merged = mergeTrackerStates(prev, cloudData);
+                saveState(merged);
+                return merged;
+              });
+            } else {
+              // Initial cloud backup for newly authenticated user
+              await saveTrackerToCloud(
+                firebaseUser.uid, 
+                state.tracker, 
+                state.studyPlan, 
+                state.mocks, 
+                activeStreak, 
+                totalSolved, 
+                state.lastUpdated || Date.now()
+              );
+            }
+            setHasUnsyncedCloudChanges(false);
+
+            // Settle / Calculate Previous Day Objective EXP once user returns or logs in (strictly once)
+            try {
+              const effectiveTracker = (cloudData && cloudData.tracker) ? cloudData.tracker : state.tracker;
+              const prevDayExpRes = await claimPreviousDayObjectiveExp(
+                firebaseUser.uid,
+                effectiveTracker,
+                state.settings?.startDate
+              );
+              if (prevDayExpRes && prevDayExpRes.awarded) {
+                if (prevDayExpRes.newExp !== undefined) {
+                  setUserProfile(prev => ({
+                    ...(prev || {}),
+                    exp: prevDayExpRes.newExp,
+                    level: prevDayExpRes.newLevel,
+                    lastObjectiveExpAwardedDate: prevDayExpRes.dateISO
+                  }));
+                }
+                setActivityNotification({
+                  type: 'objective_exp_awarded',
+                  title: 'Previous Day Objectives Conquered!',
+                  message: `All daily objectives cleared yesterday (${prevDayExpRes.dayName}). Awarded +${prevDayExpRes.earnedExp} EXP!`,
+                  actionLabel: null,
+                  onAction: null
+                });
+                if (prevDayExpRes.leveledUp) {
+                  setLevelUpModalData({
+                    isOpen: true,
+                    oldLevel: prevDayExpRes.oldLevel,
+                    newLevel: prevDayExpRes.newLevel,
+                    totalExp: prevDayExpRes.newExp,
+                    isMilestone: prevDayExpRes.isMilestone
+                  });
+                }
+              }
+            } catch (prevExpErr) {
+              console.warn("Previous day objective EXP check skipped:", prevExpErr);
+            }
+          } catch (err) {
+            console.warn("Using local cache, cloud load skipped:", err);
+          } finally {
+            setIsCloudLoaded(true);
+          }
+        } else {
+          setUser(null);
+          setUserProfile(null);
+          setIsCloudLoaded(false);
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, []);
+
+  // Update Profile details and broadcast live
+  const handleUpdateProfile = async (profileData) => {
+    setUserProfile(prev => {
+      const next = { ...(prev || {}), ...profileData };
+      try {
+        localStorage.setItem('catalyze_guest_profile', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+
+    setSelectedFriend(prev => {
+      if (!prev || !prev.isSelf) return prev;
+      return { ...prev, ...profileData };
+    });
+
+    if (user) {
+      try {
+        await updateUserProfile(user.uid, profileData);
+      } catch (err) {
+        console.warn("Failed to persist profile to cloud:", err);
+      }
+      const hasFriends = Array.isArray(userProfile?.friends) && userProfile.friends.length > 0;
+      if (hasFriends || activeTab === 'study-lounge') {
+        updateUserPresence(user, timerState, activeStreak, totalSolved, profileData);
+      }
+    }
+  };
+
+  // Explicit End-of-Day / Daily Cloud Sync (Preserves Firestore write quota for live lounge & chat)
+  const handleRecordDayProgress = async (silent = false) => {
+    if (!silent) setSyncStatus('syncing');
+    try {
+      const nowMs = Date.now();
+      const timeStr = new Date(nowMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const fullLabel = `Today ${timeStr}`;
+
+      // 1. Save locally first
+      const updatedLocal = saveState({
+        ...state,
+        lastUpdated: nowMs
+      });
+      setState(updatedLocal);
+
+      // 2. If online and logged in, push daily progress snapshot to Firestore
+      if (isFirebaseConfigured && user?.uid && navigator.onLine) {
+        await saveTrackerToCloud(
+          user.uid,
+          updatedLocal.tracker,
+          updatedLocal.studyPlan,
+          updatedLocal.mocks,
+          activeStreak,
+          totalSolved,
+          nowMs
+        );
+        setHasUnsyncedCloudChanges(false);
+      }
+
+      localStorage.setItem('catalyze_last_synced_time', fullLabel);
+      setLastSyncedTimeStr(fullLabel);
+      setSyncStatus('synced');
+      setTimeout(() => setSyncStatus('saved'), 3500);
+
+      if (silent) {
+        setActivityNotification({
+          type: 'auto_saved',
+          title: 'Auto-Saved to Cloud',
+          message: `Your prep tracker was saved to cloud (${fullLabel}).`,
+          actionLabel: null,
+          onAction: null
+        });
+      }
+    } catch (err) {
+      console.warn("Sync error (saved locally):", err);
+      setSyncStatus('saved');
+    }
+  };
+
+  // Occasional smart auto-save every 8 minutes if changes exist (quota friendly)
+  useEffect(() => {
+    if (!isFirebaseConfigured || !user?.uid || !hasUnsyncedCloudChanges) return;
+
+    const autoSaveInterval = setInterval(() => {
+      if (navigator.onLine) {
+        handleRecordDayProgress(true);
+      }
+    }, 8 * 60 * 1000);
+
+    return () => clearInterval(autoSaveInterval);
+  }, [user?.uid, hasUnsyncedCloudChanges, state]);
+
+  // Warn user on tab exit / reload if there are unsynced changes & trigger emergency save
+  useEffect(() => {
+    const handleBeforeUnloadPrompt = (e) => {
+      if (hasUnsyncedCloudChanges && user?.uid) {
+        if (navigator.onLine) {
+          saveTrackerToCloud(
+            user.uid,
+            state.tracker,
+            state.studyPlan,
+            state.mocks,
+            activeStreak,
+            totalSolved,
+            Date.now()
+          );
+        }
+        e.preventDefault();
+        e.returnValue = 'You have unsynced study tracker progress. Please save your progress before leaving!';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnloadPrompt);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnloadPrompt);
+  }, [hasUnsyncedCloudChanges, user?.uid, state, activeStreak, totalSolved]);
+
+  // Settle previous day objectives when user returns after being offline or leaving site
+  useEffect(() => {
+    const handleRecheckPreviousDay = async () => {
+      if (document.visibilityState === 'visible' || navigator.onLine) {
+        if (state?.tracker) {
+          try {
+            const res = await claimPreviousDayObjectiveExp(
+              user?.uid, 
+              state.tracker, 
+              state.settings?.startDate
+            );
+            if (res && res.awarded) {
+              if (res.newExp !== undefined) {
+                setUserProfile(prev => ({
+                  ...(prev || {}),
+                  exp: res.newExp,
+                  level: res.newLevel,
+                  lastObjectiveExpAwardedDate: res.dateISO
+                }));
+              }
+              setActivityNotification({
+                type: 'objective_exp_awarded',
+                title: 'Previous Day Objectives Conquered!',
+                message: `All daily objectives cleared yesterday (${res.dayName}). Awarded +${res.earnedExp} EXP!`,
+                actionLabel: null,
+                onAction: null
+              });
+              if (res.leveledUp) {
+                setLevelUpModalData({
+                  isOpen: true,
+                  oldLevel: res.oldLevel,
+                  newLevel: res.newLevel,
+                  totalExp: res.newExp,
+                  isMilestone: res.isMilestone
+                });
+              }
+            }
+          } catch (e) {
+            // Background check silent fallback
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleRecheckPreviousDay);
+    window.addEventListener('online', handleRecheckPreviousDay);
+    return () => {
+      document.removeEventListener('visibilitychange', handleRecheckPreviousDay);
+      window.removeEventListener('online', handleRecheckPreviousDay);
+    };
+  }, [user?.uid, state.tracker, state.settings?.startDate]);
+
+  // Real-time listener for current user's profile document (syncs friends list, display name, target, etc.)
+  useEffect(() => {
+    if (!isFirebaseConfigured || !user?.uid) return;
+
+    const unsubscribe = subscribeToUserProfile(user.uid, (freshProfile) => {
+      if (freshProfile) {
+        setUserProfile(freshProfile);
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [user?.uid]);
+
+  // Load friend profiles statically without live presence fetching (Live presence on hold / on development)
+  useEffect(() => {
+    if (!isFirebaseConfigured || !user?.uid) {
+      setFriends([]);
+      return;
+    }
+
+    const friendIds = Array.isArray(userProfile?.friends) ? userProfile.friends : [];
+    if (friendIds.length === 0) {
+      setFriends([]);
+      return;
+    }
+
+    let isMounted = true;
+    const loadFriendsData = async () => {
+      try {
+        const loaded = await Promise.all(
+          friendIds.map(async (fId) => {
+            const prof = await getUserProfile(fId);
+            if (!prof) return null;
+            return {
+              id: fId,
+              uid: fId,
+              displayName: prof.displayName || prof.name || 'CAT Aspirant',
+              name: prof.displayName || prof.name || 'CAT Aspirant',
+              avatar: prof.avatar || 'rocket',
+              avatarBg: prof.avatarBg || '#3b82f6',
+              target: prof.target || 'CAT Aspirant',
+              aspirantId: prof.aspirantId || '',
+              streak: prof.streak || 0,
+              solvedQs: prof.solvedQs || 0,
+              status: 'offline', // Live online presence on hold
+              activity: null
+            };
+          })
+        );
+        if (isMounted) {
+          setFriends(loaded.filter(Boolean));
+        }
+      } catch (err) {
+        console.warn("Could not load friends list:", err);
+      }
+    };
+
+    loadFriendsData();
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.uid, userProfile?.friends]);
+
+  // Friend requests count state for notification badge
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !user?.uid) {
+      setPendingRequestsCount(0);
+      return;
+    }
+
+    const unsubscribe = subscribeToFriendRequests(user.uid, (requests) => {
+      setPendingRequestsCount(requests.length);
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [user?.uid]);
+
+  // Manual notification trigger for demo
+  const triggerDemoNotification = () => {
+    if (Notification.permission === 'granted') {
+      new Notification("Aspirant Tracker Simulator", {
+        body: "Daily prep reminder! Practice makes progress. Check off your Quant, LRDI, or VARC targets today.",
+        icon: "/favicon.svg"
+      });
+    } else {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          new Notification("Notifications Enabled!", {
+            body: "Great! You will now receive reminders when tasks are left incomplete."
+          });
+        } else {
+          alert("Please enable notification permissions in your browser site settings first.");
+        }
+      });
+    }
+  };
+
+  // Reset all tracker data to defaults
+  const handleReset = () => {
+    if (window.confirm("Are you sure you want to reset all tracker data to defaults? This action cannot be undone.")) {
+      try {
+        localStorage.removeItem('cat_active_timer_session');
+      } catch (_e) {}
+      const initial = getInitialState();
+      setState(initial);
+      saveState(initial);
+    }
+  };
+
+  // Inspect peer or self study profile modal
+  const handleInspectFriend = async (friendProfile) => {
+    if (!friendProfile) return;
+    
+    // Check if user is inspecting their own profile
+    if (
+      friendProfile.isSelf || 
+      friendProfile.id === 'self' || 
+      friendProfile.id === 'self_user' || 
+      (user && (friendProfile.id === user.uid || friendProfile.uid === user.uid))
+    ) {
+      setSelectedFriend({
+        isSelf: true,
+        id: user?.uid || 'self_user',
+        uid: user?.uid || 'self_user',
+        displayName: userProfile?.displayName || user?.displayName || 'You',
+        username: userProfile?.username || (user?.email ? user.email.split('@')[0] : 'you'),
+        avatar: userProfile?.avatar || (user?.displayName ? user.displayName[0] : 'rocket'),
+        avatarBg: userProfile?.avatarBg || '#5865f2',
+        frameId: userProfile?.frameId || 'default',
+        bannerId: userProfile?.bannerId || 'cyber_grid',
+        bannerBg: userProfile?.bannerBg || '#1e1f22',
+        bannerUrl: userProfile?.bannerUrl || '',
+        bio: userProfile?.bio || '',
+        target: userProfile?.target || 'CAT Aspirant',
+        location: userProfile?.location || '',
+        aspirantId: userProfile?.aspirantId || '',
+        streak: activeStreak,
+        solvedQs: totalSolved,
+        mocksCount: totalMocksCount,
+        status: timerState.isRunning ? 'studying' : 'online',
+        activity: timerState.isRunning ? {
+          title: `${timerState.subject || 'Quant'} Focus Session`,
+          subject: timerState.subject || 'Quant',
+          secondsLeft: timerState.secondsLeft,
+          totalSeconds: timerState.totalSeconds
+        } : null
+      });
+      setSelectedFriendTracker({
+        tracker: state.tracker,
+        studyPlan: state.studyPlan,
+        mocks: state.mocks
+      });
+      setLoadingFriendTracker(false);
+      return;
+    }
+
+    const peerUid = friendProfile.uid || friendProfile.id;
+    setSelectedFriend({
+      ...friendProfile,
+      id: peerUid,
+      uid: peerUid
+    });
+    setSelectedFriendTracker(null);
+    setLoadingFriendTracker(true);
+
+    try {
+      if (isFirebaseConfigured && peerUid && peerUid !== 'self' && peerUid !== 'self_user') {
+        const cloudData = await loadTrackerFromCloud(peerUid);
+        if (cloudData) {
+          setSelectedFriendTracker(cloudData);
+        } else {
+          setSelectedFriendTracker({ tracker: null, studyPlan: null, mocks: null });
+        }
+      } else {
+        setSelectedFriendTracker({ tracker: null, studyPlan: null, mocks: null });
+      }
+    } catch (err) {
+      console.error("Error inspecting friend tracker:", err);
+      setSelectedFriendTracker({ tracker: null, studyPlan: null, mocks: null });
+    } finally {
+      setLoadingFriendTracker(false);
+    }
+  };
+
+  // Handle Selecting a new theme
+  const handleSelectTheme = (newTheme) => {
+    if (newTheme !== theme) {
+      setTheme(newTheme);
+      setShowThemeToast(true);
+    }
+  };
+
+  // 1. Update week status and data in overall Study Plan
+  const updateWeekPlan = (weekTitle, updatesOrStatus) => {
+    setState(prev => {
+      const updatedPlan = (prev.studyPlan || []).map(w => {
+        if (w.week === weekTitle) {
+          if (typeof updatesOrStatus === 'string') {
+            return { ...w, status: updatesOrStatus };
+          }
+          return { ...w, ...updatesOrStatus };
+        }
+        return w;
+      });
+      return { ...prev, studyPlan: updatedPlan, lastUpdated: Date.now() };
+    });
+  };
+  const updateWeekStatus = (weekTitle, status) => updateWeekPlan(weekTitle, status);
+
+  // Adaptive Syllabus Checkpoint Handlers
+  const handleOpenCheckpoint = (monthKey, weekKey, globalWeekIdx) => {
+    let gIdx = globalWeekIdx;
+    if (!gIdx) {
+      const mNum = parseInt(monthKey?.replace(/\D/g, ''), 10) || 1;
+      const wNum = parseInt(weekKey?.replace(/\D/g, ''), 10) || 1;
+      gIdx = Math.min(16, Math.max(1, (mNum - 1) * 4 + wNum));
+    }
+    const progress = calculateWeekProgress(state, monthKey, weekKey, gIdx);
+    setCheckpointWeekData(progress);
+    setIsCheckpointModalOpen(true);
+  };
+
+  const handleCloseCheckpoint = () => {
+    setIsCheckpointModalOpen(false);
+  };
+
+  const handleApplyRecoveryPlan = (planId, chosenOption, progressData) => {
+    const { monthKey, weekKey, globalWeekIdx } = progressData;
+
+    if (planId === 'reset_start_date') {
+      const todayDateStr = formatDateISO(new Date());
+      const todayWeekday = DAY_NAMES[new Date().getDay()] || 'Monday';
+      try {
+        localStorage.removeItem('cat_active_timer_session');
+      } catch (_e) {}
+      setState(prev => {
+        // Clean up any duplicate extended buffer weeks from tracker and studyPlan
+        const cleanedStudyPlan = (prev.studyPlan || [])
+          .filter(w => !w.isExtended)
+          .map(w => ({
+            ...w,
+            status: 'Not Started',
+            triageActive: false,
+            completedSubtopics: []
+          }));
+        const cleanedTracker = { ...prev.tracker };
+        for (const mKey of Object.keys(cleanedTracker)) {
+          cleanedTracker[mKey] = (cleanedTracker[mKey] || [])
+            .filter(w => !w.isExtended && !w.week.includes('(Extended Buffer)'))
+            .map(w => ({
+              ...w,
+              days: (w.days || []).map(day => ({
+                ...day,
+                quantCompleted: false,
+                lrdiCompleted: false,
+                varcCompleted: false,
+                customCompleted: false,
+                quantCount: 0,
+                lrdiCount: 0,
+                varcCount: 0,
+                customCount: 0,
+                studyHours: 0,
+                timerSessions: [],
+                sessions: [],
+                notes: ''
+              }))
+            }));
+        }
+        return {
+          ...prev,
+          studyPlan: cleanedStudyPlan,
+          tracker: cleanedTracker,
+          settings: {
+            ...prev.settings,
+            startDate: todayDateStr
+          },
+          lastUpdated: Date.now()
+        };
+      });
+      setActiveMonth('Month 1');
+      setActiveWeek('Week 1');
+      setActiveDayName(todayWeekday);
+      setActiveTab('daily');
+      if (typeof setActivityNotification === 'function') {
+        setActivityNotification({
+          title: 'Prep Start Date Reset to Today!',
+          message: 'Your 16-week timeline has restarted from Day 1. Start your initial Month 1: Week 1 drills!',
+          actionLabel: 'Start Week 1',
+          onAction: () => {
+            setActiveMonth('Month 1');
+            setActiveWeek('Week 1');
+            setActiveDayName(todayWeekday);
+            setActiveTab('daily');
+          }
+        });
+      }
+    } else if (planId === 'stay_on_week') {
+      const todayWeekday = DAY_NAMES[new Date().getDay()] || 'Monday';
+      setActiveMonth(monthKey);
+      setActiveWeek(weekKey);
+      setActiveDayName(todayWeekday);
+      setActiveTab('daily');
+      if (typeof setActivityNotification === 'function') {
+        setActivityNotification({
+          title: 'Staying on Track!',
+          message: `Continuing ${monthKey} • ${weekKey} daily drills. Master your daily quotas across Monday to Sunday to build consistent momentum!`,
+          actionLabel: 'View Today',
+          onAction: () => {
+            setActiveMonth(monthKey);
+            setActiveWeek(weekKey);
+            setActiveTab('daily');
+          }
+        });
+      }
+    } else if (planId === 'redirect_week1') {
+      setActiveMonth('Month 1');
+      setActiveWeek('Week 1');
+      setActiveDayName('Monday');
+      setActiveTab('daily');
+      if (typeof setActivityNotification === 'function') {
+        setActivityNotification({
+          title: 'Switched to Initial Exercises',
+          message: 'Redirected to Month 1 • Week 1. Begin with foundation concept lectures and daily drills.',
+          actionLabel: 'Start Week 1',
+          onAction: () => {
+            setActiveMonth('Month 1');
+            setActiveWeek('Week 1');
+            setActiveTab('daily');
+          }
+        });
+      }
+    } else if (planId === 'schedule_shift') {
+      const bufferWeekTitle = `${weekKey} (Extended Buffer)`;
+      setState(prev => applyScheduleShiftToState(prev, monthKey, weekKey, globalWeekIdx));
+      setActiveMonth(monthKey);
+      setActiveWeek(bufferWeekTitle);
+      setActiveDayName('Monday');
+      setActiveTab('daily');
+      if (typeof setActivityNotification === 'function') {
+        setActivityNotification({
+          title: 'Syllabus Extended (+1 Buffer Week)',
+          message: `Switched to ${bufferWeekTitle}: 7 extra days granted. Start with Monday foundation drills!`,
+          actionLabel: 'View Drills',
+          onAction: () => {
+            setActiveMonth(monthKey);
+            setActiveWeek(bufferWeekTitle);
+            setActiveTab('daily');
+          }
+        });
+      }
+    } else if (planId === 'catch_up_blitz') {
+      const nextWeekNum = (parseInt(weekKey?.replace(/\D/g, ''), 10) % 4) + 1;
+      const targetWeekKey = `Week ${nextWeekNum}`;
+      setState(prev => applyCatchUpBlitzToState(prev, monthKey, targetWeekKey, chosenOption));
+      setActiveMonth(monthKey);
+      setActiveWeek(targetWeekKey);
+      setActiveDayName('Monday');
+      setActiveTab('daily');
+      if (typeof setActivityNotification === 'function') {
+        setActivityNotification({
+          title: '7-Day Catch-Up Blitz Active',
+          message: `Switched to ${targetWeekKey}: daily micro-targets (+${chosenOption.dailyExtraQuant || 0} QA, +${chosenOption.dailyExtraLrdi || 0} DILR) are active on Monday!`,
+          actionLabel: 'Start Today',
+          onAction: () => {
+            setActiveMonth(monthKey);
+            setActiveWeek(targetWeekKey);
+            setActiveTab('daily');
+          }
+        });
+      }
+    } else if (planId === 'weekend_sprint') {
+      const nextWeekNum = (parseInt(weekKey?.replace(/\D/g, ''), 10) % 4) + 1;
+      const targetWeekKey = `Week ${nextWeekNum}`;
+      setState(prev => applyWeekendSprintToState(prev, monthKey, targetWeekKey, chosenOption));
+      setActiveMonth(monthKey);
+      setActiveWeek(targetWeekKey);
+      setActiveDayName('Saturday');
+      setActiveTab('daily');
+      if (typeof setActivityNotification === 'function') {
+        setActivityNotification({
+          title: 'Weekend Recovery Sprint Active',
+          message: `Switched to ${targetWeekKey} Saturday: deep-work sprint targets (+${chosenOption.satTargets?.quant || 0} QA) ready!`,
+          actionLabel: 'Start Saturday',
+          onAction: () => {
+            setActiveMonth(monthKey);
+            setActiveWeek(targetWeekKey);
+            setActiveDayName('Saturday');
+            setActiveTab('daily');
+          }
+        });
+      }
+    } else if (planId === 'pareto_triage') {
+      updateWeekPlan(progressData.planItem?.week || `${monthKey}: ${weekKey}`, {
+        status: 'In Progress',
+        triageActive: true,
+        triageNotes: chosenOption?.description || 'Pareto 80/20 Core Concept Focus'
+      });
+      setActiveMonth(monthKey);
+      setActiveWeek(weekKey);
+      setActiveDayName('Monday');
+      setActiveTab('daily');
+      if (typeof setActivityNotification === 'function') {
+        setActivityNotification({
+          title: 'Pareto 80/20 Triage Active',
+          message: 'Target high-yield core concepts on your checklist to clear the syllabus bottleneck.',
+          actionLabel: 'View Checklist',
+          onAction: () => {
+            setActiveMonth(monthKey);
+            setActiveWeek(weekKey);
+            setActiveTab('timeline');
+          }
+        });
+      }
+    } else if (planId === 'mark_complete') {
+      updateWeekPlan(progressData.planItem?.week || `${monthKey}: ${weekKey}`, {
+        status: 'Completed'
+      });
+      const nextWeekNum = (parseInt(weekKey?.replace(/\D/g, ''), 10) % 4) + 1;
+      const targetWeekKey = `Week ${nextWeekNum}`;
+      setActiveMonth(monthKey);
+      setActiveWeek(targetWeekKey);
+      setActiveDayName('Monday');
+      setActiveTab('daily');
+      if (typeof setActivityNotification === 'function') {
+        setActivityNotification({
+          title: 'Week Marked Complete',
+          message: `Self-study confirmed. Unlocked and switched to ${targetWeekKey}!`,
+          actionLabel: 'Start Next Week',
+          onAction: () => {
+            setActiveMonth(monthKey);
+            setActiveWeek(targetWeekKey);
+            setActiveTab('daily');
+          }
+        });
+      }
+    }
+
+    // Record persistent study behavior telemetry for AI personalization research
+    try {
+      const wasRecommended = (progressData?.recommendedPlan === planId) || (chosenOption?.isRecommended);
+      setState(prev => recordBehaviorTelemetry(prev, 'RECOVERY_PLAN_APPLIED', {
+        planId,
+        monthKey,
+        weekKey,
+        globalWeekIdx,
+        wasRecommended,
+        appliedAt: Date.now()
+      }));
+    } catch (_e) {}
+  };
+
+
+  // 2. Update Quantities and Completion status in Daily Tracker
+  const updateDayMetric = (month, weekName, dayName, subject, isCompleted, qty) => {
+    setState(prev => {
+      const updatedTracker = { ...prev.tracker };
+      const monthWeeks = updatedTracker[month] || [];
+      
+      updatedTracker[month] = monthWeeks.map(week => {
+        if (week.week === weekName) {
+          const updatedDays = week.days.map(day => {
+            if (day.day === dayName) {
+              return {
+                ...day,
+                [`${subject}Completed`]: isCompleted,
+                [`${subject}Count`]: qty
+              };
+            }
+            return day;
+          });
+          return { ...week, days: updatedDays };
+        }
+        return week;
+      });
+
+      return { ...prev, tracker: updatedTracker, lastUpdated: Date.now() };
+    });
+  };
+
+  // 3. Update Day Notes
+  const updateDayNotes = (month, weekName, dayName, notes) => {
+    setState(prev => {
+      const updatedTracker = { ...prev.tracker };
+      const monthWeeks = updatedTracker[month] || [];
+
+      updatedTracker[month] = monthWeeks.map(week => {
+        if (week.week === weekName) {
+          const updatedDays = week.days.map(day => {
+            if (day.day === dayName) {
+              return { ...day, notes };
+            }
+            return day;
+          });
+          return { ...week, days: updatedDays };
+        }
+        return week;
+      });
+
+      return { ...prev, tracker: updatedTracker, lastUpdated: Date.now() };
+    });
+  };
+
+  // 3b. Reset all 7 days of a specific week back to uncompleted/0 (non-destructive clean state)
+  const resetWeekMetrics = (month, weekName) => {
+    setState(prev => {
+      const updatedTracker = { ...prev.tracker };
+      const monthWeeks = updatedTracker[month] || [];
+
+      updatedTracker[month] = monthWeeks.map(week => {
+        if (week.week === weekName) {
+          const resetDays = (week.days || []).map(day => ({
+            ...day,
+            quantCompleted: false,
+            lrdiCompleted: false,
+            varcCompleted: false,
+            customCompleted: false,
+            quantCount: 0,
+            lrdiCount: 0,
+            varcCount: 0,
+            customCount: 0
+          }));
+          return { ...week, days: resetDays };
+        }
+        return week;
+      });
+
+      return { ...prev, tracker: updatedTracker, lastUpdated: Date.now() };
+    });
+  };
+
+  // 3c. Reset a specific day's metrics back to uncompleted/0
+  const resetDayMetrics = (month, weekName, dayName) => {
+    setState(prev => {
+      const updatedTracker = { ...prev.tracker };
+      const monthWeeks = updatedTracker[month] || [];
+
+      updatedTracker[month] = monthWeeks.map(week => {
+        if (week.week === weekName) {
+          const updatedDays = (week.days || []).map(day => {
+            if (day.day === dayName) {
+              return {
+                ...day,
+                quantCompleted: false,
+                lrdiCompleted: false,
+                varcCompleted: false,
+                customCompleted: false,
+                quantCount: 0,
+                lrdiCount: 0,
+                varcCount: 0,
+                customCount: 0
+              };
+            }
+            return day;
+          });
+          return { ...week, days: updatedDays };
+        }
+        return week;
+      });
+
+      return { ...prev, tracker: updatedTracker, lastUpdated: Date.now() };
+    });
+  };
+
+  // 3d. Update Day Custom Objective Target Description
+  const updateDayCustomTarget = (month, weekName, dayName, customTarget) => {
+    updateCustomObjectiveConfig(month, weekName, dayName, { target: customTarget });
+  };
+
+  // 3e. Update Custom Objective Full Configuration (Title, Badge, Target, TargetQty, Unit)
+  const updateCustomObjectiveConfig = (month, weekName, dayName, customConfig, applyToAllDays = false) => {
+    setState(prev => {
+      const updatedTracker = { ...prev.tracker };
+      const patch = {};
+      if (customConfig.hasCustomObjective !== undefined) {
+        patch.hasCustomObjective = customConfig.hasCustomObjective;
+        if (!customConfig.hasCustomObjective) {
+          patch.customCompleted = false;
+          patch.customCount = 0;
+        }
+      }
+      if (customConfig.title !== undefined) patch.customTitle = customConfig.title;
+      if (customConfig.badge !== undefined) patch.customBadge = customConfig.badge;
+      if (customConfig.target !== undefined) patch.customTarget = customConfig.target;
+      if (customConfig.targetQty !== undefined) patch.customTargetQty = Math.max(1, parseInt(customConfig.targetQty) || 1);
+      if (customConfig.unit !== undefined) patch.customUnit = customConfig.unit;
+
+      if (applyToAllDays) {
+        for (const mKey of Object.keys(updatedTracker)) {
+          updatedTracker[mKey] = (updatedTracker[mKey] || []).map(week => ({
+            ...week,
+            days: (week.days || []).map(day => ({
+              ...day,
+              ...patch
+            }))
+          }));
+        }
+      } else {
+        const monthWeeks = updatedTracker[month] || [];
+        updatedTracker[month] = monthWeeks.map(week => {
+          if (week.week === weekName) {
+            const updatedDays = (week.days || []).map(day => {
+              if (day.day === dayName) {
+                return { ...day, ...patch };
+              }
+              return day;
+            });
+            return { ...week, days: updatedDays };
+          }
+          return week;
+        });
+      }
+
+      return { ...prev, tracker: updatedTracker, lastUpdated: Date.now() };
+    });
+  };
+
+  // 4. Update Mock Row details
+  const updateMockRow = (mockId, field, value) => {
+    setState(prev => {
+      const updatedMocks = prev.mocks.map(mock => {
+        if (mock.id === mockId) {
+          if (typeof field === 'object' && field !== null) {
+            const updated = { ...mock, ...field };
+            const q = parseFloat(updated.quantScore) || 0;
+            const l = parseFloat(updated.lrdiScore) || 0;
+            const v = parseFloat(updated.varcScore) || 0;
+            if (updated.status === 'Taken') {
+              updated.totalScore = updated.totalScore || (q + l + v);
+            }
+            return updated;
+          }
+          const updated = { ...mock, [field]: value };
+          if (['quantScore', 'lrdiScore', 'varcScore'].includes(field)) {
+            const q = parseFloat(field === 'quantScore' ? value : mock.quantScore) || 0;
+            const l = parseFloat(field === 'lrdiScore' ? value : mock.lrdiScore) || 0;
+            const v = parseFloat(field === 'varcScore' ? value : mock.varcScore) || 0;
+            updated.totalScore = q + l + v;
+          }
+          return updated;
+        }
+        return mock;
+      });
+      return { ...prev, mocks: updatedMocks, lastUpdated: Date.now() };
+    });
+  };
+
+  // Helper to jump to a specific month/week drill from other tabs
+  const handleJumpToWeek = (timelineWeekTitle) => {
+    const match = timelineWeekTitle.match(/Month (\d+):\s+Week (\d+)/i);
+    if (match) {
+      const monthNum = parseInt(match[1]);
+      const weekNum = parseInt(match[2]);
+      
+      const monthKey = `Month ${monthNum}`;
+      const relativeWeekNum = ((weekNum - 1) % 4) + 1;
+      const weekKey = `Week ${relativeWeekNum}`;
+
+      setActiveMonth(monthKey);
+      setActiveWeek(weekKey);
+      setActiveDayName('Monday');
+      setActiveTab('daily');
+    }
+  };
+
+  // Update Prep Schedule Start Date setting
+  const handleUpdateStartDate = (newStartDate) => {
+    setState(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        startDate: newStartDate
+      },
+      lastUpdated: Date.now()
+    }));
+  };
+
+  // Edit specific day from error logs / heatmaps
+  const handleJumpToDay = (monthKey, weekKey, dayName) => {
+    if (monthKey) setActiveMonth(monthKey);
+    if (weekKey) setActiveWeek(weekKey);
+    if (dayName) setActiveDayName(dayName);
+    setActiveTab('daily');
+  };
+
+  // Export progress data
+  const handleExport = () => {
+    exportStateAsFile(state);
+  };
+
+  // Import backup data
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const imported = JSON.parse(event.target.result);
+        if (imported.tracker && imported.studyPlan && imported.mocks) {
+          setState({ ...imported, lastUpdated: Date.now() });
+          if (imported.settings?.theme) {
+            setTheme(imported.settings.theme);
+          }
+          alert("Backup data imported successfully!");
+        } else {
+          alert("Invalid backup file structure.");
+        }
+      } catch (err) {
+        alert("Failed to parse the backup file: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Add recorded study session to today's tracker day
+  const addStudySession = (session) => {
+    const cleanNotes = session.notes ? stripEmojis(session.notes) : '';
+    const cleanSubject = stripEmojis(session.subject || 'General');
+    const cleanSession = {
+      ...session,
+      subject: cleanSubject,
+      notes: cleanNotes
+    };
+
+    setState(prev => {
+      const todayPosition = getTodayTrackerPosition(prev.settings?.startDate);
+      const updatedTracker = { ...prev.tracker };
+      const monthWeeks = updatedTracker[todayPosition.activeMonth] || [];
+      const subjKey = cleanSubject.toLowerCase().trim();
+
+      updatedTracker[todayPosition.activeMonth] = monthWeeks.map(week => {
+        if (week.week === todayPosition.activeWeek) {
+          const updatedDays = week.days.map(day => {
+            if (day.day === todayPosition.dayName) {
+              const prevSessions = day.sessions || [];
+              const newSessions = [cleanSession, ...prevSessions];
+              const prevHours = day.studyHours || 0;
+              const addedHours = (cleanSession.durationMinutes || 0) / 60;
+
+              // Subject drill synchronization based on verified session output
+              let newQuantCompleted = day.quantCompleted;
+              let newQuantCount = day.quantCount;
+              let newLrdiCompleted = day.lrdiCompleted;
+              let newLrdiCount = day.lrdiCount;
+              let newVarcCompleted = day.varcCompleted;
+              let newVarcCount = day.varcCount;
+
+              const parseTargetNum = (str, def) => {
+                if (!str || typeof str !== 'string') return def;
+                const m = str.match(/\d+/);
+                return m ? parseInt(m[0], 10) : def;
+              };
+
+              const userAddedQty = typeof cleanSession.questionsSolved === 'number'
+                ? Math.max(0, cleanSession.questionsSolved)
+                : null;
+              const userMarkCompleted = typeof cleanSession.markCompleted === 'boolean'
+                ? cleanSession.markCompleted
+                : null;
+
+              if (subjKey === 'quant') {
+                const target = parseTargetNum(day.quantTarget, 18);
+                if (userAddedQty !== null) {
+                  newQuantCount = (day.quantCount || 0) + userAddedQty;
+                }
+                if (userMarkCompleted !== null) {
+                  newQuantCompleted = userMarkCompleted;
+                } else if (userAddedQty !== null) {
+                  newQuantCompleted = newQuantCount >= target;
+                }
+              } else if (subjKey === 'lrdi') {
+                const target = parseTargetNum(day.lrdiTarget, 4);
+                if (userAddedQty !== null) {
+                  newLrdiCount = (day.lrdiCount || 0) + userAddedQty;
+                }
+                if (userMarkCompleted !== null) {
+                  newLrdiCompleted = userMarkCompleted;
+                } else if (userAddedQty !== null) {
+                  newLrdiCompleted = newLrdiCount >= target;
+                }
+              } else if (subjKey === 'varc') {
+                const target = parseTargetNum(day.varcTarget, 4);
+                if (userAddedQty !== null) {
+                  newVarcCount = (day.varcCount || 0) + userAddedQty;
+                }
+                if (userMarkCompleted !== null) {
+                  newVarcCompleted = userMarkCompleted;
+                } else if (userAddedQty !== null) {
+                  newVarcCompleted = newVarcCount >= target;
+                }
+              }
+
+              // Append session note to day.notes without emojis
+              let updatedNotes = day.notes || '';
+              if (cleanNotes) {
+                const noteEntry = `[${cleanSubject} Session (${cleanSession.durationMinutes}m)]: ${cleanNotes}`;
+                updatedNotes = updatedNotes.trim()
+                  ? `${updatedNotes.trim()}\n${noteEntry}`
+                  : noteEntry;
+              }
+
+              return {
+                ...day,
+                studyHours: Math.round((prevHours + addedHours) * 10) / 10,
+                sessions: newSessions,
+                quantCompleted: newQuantCompleted,
+                quantCount: newQuantCount,
+                lrdiCompleted: newLrdiCompleted,
+                lrdiCount: newLrdiCount,
+                varcCompleted: newVarcCompleted,
+                varcCount: newVarcCount,
+                notes: updatedNotes
+              };
+            }
+            return day;
+          });
+          return { ...week, days: updatedDays };
+        }
+        return week;
+      });
+
+      return { ...prev, tracker: updatedTracker, lastUpdated: Date.now() };
+    });
+  };
+
+  // Delete a recorded session
+  const handleDeleteSession = (sessionId) => {
+    setState(prev => {
+      const todayPosition = getTodayTrackerPosition(prev.settings?.startDate);
+      const updatedTracker = { ...prev.tracker };
+      const monthWeeks = updatedTracker[todayPosition.activeMonth] || [];
+
+      updatedTracker[todayPosition.activeMonth] = monthWeeks.map(week => {
+        if (week.week === todayPosition.activeWeek) {
+          const updatedDays = week.days.map(day => {
+            if (day.day === todayPosition.dayName) {
+              const targetSess = (day.sessions || []).find(s => s.id === sessionId);
+              const removedMins = targetSess ? targetSess.durationMinutes : 0;
+              const newSessions = (day.sessions || []).filter(s => s.id !== sessionId);
+              const newHours = Math.max(0, (day.studyHours || 0) - (removedMins / 60));
+              return {
+                ...day,
+                studyHours: Math.round(newHours * 10) / 10,
+                sessions: newSessions
+              };
+            }
+            return day;
+          });
+          return { ...week, days: updatedDays };
+        }
+        return week;
+      });
+
+      return { ...prev, tracker: updatedTracker, lastUpdated: Date.now() };
+    });
+  };
+
+  // Update a recorded session (e.g. adjust minutes, subject, notes)
+  const handleUpdateSession = (sessionId, updatedFields) => {
+    setState(prev => {
+      const todayPosition = getTodayTrackerPosition(prev.settings?.startDate);
+      const updatedTracker = { ...prev.tracker };
+      const monthWeeks = updatedTracker[todayPosition.activeMonth] || [];
+
+      updatedTracker[todayPosition.activeMonth] = monthWeeks.map(week => {
+        if (week.week === todayPosition.activeWeek) {
+          const updatedDays = week.days.map(day => {
+            if (day.day === todayPosition.dayName) {
+              const targetSess = (day.sessions || []).find(s => s.id === sessionId);
+              if (!targetSess) return day;
+
+              const oldMins = Number(targetSess.durationMinutes) || 0;
+              const newMins = updatedFields.durationMinutes !== undefined 
+                ? Math.max(1, Number(updatedFields.durationMinutes) || 1)
+                : oldMins;
+              const deltaHours = (newMins - oldMins) / 60;
+
+              const newSessions = (day.sessions || []).map(s => {
+                if (s.id === sessionId) {
+                  return {
+                    ...s,
+                    ...updatedFields,
+                    durationMinutes: newMins,
+                    subject: stripEmojis(updatedFields.subject || s.subject || 'General'),
+                    notes: stripEmojis(updatedFields.notes !== undefined ? updatedFields.notes : (s.notes || ''))
+                  };
+                }
+                return s;
+              });
+
+              const newHours = Math.max(0, (day.studyHours || 0) + deltaHours);
+              return {
+                ...day,
+                studyHours: Math.round(newHours * 10) / 10,
+                sessions: newSessions
+              };
+            }
+            return day;
+          });
+          return { ...week, days: updatedDays };
+        }
+        return week;
+      });
+
+      return { ...prev, tracker: updatedTracker, lastUpdated: Date.now() };
+    });
+  };
+
+  // Timer Handlers
+  const handleStartTimer = (opts = {}) => {
+    const {
+      durationMinutes = 25,
+      mode = 'pomodoro',
+      visualTheme = 'samurai',
+      subject = 'Focus Session',
+      notes = ''
+    } = opts || {};
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const targetSecs = (durationMinutes || 25) * 60;
+
+    const nextTimerState = {
+      secondsLeft: targetSecs > 0 ? targetSecs : 1500,
+      totalSeconds: targetSecs > 0 ? targetSecs : 1500,
+      isRunning: true,
+      isPaused: false,
+      mode,
+      visualTheme,
+      subject,
+      startTimeStr: timeStr,
+      startTimeMs: now.getTime(),
+      lastTickMs: now.getTime(),
+      sessionNotes: notes || ''
+    };
+
+    setTimerState(nextTimerState);
+    if (isFirebaseConfigured && user) {
+      updateUserPresence(user, nextTimerState, activeStreak, totalSolved);
+    }
+  };
+
+  const handlePauseTimer = () => {
+    const nextTimerState = { ...timerState, isRunning: false, isPaused: true, lastTickMs: null };
+    setTimerState(nextTimerState);
+    if (isFirebaseConfigured && user) {
+      updateUserPresence(user, nextTimerState, activeStreak, totalSolved);
+    }
+  };
+
+  const handleResumeTimer = () => {
+    const nextTimerState = { ...timerState, isRunning: true, isPaused: false, lastTickMs: Date.now() };
+    setTimerState(nextTimerState);
+    if (isFirebaseConfigured && user) {
+      updateUserPresence(user, nextTimerState, activeStreak, totalSolved);
+    }
+  };
+
+  const handleResetTimer = () => {
+    const nextTimerState = {
+      ...timerState,
+      secondsLeft: timerState.totalSeconds,
+      isRunning: false,
+      isPaused: false,
+      startTimeStr: null,
+      startTimeMs: null,
+      lastTickMs: null
+    };
+    setTimerState(nextTimerState);
+    if (isFirebaseConfigured && user) {
+      updateUserPresence(user, nextTimerState, activeStreak, totalSolved);
+    }
+  };
+
+  const handleUpdateTimerNotes = (notes) => {
+    setTimerState(prev => ({ ...prev, sessionNotes: notes }));
+  };
+
+  const handleFinishTimer = (overrideOptions) => {
+    let finalNotes = timerState.sessionNotes || '';
+    let questionsSolved = undefined;
+    let markCompleted = undefined;
+
+    if (typeof overrideOptions === 'string') {
+      finalNotes = overrideOptions;
+    } else if (overrideOptions && typeof overrideOptions === 'object') {
+      if (typeof overrideOptions.notes === 'string') finalNotes = overrideOptions.notes;
+      if (typeof overrideOptions.questionsSolved === 'number') questionsSolved = overrideOptions.questionsSolved;
+      if (typeof overrideOptions.markCompleted === 'boolean') markCompleted = overrideOptions.markCompleted;
+    }
+
+    const now = new Date();
+    const endTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const startMs = timerState.startTimeMs || (now.getTime() - (timerState.totalSeconds - timerState.secondsLeft) * 1000);
+    const startObj = new Date(startMs);
+    const startTimeStr = timerState.startTimeStr || startObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    let elapsedMins;
+    if (timerState.mode === 'stopwatch') {
+      elapsedMins = Math.max(1, Math.round(timerState.secondsLeft / 60));
+    } else {
+      const activeSecondsElapsed = Math.max(0, timerState.totalSeconds - timerState.secondsLeft);
+      const countdownMins = Math.round(activeSecondsElapsed / 60);
+      const wallClockMins = Math.max(1, Math.round((now.getTime() - startMs) / 60000));
+      elapsedMins = countdownMins > 0 ? countdownMins : wallClockMins;
+      if (timerState.secondsLeft <= 0) {
+        elapsedMins = Math.max(1, Math.round(timerState.totalSeconds / 60));
+      }
+    }
+
+    const sessionObj = {
+      id: 'sess_' + Date.now(),
+      startTime: startTimeStr,
+      endTime: endTimeStr,
+      durationMinutes: elapsedMins,
+      subject: timerState.subject,
+      mode: timerState.mode,
+      visualTheme: timerState.visualTheme,
+      notes: finalNotes,
+      questionsSolved,
+      markCompleted,
+      timestamp: Date.now()
+    };
+
+    addStudySession(sessionObj);
+
+    // Inflict combat damage on the active Arena Gauntlet Boss
+    try {
+      const combatRes = dealStudyDamageToBot(elapsedMins, timerState.subject);
+      if (combatRes?.success && combatRes.damageDealt > 0) {
+        if (combatRes.botDefeated) {
+          setTopBarActivationAlert({
+            title: 'ARENA BOSS SLAIN!',
+            message: `Your ${elapsedMins}m study struck the final blow! Looted +${combatRes.aetherLoot} Aether!`
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to apply study damage to arena bot:', e);
+    }
+
+    // Notify the user visually that their study session was logged to daily drills
+    const subjTitle = timerState.subject || 'Study';
+    const questionsMsg = typeof questionsSolved === 'number' && questionsSolved > 0
+      ? ` (${questionsSolved} ${subjTitle.toLowerCase() === 'lrdi' ? 'sets' : subjTitle.toLowerCase() === 'varc' ? 'RCs' : 'questions'} logged)`
+      : '';
+
+    setActivityNotification({
+      type: 'timer_logged',
+      title: 'Session Logged to Daily Drills!',
+      message: `+${elapsedMins}m ${subjTitle} session added to today's drills${questionsMsg} with checklist & notes updated.`,
+      actionLabel: 'View Daily Drills',
+      onAction: () => {
+        const todayP = getTodayTrackerPosition(state.settings?.startDate);
+        setActiveMonth(todayP.activeMonth);
+        setActiveWeek(todayP.activeWeek);
+        setActiveTab('daily');
+        setActivityNotification(null);
+      }
+    });
+
+    const resetTimer = {
+      ...timerState,
+      secondsLeft: timerState.totalSeconds,
+      isRunning: false,
+      isPaused: false,
+      startTimeStr: null,
+      startTimeMs: null,
+      lastTickMs: null,
+      sessionNotes: ''
+    };
+    setTimerState(resetTimer);
+    if (isFirebaseConfigured && user) {
+      updateUserPresence(user, resetTimer, activeStreak, totalSolved);
+    }
+  };
+
+  // Tab visibility synchronization - immediate wall-clock reconciliation on tab refocus
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && timerState.isRunning) {
+        setTimerState(prev => {
+          if (!prev.isRunning) return prev;
+          const nowMs = Date.now();
+          const lastMs = prev.lastTickMs || nowMs;
+          const deltaSecs = Math.max(0, Math.floor((nowMs - lastMs) / 1000));
+          if (deltaSecs <= 0) return prev;
+
+          if (prev.mode === 'stopwatch') {
+            return {
+              ...prev,
+              secondsLeft: prev.secondsLeft + deltaSecs,
+              lastTickMs: nowMs
+            };
+          }
+
+          if (prev.secondsLeft <= deltaSecs) {
+            const now = new Date();
+            const endTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const startMs = prev.startTimeMs || (now.getTime() - prev.totalSeconds * 1000);
+            const startObj = new Date(startMs);
+            const startTimeStr = prev.startTimeStr || startObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const elapsedMins = Math.max(1, Math.round(prev.totalSeconds / 60));
+
+            const sessionObj = {
+              id: 'sess_' + Date.now(),
+              startTime: startTimeStr,
+              endTime: endTimeStr,
+              durationMinutes: elapsedMins,
+              subject: prev.subject,
+              mode: prev.mode,
+              visualTheme: prev.visualTheme,
+              notes: prev.sessionNotes,
+              timestamp: Date.now()
+            };
+
+            addStudySession(sessionObj);
+
+            return {
+              ...prev,
+              secondsLeft: 0,
+              isRunning: false,
+              isPaused: false,
+              startTimeStr: null,
+              startTimeMs: null,
+              lastTickMs: null
+            };
+          }
+
+          return {
+            ...prev,
+            secondsLeft: prev.secondsLeft - deltaSecs,
+            lastTickMs: nowMs
+          };
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [timerState.isRunning]);
+
+  // Timer Tick Effect with Background Tab Drift & Throttle Recovery
+  useEffect(() => {
+    let interval = null;
+    if (timerState.isRunning) {
+      interval = setInterval(() => {
+        setTimerState(prev => {
+          if (!prev.isRunning) return prev;
+          const nowMs = Date.now();
+          const lastMs = prev.lastTickMs || nowMs;
+          const deltaSecs = Math.max(1, Math.floor((nowMs - lastMs) / 1000));
+          if (deltaSecs < 1) return prev;
+
+          if (prev.mode === 'stopwatch') {
+            return {
+              ...prev,
+              secondsLeft: prev.secondsLeft + deltaSecs,
+              lastTickMs: nowMs
+            };
+          }
+
+          if (prev.secondsLeft <= deltaSecs) {
+            // Finished naturally
+            const now = new Date();
+            const endTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const startMs = prev.startTimeMs || (now.getTime() - prev.totalSeconds * 1000);
+            const startObj = new Date(startMs);
+            const startTimeStr = prev.startTimeStr || startObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const elapsedMins = Math.max(1, Math.round(prev.totalSeconds / 60));
+
+            const sessionObj = {
+              id: 'sess_' + Date.now(),
+              startTime: startTimeStr,
+              endTime: endTimeStr,
+              durationMinutes: elapsedMins,
+              subject: prev.subject,
+              mode: prev.mode,
+              visualTheme: prev.visualTheme,
+              notes: prev.sessionNotes,
+              timestamp: Date.now()
+            };
+
+            addStudySession(sessionObj);
+
+            if (Notification.permission === 'granted') {
+              new Notification("Focus Session Complete!", {
+                body: `Awesome! You studied ${prev.subject} for ${elapsedMins} mins. Time auto-recorded.`,
+                icon: "/favicon.svg"
+              });
+            }
+
+            return {
+              ...prev,
+              secondsLeft: 0,
+              isRunning: false,
+              isPaused: false,
+              startTimeStr: null,
+              startTimeMs: null,
+              lastTickMs: null
+            };
+          }
+
+          return {
+            ...prev,
+            secondsLeft: prev.secondsLeft - deltaSecs,
+            lastTickMs: nowMs
+          };
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [timerState.isRunning]);
+
+  // Synchronize active timer session state into localStorage
+  useEffect(() => {
+    try {
+      if (timerState.isRunning || timerState.isPaused) {
+        localStorage.setItem('cat_active_timer_session', JSON.stringify(timerState));
+      } else {
+        localStorage.removeItem('cat_active_timer_session');
+      }
+    } catch (e) {}
+  }, [timerState]);
+
+  // Offline and Exit/Refresh auto-logger: preserves study time if user disconnects
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (timerState.isRunning && timerState.startTimeMs) {
+        const nowMs = Date.now();
+        const activeElapsedMins = Math.max(1, Math.floor((nowMs - timerState.startTimeMs) / 60000));
+        const now = new Date();
+        const endTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const startObj = new Date(timerState.startTimeMs);
+        const startTimeStr = timerState.startTimeStr || startObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const sessionSnapshot = {
+          id: 'sess_' + nowMs,
+          startTime: startTimeStr,
+          endTime: endTimeStr,
+          durationMinutes: activeElapsedMins,
+          subject: timerState.subject,
+          mode: timerState.mode,
+          visualTheme: timerState.visualTheme,
+          notes: (timerState.sessionNotes ? timerState.sessionNotes + ' ' : '') + '(Auto-saved on exit/offline)',
+          timestamp: nowMs
+        };
+
+        try {
+          const localData = localStorage.getItem('cat_prep_tracker_state_v1');
+          if (localData) {
+            const parsed = JSON.parse(localData);
+            const todayPos = getTodayTrackerPosition(parsed.settings?.startDate);
+            const m = parsed.tracker?.[todayPos.activeMonth];
+            const w = m?.find(week => week.week === todayPos.activeWeek);
+            const d = w?.days?.find(day => day.day === todayPos.dayName);
+            if (d) {
+              d.sessions = d.sessions || [];
+              d.sessions.push(sessionSnapshot);
+              d.studyHours = (d.studyHours || 0) + (activeElapsedMins / 60);
+              saveState(parsed);
+            }
+          }
+        } catch (e) {}
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [timerState]);
+
+  // Auth Gate: Require login or create account before accessing the main dashboard/app
+  if (!user && !isGuestMode) {
+    return (
+      <AuthScreen
+        onAuthSuccess={(u) => {
+          setUser(u);
+          setIsGuestMode(false);
+          setShowIntro(true);
+          localStorage.removeItem('catalyze_guest_mode');
+          localStorage.removeItem('aspiranto_guest_mode');
+        }}
+        onContinueAsGuest={() => {
+          setIsGuestMode(true);
+          setShowIntro(true);
+          localStorage.setItem('catalyze_guest_mode', 'true');
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {/* Spylt-Inspired Cinematic Liquid Intro Loader */}
+      {showIntro && (
+        <LiquidIntroLoader 
+          activeTheme={theme} 
+          onComplete={handleIntroComplete} 
+        />
+      )}
+
+
+
+      {/* ReactBits Dither Background WebGL Shader (Dynamic continuous retro pixel wave) */}
+      <DitherBackground activeTheme={theme} opacity={0.16} ditherSize={2.2} />
+
+      {/* ReactBits ClickSpark Particle Burst Animation */}
+      <ClickSpark activeTheme={theme} />
+
+      {/* Luxury Liquid Glow Custom Cursor with GSAP Physics */}
+      <CustomCursor activeTheme={theme} activeTab={activeTab} />
+
+      {/* Gamified Full-Screen Edge Status Aura & Activation Burst */}
+      <GamifiedStatusBorderOverlay kobanData={kobanData} />
+
+      {/* Draggable Floating Overlay Dock for Tabs (Zero Logo on Dock - Pure Tab Capsule Overlay) */}
+      <aside 
+        className={`sidebar floating-overlay-dock ${isDraggingDock ? 'is-dragging' : ''}`}
+        onPointerDown={handleDockPointerDown}
+        style={dockPos ? { left: `${dockPos.x}px`, top: `${dockPos.y}px`, transform: 'none' } : undefined}
+        aria-label="Main Navigation Dock"
+      >
+        {/* Subtle Grip Drag Handle (Drag to move dock anywhere, double-click to reset) */}
+        <div 
+          className="dock-drag-handle" 
+          title="Drag to move dock anywhere (Double-click to reset position)"
+          onDoubleClick={handleResetDockPos}
+        >
+          <Icons.GripVertical size={13} />
+        </div>
+
+        <Dock direction="vertical" magnification={1.25} distance={95} baseItemSize={44} className="dock-nav-links">
+          <DockItem 
+            active={activeTab === 'dashboard'} 
+            onClick={() => setActiveTab('dashboard')} 
+            ariaLabel="Dashboard"
+            tooltipTitle="Dashboard"
+            tooltipTag="SYS.OVERVIEW"
+          >
+            <Icons.Home />
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'timeline'} 
+            onClick={() => setActiveTab('timeline')} 
+            ariaLabel="Study Plan"
+            tooltipTitle="Study Plan"
+            tooltipTag="16-WK CURRICULUM"
+          >
+            <Icons.Plan />
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'timer'} 
+            onClick={() => setActiveTab('timer')} 
+            ariaLabel="Focus & Study Timer"
+            tooltipTitle={timerState?.isRunning ? `Timer Active (${Math.floor((timerState.secondsLeft || 0) / 60)}m)` : "Study Timer"}
+            tooltipTag={timerState?.isRunning ? `${timerState.subject || 'FOCUS'} RUNNING` : "FOCUS SUITE"}
+            className={timerState?.isRunning ? 'dock-timer-running' : ''}
+          >
+            <div className="dock-timer-icon-wrap">
+              <Icons.Timer />
+              {timerState?.isRunning && (
+                <span className="dock-timer-active-badge" title="Focus session running" aria-hidden="true">
+                  <span className="dock-timer-ping" />
+                  <span className="dock-timer-dot" />
+                </span>
+              )}
+            </div>
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'lounge'} 
+            onClick={() => {
+              setActiveTab('lounge');
+              try {
+                if (!document.fullscreenElement) {
+                  document.documentElement.requestFullscreen?.().catch(() => {});
+                }
+              } catch (e) {}
+            }} 
+            ariaLabel="1v1 Spire Gauntlet Arena"
+            tooltipTitle="Spire Arena"
+            tooltipTag="1v1 GAUNTLET"
+          >
+            <AnimatedSwordsIcon size={20} />
+          </DockItem>
+
+          {overallBacklog.hasBacklog && (
+            <DockItem 
+              active={activeTab === 'recovery'} 
+              onClick={() => setActiveTab('recovery')} 
+              ariaLabel="Backlog Recovery Cockpit"
+              tooltipTitle="Backlog Recovery"
+              tooltipTag={`${overallBacklog.totalDeficitDrills} DEFICIT Qs`}
+              className="dock-item-backlog-pulse"
+            >
+              <div className="dock-backlog-icon-wrap">
+                <Icons.Zap size={20} color={activeTab === 'recovery' ? '#f59e0b' : '#fbbf24'} />
+                <span className="dock-backlog-deficit-badge" title={`${overallBacklog.totalDeficitDrills} backlog questions pending`}>
+                  {overallBacklog.totalDeficitDrills > 99 ? '99+' : overallBacklog.totalDeficitDrills}
+                </span>
+              </div>
+            </DockItem>
+          )}
+
+          <DockItem 
+            active={activeTab === 'daily'} 
+            onClick={() => setActiveTab('daily')} 
+            ariaLabel="Daily Drills"
+            tooltipTitle="Daily Drills"
+            tooltipTag={todayObjectivesTelemetry.left === 0 ? "ALL CONQUERED" : `${todayObjectivesTelemetry.total} OBJS • ${todayObjectivesTelemetry.left} LEFT`}
+          >
+            <div className="dock-drills-icon-wrap">
+              <Icons.Drills />
+              {todayObjectivesTelemetry.left > 0 ? (
+                <span 
+                  className="dock-drills-left-badge" 
+                  title={`${todayObjectivesTelemetry.total} objectives: ${todayObjectivesTelemetry.left} left today`}
+                >
+                  {todayObjectivesTelemetry.left}
+                </span>
+              ) : (
+                <span className="dock-drills-done-dot" title="All daily quotas conquered!" />
+              )}
+            </div>
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'mocks'} 
+            onClick={() => setActiveTab('mocks')} 
+            ariaLabel="Mock Tests"
+            tooltipTitle="Mock Tests"
+            tooltipTag="BENCHMARKS"
+          >
+            <Icons.Mocks />
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'shop'} 
+            onClick={() => setActiveTab('shop')} 
+            ariaLabel="Sanctuary Bazaar (Shop)"
+            tooltipTitle="Sanctuary Shop"
+            tooltipTag="ROGUELIKE BAZAAR"
+            className="dock-item-shop"
+          >
+            <Icons.Shop size={20} />
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'achievements'} 
+            onClick={() => setActiveTab('achievements')} 
+            ariaLabel="Prestige Achievement Badges"
+            tooltipTitle="Achievements"
+            tooltipTag="PRESTIGE BADGES"
+          >
+            <Icons.Award />
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'errors'} 
+            onClick={() => setActiveTab('errors')} 
+            ariaLabel="Error Log"
+            tooltipTitle="Error Log"
+            tooltipTag="AUDIT MISTAKES"
+          >
+            <Icons.Errors />
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'profile'} 
+            onClick={() => setActiveTab('profile')} 
+            ariaLabel="Profile & Study Buddies"
+            tooltipTitle="Profile & Buddies"
+            tooltipTag="COMMUNITY"
+          >
+            <Icons.Cloud />
+            {pendingRequestsCount > 0 && (
+              <span className="dock-badge-dot" title={`${pendingRequestsCount} new friend request(s)`}></span>
+            )}
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'settings'} 
+            onClick={() => setActiveTab('settings')} 
+            ariaLabel="Application Settings"
+            tooltipTitle="Settings"
+            tooltipTag="PREFERENCES"
+          >
+            <Icons.Settings />
+          </DockItem>
+        </Dock>
+
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          style={{ display: 'none' }} 
+          accept=".json" 
+          onChange={handleImport} 
+        />
+      </aside>
+
+      {/* Main Layout Wrapper (Dynamically fills space on PC) */}
+      <div className="app-main-wrapper">
+        {/* Clean Global Header */}
+        <header className="global-header cyber-bento-bar">
+          <div className="header-brand-title">
+            <button 
+              type="button" 
+              className="brand-emblem-badge header-logo-badge cyber-logo-pill" 
+              onClick={() => setShowIntro(true)} 
+              title="CATalyze - Replay Cinematic Intro"
+            >
+              <span className="brand-logo-emblem">
+                <Icons.Logo size={20} />
+              </span>
+              <span className="brand-logo-text-lockup">
+                <span className="brand-logo-title">
+                  <span className="brand-title-accent">CAT</span><span className="brand-title-light">alyze</span>
+                </span>
+              </span>
+            </button>
+
+            <div className="cyber-header-divider desktop-only" aria-hidden="true" />
+
+            <div className="cyber-protocol-badge desktop-only">
+              <span className="cyber-pulse-dot" />
+              <span className="cyber-page-name" key={activeTab}>
+                {activeTab === 'dashboard' ? 'DASHBOARD' : activeTab === 'shop' ? 'SANCTUARY BAZAAR' : activeTab === 'recovery' ? 'BACKLOG RECOVERY' : activeTab === 'lounge' ? 'SPIRE GAUNTLET ARENA' : activeTab === 'timeline' ? 'STUDY PLAN' : activeTab === 'timer' ? 'FOCUS SANCTUARY' : activeTab === 'daily' ? 'DAILY DRILLS' : activeTab === 'mocks' ? 'MOCK TESTS' : activeTab === 'achievements' ? 'ACHIEVEMENTS' : activeTab === 'errors' ? 'ERROR LOG' : activeTab === 'profile' ? 'PROFILE' : activeTab === 'settings' ? 'SETTINGS' : 'DASHBOARD'}
+              </span>
+            </div>
+          </div>
+
+          {/* Top Right Status: Desktop Bento Cluster vs Mobile Morph FAB Hub */}
+          {!isMobileScreen ? (
+            <div className="header-stats cyber-bento-cluster desktop-stats-cluster">
+              {/* Release Notes & System Updates Pill */}
+              <button 
+                type="button" 
+                className="header-patch-notes-btn"
+                onClick={() => setIsPatchNotesOpen(true)}
+                title="Inspect What's New, Security Hardening & System Updates"
+              >
+                <span className="header-patch-pulse-dot" />
+                <span>v1.0.88</span>
+              </button>
+
+              {/* Unique Animated Flame & Floating Embers Streak Pill */}
+              <AnimatedStreakBadge streak={activeStreak} />
+
+              {/* Top Bar Active Perk Activation Flash Notification */}
+              {topBarActivationAlert ? (
+                <button
+                  type="button"
+                  className="topbar-activation-flash font-mono animate-scale-up"
+                  onClick={() => setActiveTab('shop')}
+                  title="Perk activated! Click to inspect in Sanctuary Bazaar."
+                >
+                  <AnimatedSparkleIcon size={14} color="#fbbf24" />
+                  <span className="flash-tag">ACTIVATED:</span>
+                  <span className="flash-title">{topBarActivationAlert.name}</span>
+                </button>
+              ) : (
+                <>
+                  {/* Active Matcha Focus Surge (2.0x EXP) Indicator */}
+                  {(() => {
+                    const buffs = sanitizeActiveBuffs(kobanData?.activeBuffs || []);
+                    const matcha = buffs.find(b => b.id === 'matcha_elixir');
+                    if (!matcha) return null;
+                    const mins = Math.max(1, Math.ceil((matcha.expiresAt - Date.now()) / 60000));
+                    return (
+                      <button
+                        type="button"
+                        className="topbar-active-buff-chip pulse-active-green"
+                        onClick={() => setActiveTab('shop')}
+                        title={`Matcha Focus Surge Active! 2.0x EXP for next ${mins}m. Click to open Sanctuary Bazaar.`}
+                      >
+                        <AnimatedMatchaBowlIcon size={16} />
+                        <span className="buff-chip-val font-mono">2.0x EXP</span>
+                        <span className="buff-chip-timer font-mono">({mins}m)</span>
+                      </button>
+                    );
+                  })()}
+
+                  {/* Armed Cryo Streak Shields Indicator */}
+                  {(kobanData?.inventory?.streakShields || 0) > 0 && (
+                    <button
+                      type="button"
+                      className="topbar-active-shield-chip"
+                      onClick={() => setActiveTab('shop')}
+                      title={`${kobanData.inventory.streakShields} Cryo Streak Shield${kobanData.inventory.streakShields > 1 ? 's' : ''} Armed! Streak is safe.`}
+                    >
+                      <AnimatedCryoShieldIcon size={15} />
+                      <span className="shield-chip-val font-mono">{kobanData.inventory.streakShields}</span>
+                    </button>
+                  )}
+
+                  {/* Permanent Relics Active Indicator */}
+                  {(kobanData?.unlockedRelics?.length || 0) > 0 && (
+                    <button
+                      type="button"
+                      className="topbar-active-relics-chip"
+                      onClick={() => setActiveTab('shop')}
+                      title={`${kobanData.unlockedRelics.length} Permanent Study Relic${kobanData.unlockedRelics.length > 1 ? 's' : ''} Armed! Click to inspect in Bazaar.`}
+                    >
+                      <AnimatedRelicPrismIcon size={15} />
+                      <span className="relics-chip-val font-mono">{kobanData.unlockedRelics.length}</span>
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* Currency Header HUD Pill */}
+              <button
+                type="button"
+                className="koban-interactive-chip"
+                onClick={() => setActiveTab('shop')}
+                title="Aether Balance - Sanctuary Bazaar"
+              >
+                <AnimatedAetherIcon size={17} />
+                <span className="koban-chip-val">{kobanData?.koban ?? 60}</span>
+              </button>
+
+              {/* Top Right Profile Shortcut & Actions Dropdown */}
+              <HeaderProfileDropdown
+                user={user}
+                userProfile={userProfile}
+                onInspectSelf={() => handleInspectFriend({ isSelf: true, ...userProfile, id: user?.uid || 'self', uid: user?.uid || 'self' })}
+                onNavigate={(tab) => setActiveTab(tab)}
+                onSignOut={async () => {
+                  if (window.confirm("Are you sure you want to sign out?")) {
+                    await signOutUser();
+                    setIsGuestMode(false);
+                  }
+                }}
+                onSignIn={() => {
+                  setIsGuestMode(false);
+                }}
+                timerState={timerState}
+                onOpenPatchNotes={() => setIsPatchNotesOpen(true)}
+              />
+            </div>
+          ) : (
+            /* Reacticx-Inspired Mobile Morph FAB Status Hub */
+            <MorphFabStatusHub
+              activeStreak={activeStreak}
+              kobanData={kobanData}
+              user={user}
+              userProfile={userProfile}
+              onOpenPatchNotes={() => setIsPatchNotesOpen(true)}
+              onOpenBazaar={() => setActiveTab('shop')}
+              onOpenProfile={() => setActiveTab('profile')}
+              className="mobile-only-fab"
+            />
+          )}
+
+          {/* Kinetic Bottom Edge Border Beam */}
+          <div className="cyber-header-border-beam" aria-hidden="true" />
+        </header>
+
+        {/* Comic Peeking Cat Study Buddy on Right Edge */}
+        {activeTab !== 'timer' && (
+          <ComicPeekingCatBuddy 
+            onOpenTimer={() => {
+              setActiveTab('timer');
+              setIsFocusTransitioning(true);
+              setShouldPromptCatTimer(false);
+            }}
+            timerState={timerState}
+            activeTheme={theme}
+            autoPromptTimer={shouldPromptCatTimer}
+            onDismissPrompt={() => setShouldPromptCatTimer(false)}
+          />
+        )}
+
+        {/* Kinetic Study Desk Transition Screen (Cat Glides into Desk Position) */}
+        {isFocusTransitioning && activeTab === 'timer' && (
+          <FocusTransitionPortal
+            subject={timerState?.subject || 'Quant'}
+            activeTheme={theme}
+            onComplete={() => {
+              setIsFocusTransitioning(false);
+            }}
+          />
+        )}
+
+        {/* Main Content Render */}
+        <main className="main-content">
+          {activeTab === 'dashboard' && (
+            <DashboardView 
+              state={state} 
+              setActiveTab={setActiveTab} 
+              friends={friends}
+              onInspectFriend={handleInspectFriend}
+              onMessagePeer={handleOpenDirectMessage}
+              onManageBuddies={() => {
+                setProfileSubTab('friends');
+                setActiveTab('profile');
+              }}
+              currentUser={user}
+              userProfile={userProfile}
+              timerState={timerState}
+              onNavigateToDay={handleJumpToDay}
+            />
+          )}
+          <Suspense fallback={<ViewLoadingFallback />}>
+            {activeTab === 'timeline' && (
+            <TimelineView 
+              state={state} 
+              updateWeekStatus={updateWeekStatus} 
+              updateWeekPlan={updateWeekPlan}
+              onWeekClick={handleJumpToWeek} 
+              onOpenCheckpoint={handleOpenCheckpoint}
+            />
+          )}
+          {activeTab === 'recovery' && (
+            <BacklogRecoveryView 
+              state={state}
+              overallBacklog={overallBacklog}
+              activeMonth={activeMonth}
+              activeWeek={activeWeek}
+              onUpdateDayMetric={updateDayMetric}
+              onUpdateWeekPlan={updateWeekPlan}
+              onApplyPlan={handleApplyRecoveryPlan}
+              onNavigateToDaily={(targetMonth, targetWeek, targetDay) => {
+                if (targetMonth) setActiveMonth(targetMonth);
+                if (targetWeek) setActiveWeek(targetWeek);
+                if (targetDay) setActiveDayName(targetDay);
+                setActiveTab('daily');
+              }}
+              onNavigateToTimer={() => setActiveTab('timer')}
+              onNavigateToTimeline={() => setActiveTab('timeline')}
+            />
+          )}
+          {activeTab === 'daily' && (
+            <DailyTrackerView 
+              state={state}
+              activeMonth={activeMonth}
+              setActiveMonth={setActiveMonth}
+              activeWeek={activeWeek}
+              setActiveWeek={setActiveWeek}
+              activeDayName={activeDayName}
+              setActiveDayName={setActiveDayName}
+              updateDayMetric={updateDayMetric}
+              updateDayNotes={updateDayNotes}
+              resetWeekMetrics={resetWeekMetrics}
+              resetDayMetrics={resetDayMetrics}
+              updateDayCustomTarget={updateDayCustomTarget}
+              updateCustomObjectiveConfig={updateCustomObjectiveConfig}
+              syncStatus={syncStatus}
+              lastSyncedTimeStr={lastSyncedTimeStr}
+              hasUnsyncedCloudChanges={hasUnsyncedCloudChanges}
+              onRecordDayProgress={() => handleRecordDayProgress(false)}
+              onOpenStampRally={() => handleOpenStampRally(true)}
+              onAwardDailyStamp={handleAwardStamp}
+              stampRallyData={stampRallyData}
+              onOpenCheckpoint={handleOpenCheckpoint}
+              onNavigateToBacklog={() => setActiveTab('recovery')}
+              hasBacklog={overallBacklog.hasBacklog}
+              kobanData={kobanData}
+              onOpenBazaar={() => setActiveTab('shop')}
+              onAwardKoban={handleAwardKoban}
+            />
+          )}
+          {activeTab === 'mocks' && (
+            <MockTrackerView 
+              state={state} 
+              updateMockRow={updateMockRow} 
+            />
+          )}
+          {activeTab === 'errors' && (
+            <ErrorLogView 
+              state={state} 
+              onDayClick={handleJumpToDay} 
+              onOpenTimer={() => setActiveTab('timer')}
+            />
+          )}
+          {activeTab === 'timer' && (
+            <StudyTimerView
+              timerState={timerState}
+              onStartTimer={handleStartTimer}
+              onPauseTimer={handlePauseTimer}
+              onResumeTimer={handleResumeTimer}
+              onResetTimer={handleResetTimer}
+              onFinishTimer={handleFinishTimer}
+              onUpdateNotes={handleUpdateTimerNotes}
+              todaySessions={todaySessions}
+              todayTotalHours={todayTotalHours}
+              onDeleteSession={handleDeleteSession}
+              onEditSession={handleUpdateSession}
+              theme={theme}
+              onSetTheme={handleSelectTheme}
+              friends={friends}
+              onInspectFriend={handleInspectFriend}
+              currentUser={user}
+              activeStreak={activeStreak}
+              onLeaveTimer={() => setActiveTab('dashboard')}
+              onOpenNotes={() => setActiveTab('errors')}
+              isFocusTransitioning={isFocusTransitioning}
+              todayDay={todayDayObj}
+              activeWeekDays={todayWeekObj?.days || []}
+              activeWeekName={todayPositionNow.activeWeek}
+              kobanData={kobanData}
+              onEquipDecor={(itemId) => {
+                const res = equipSanctuaryItem(itemId);
+                if (res.success) setKobanData(res.updated);
+              }}
+              onOpenBazaar={() => setActiveTab('shop')}
+            />
+          )}
+          {activeTab === 'shop' && (
+            <SanctuaryShopView
+              kobanData={kobanData}
+              onKobanUpdated={setKobanData}
+              onNavigate={(tab) => setActiveTab(tab)}
+            />
+          )}
+          {activeTab === 'lounge' && (
+            <StudyLounge
+              peers={peers}
+              friends={friends}
+              onInspectFriend={handleInspectFriend}
+              currentUser={user}
+              userProfile={userProfile}
+              timerState={timerState}
+              onStartTimer={handleStartTimer}
+              onPauseTimer={handlePauseTimer}
+              onResumeTimer={handleResumeTimer}
+              onResetTimer={handleResetTimer}
+              onFinishTimer={handleFinishTimer}
+              onNavigateToTimer={() => setActiveTab('timer')}
+              onNavigateToFriends={() => {
+                setProfileSubTab('friends');
+                setActiveTab('profile');
+              }}
+              onExitToDashboard={() => setActiveTab('dashboard')}
+            />
+          )}
+          {activeTab === 'profile' && (
+            <ProfileView
+              user={user}
+              userProfile={userProfile}
+              tracker={state.tracker}
+              mocks={state.mocks}
+              onAuthSuccess={setUser}
+              onUpdateProfile={handleUpdateProfile}
+              friends={friends}
+              onAddFriendSuccess={() => {}}
+              onInspectFriend={handleInspectFriend}
+              onMessagePeer={handleOpenDirectMessage}
+              startDate={state.settings?.startDate}
+              onUpdateStartDate={handleUpdateStartDate}
+              onExport={handleExport}
+              onImport={() => fileInputRef.current?.click()}
+              onReset={handleReset}
+              onTriggerNotification={triggerDemoNotification}
+              fileInputRef={fileInputRef}
+              setActiveTab={setActiveTab}
+              initialSubTab={profileSubTab}
+              onResetSubTab={() => setProfileSubTab('profile')}
+              isEditOpen={isEditProfileDirectOpen}
+              onResetEditOpen={() => setIsEditProfileDirectOpen(false)}
+              onTriggerLevelUp={(data) => setLevelUpModalData({ isOpen: true, ...data })}
+            />
+          )}
+          {activeTab === 'achievements' && (
+            <AchievementsView
+              userProfile={userProfile}
+              stats={{
+                streak: activeStreak,
+                solvedQs: totalSolved,
+                mocksCount: totalMocksCount
+              }}
+              badges={userBadges}
+              onNavigateToTab={setActiveTab}
+            />
+          )}
+          {activeTab === 'settings' && (
+            <SettingsView
+              user={user}
+              userProfile={userProfile}
+              onAuthSuccess={setUser}
+              startDate={state.settings?.startDate}
+              onUpdateStartDate={handleUpdateStartDate}
+              onExport={handleExport}
+              onImport={() => fileInputRef.current?.click()}
+              onReset={handleReset}
+              onTriggerNotification={triggerDemoNotification}
+              fileInputRef={fileInputRef}
+              currentTheme={theme}
+              onSelectTheme={handleSelectTheme}
+              unlockedThemes={unlockedThemes}
+              onOpenRedeemModal={handleOpenRedeemModal}
+              onThemeUnlocked={handleThemeUnlocked}
+              targetExam={state.settings?.targetExam || 'cat'}
+              onSelectTargetExam={handleSelectTargetExam}
+              onOpenOnboarding={() => setIsOnboardingOpen(true)}
+              onOpenPatchNotes={() => setIsPatchNotesOpen(true)}
+            />
+          )}
+          </Suspense>
+        </main>
+      </div>
+
+      {/* Streamlined Native Mobile Bottom Navigation / ReactBits Dock */}
+      <nav 
+        className="mobile-bottom-nav"
+        aria-label="Mobile Navigation"
+      >
+        <Dock direction="horizontal" magnification={1.25} distance={80} baseItemSize={44} className="mobile-dock-wrap">
+          <DockItem 
+            active={activeTab === 'dashboard'} 
+            onClick={() => setActiveTab('dashboard')} 
+            ariaLabel="Dashboard"
+            tooltipTitle="Home"
+            className="mobile-dock-btn"
+          >
+            <Icons.Home size={22} />
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'daily'} 
+            onClick={() => setActiveTab('daily')} 
+            ariaLabel="Daily Drills"
+            tooltipTitle="Drills"
+            className="mobile-dock-btn"
+          >
+            <Icons.Drills size={22} />
+          </DockItem>
+
+          {overallBacklog.hasBacklog && (
+            <DockItem 
+              active={activeTab === 'recovery'} 
+              onClick={() => setActiveTab('recovery')} 
+              ariaLabel="Backlog Recovery"
+              tooltipTitle="Recovery"
+              className="mobile-dock-btn mobile-dock-backlog-btn"
+            >
+              <Icons.Zap size={22} color={activeTab === 'recovery' ? '#f59e0b' : '#fbbf24'} />
+              <span className="mobile-dock-backlog-dot" />
+            </DockItem>
+          )}
+
+          <DockItem 
+            active={activeTab === 'lounge'} 
+            onClick={() => setActiveTab('lounge')} 
+            ariaLabel="Leaderboard"
+            tooltipTitle="Leaderboard"
+            className="mobile-dock-btn"
+          >
+            <Icons.Trophy size={22} />
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'timer'} 
+            onClick={() => setActiveTab('timer')} 
+            ariaLabel="Focus Timer"
+            tooltipTitle="Timer"
+            className={`mobile-dock-btn ${(timerState?.isRunning || timerState?.isPaused) ? 'timer-is-active' : ''}`}
+          >
+            <Icons.Timer size={22} />
+            {(timerState?.isRunning || timerState?.isPaused) && <span className="nav-timer-live-pip"></span>}
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'mocks'} 
+            onClick={() => setActiveTab('mocks')} 
+            ariaLabel="Mock Tests"
+            tooltipTitle="Mocks"
+            className="mobile-dock-btn"
+          >
+            <Icons.Mocks size={22} />
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'shop'} 
+            onClick={() => setActiveTab('shop')} 
+            ariaLabel="Sanctuary Shop"
+            tooltipTitle="Shop"
+            className="mobile-dock-btn"
+          >
+            <Icons.Shop size={22} />
+          </DockItem>
+
+          <DockItem 
+            active={activeTab === 'profile' || activeTab === 'timeline' || activeTab === 'errors' || activeTab === 'achievements' || activeTab === 'settings'} 
+            onClick={() => setActiveTab('profile')} 
+            ariaLabel="More Menu"
+            tooltipTitle="Menu"
+            className="mobile-dock-btn"
+          >
+            <Icons.Menu size={22} />
+          </DockItem>
+        </Dock>
+      </nav>
+
+      {/* Floating Timer Mini Widget (Suppressed in Timer View and Arena Gauntlet Lounge) */}
+      {activeTab !== 'timer' && activeTab !== 'lounge' && (
+        <FloatingTimerWidget
+          timerState={timerState}
+          onPause={handlePauseTimer}
+          onResume={handleResumeTimer}
+          onFinish={handleFinishTimer}
+          onOpenTimer={() => setActiveTab('timer')}
+        />
+      )}
+
+      {/* Animated Theme Switch Toast Banner */}
+      {showThemeToast && (
+        <ThemeSwitchToast 
+          activeTheme={theme} 
+          onClose={() => setShowThemeToast(false)} 
+        />
+      )}
+
+      {/* Peer Progress Modal Overlay */}
+      {selectedFriend && (
+        <Suspense fallback={null}>
+          <PeerInspectorModal
+            friend={selectedFriend}
+            activePeer={selectedFriend}
+            trackerData={selectedFriendTracker}
+            loading={loadingFriendTracker}
+            onClose={() => setSelectedFriend(null)}
+            onEditProfile={() => {
+              setSelectedFriend(null);
+              setIsEditProfileDirectOpen(true);
+              setActiveTab('profile');
+            }}
+            onMessagePeer={handleOpenDirectMessage}
+            currentUser={user}
+          />
+        </Suspense>
+      )}
+
+      {/* Live Over-The-Air Update Toast */}
+      {availableUpdate && (
+        <UpdateNotificationToast
+          updateData={availableUpdate}
+          onDismiss={() => setAvailableUpdate(null)}
+          onOpenPatchNotes={() => setIsPatchNotesOpen(true)}
+        />
+      )}
+
+      {/* Activity & Sync Notification Toast */}
+      {activityNotification && (
+        <ActivityNotificationToast
+          notification={activityNotification}
+          onDismiss={() => setActivityNotification(null)}
+        />
+      )}
+
+      {/* Cookie, Local Storage & Cache Consent Banner */}
+      <CookieConsentBanner onOpenTerms={() => setIsTermsModalOpen(true)} />
+
+      {/* Terms of Service & Privacy Policy Modal */}
+      {isTermsModalOpen && (
+        <Suspense fallback={null}>
+          <TermsAndPrivacyModal 
+            isOpen={isTermsModalOpen} 
+            onClose={() => setIsTermsModalOpen(false)} 
+          />
+        </Suspense>
+      )}
+
+      {/* Premium Theme VIP Code Redemption Modal */}
+      {isRedeemModalOpen && (
+        <Suspense fallback={null}>
+          <ThemeRedeemModal
+            isOpen={isRedeemModalOpen}
+            onClose={() => setIsRedeemModalOpen(false)}
+            preselectedThemeId={redeemPreselectTheme}
+            unlockedThemes={unlockedThemes}
+            onThemeUnlocked={handleThemeUnlocked}
+          />
+        </Suspense>
+      )}
+
+      {/* Japanese Cat Washi Paper Stamp Rally Modal */}
+      {isStampRallyOpen && (
+        <Suspense fallback={null}>
+          <JapaneseCatStampRallyModal
+            isOpen={isStampRallyOpen}
+            onClose={() => {
+              setIsStampRallyOpen(false);
+              setTriggerStampAnimation(false);
+            }}
+            stampRallyData={stampRallyData}
+            onRedeemTheme={handleRedeemStampTheme}
+            triggerNewStamp={triggerStampAnimation}
+          />
+        </Suspense>
+      )}
+
+      {/* Neko Sanctuary Bazaar Roguelike Meta-Shop Modal */}
+      {isBazaarOpen && (
+        <Suspense fallback={null}>
+          <SanctuaryBazaarModal
+            isOpen={isBazaarOpen}
+            onClose={() => setIsBazaarOpen(false)}
+            kobanData={kobanData}
+            onKobanUpdated={setKobanData}
+          />
+        </Suspense>
+      )}
+
+      {/* User Exam Onboarding & Tutorial Cockpit Modal */}
+      {isOnboardingOpen && (
+        <Suspense fallback={null}>
+          <OnboardingWelcomeModal
+            isOpen={isOnboardingOpen}
+            onClose={() => setIsOnboardingOpen(false)}
+            onComplete={handleCompleteOnboarding}
+            initialExamId={state.settings?.targetExam || 'cat'}
+            activeTheme={theme}
+          />
+        </Suspense>
+      )}
+
+      {/* Candidate Level Up & Decade Milestone Pop-Up Modal */}
+      {levelUpModalData.isOpen && (
+        <Suspense fallback={null}>
+          <LevelUpModal
+            isOpen={levelUpModalData.isOpen}
+            onClose={() => setLevelUpModalData(prev => ({ ...prev, isOpen: false }))}
+            oldLevel={levelUpModalData.oldLevel}
+            newLevel={levelUpModalData.newLevel}
+            totalExp={levelUpModalData.totalExp}
+            isMilestone={levelUpModalData.isMilestone}
+          />
+        </Suspense>
+      )}
+
+      {/* Adaptive Syllabus & Quota Checkpoint Modal */}
+      {isCheckpointModalOpen && checkpointWeekData && (
+        <Suspense fallback={null}>
+          <AdaptiveWeekReviewModal
+            isOpen={isCheckpointModalOpen}
+            onClose={handleCloseCheckpoint}
+            progressData={checkpointWeekData}
+            onApplyPlan={handleApplyRecoveryPlan}
+            state={state}
+          />
+        </Suspense>
+      )}
+
+      {/* Release Notes & System Updates Hub Modal */}
+      {isPatchNotesOpen && (
+        <Suspense fallback={null}>
+          <PatchNotesHubModal
+            isOpen={isPatchNotesOpen}
+            onClose={() => setIsPatchNotesOpen(false)}
+            onNavigateTab={(tab) => {
+              setActiveTab(tab);
+              setIsPatchNotesOpen(false);
+            }}
+            initialVersion="1.0.88"
+            theme={theme}
+          />
+        </Suspense>
+      )}
+    </div>
+  );
+}

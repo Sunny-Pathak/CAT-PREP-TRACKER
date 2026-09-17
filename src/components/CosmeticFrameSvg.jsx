@@ -5,7 +5,7 @@ import React from 'react';
  * Renders high-tier collectible cosmetics with cyber and animated flair
  * Zero raw emojis used - 100% vector SVG artwork.
  */
-export default function CosmeticFrameSvg({ frameId = 'default' }) {
+export default React.memo(function CosmeticFrameSvg({ frameId = 'default' }) {
   if (!frameId) return null;
 
   switch (frameId) {
@@ -395,4 +395,4 @@ export default function CosmeticFrameSvg({ frameId = 'default' }) {
         </svg>
       );
   }
-}
+});

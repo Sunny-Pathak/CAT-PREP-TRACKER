@@ -493,17 +493,17 @@ export default function ProfileView({
 
     try {
       const updatedProfileData = {
-        displayName: profName.trim() || user?.email?.split('@')[0] || 'Aspirant',
-        username: profUsername.trim() || user?.email?.split('@')[0] || 'aspirant',
+        displayName: stripEmojis(profName).trim().slice(0, 50) || user?.email?.split('@')[0] || 'Aspirant',
+        username: stripEmojis(profUsername).trim().slice(0, 30) || user?.email?.split('@')[0] || 'aspirant',
         avatar: profAvatar,
         avatarBg: profAvatarBg,
         frameId: profFrameId,
         bannerId: profBannerId,
         bannerBg: profBannerBg,
         bannerUrl: profBannerUrl,
-        bio: profBio.trim(),
-        target: profTarget.trim(),
-        location: profLocation.trim(),
+        bio: stripEmojis(profBio).trim().slice(0, 300),
+        target: stripEmojis(profTarget).trim().slice(0, 60),
+        location: stripEmojis(profLocation).trim().slice(0, 50),
         aspirantId: currentAspirantId
       };
 

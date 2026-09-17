@@ -19,7 +19,7 @@ import DailyQuotaCelebrationModal from './DailyQuotaCelebrationModal';
 import { getActiveExamConfig } from '../config/examConfig';
 import SmoothCaretInput from './animations/SmoothCaretInput';
 import SmoothCaretTextarea from './animations/SmoothCaretTextarea';
-import { calculateWeekProgress } from '../utils/adaptiveStudyEngine';
+import { calculateWeekProgress, calculateOverallBacklog } from '../utils/adaptiveStudyEngine';
 
 function DailyTrackerView({ 
   state, 
@@ -44,7 +44,8 @@ function DailyTrackerView({
   stampRallyData,
   onOpenCheckpoint,
   onNavigateToBacklog,
-  hasBacklog = false
+  hasBacklog = false,
+  overallBacklog = null
 }) {
   const { tracker, settings } = state;
   const startDateStr = settings?.startDate;
@@ -97,6 +98,28 @@ function DailyTrackerView({
   const currentWeekProgress = useMemo(() => {
     return calculateWeekProgress(state, activeMonth, activeWeek, globalWeekNum);
   }, [state, activeMonth, activeWeek, globalWeekNum]);
+
+  // Overall syllabus backlog evaluation and prerequisite bottleneck audit
+  const evaluatedOverallBacklog = useMemo(() => {
+    if (overallBacklog && typeof overallBacklog === 'object') return overallBacklog;
+    try {
+      const pos = getTodayTrackerPosition(startDateStr);
+      const m = parseInt(pos.activeMonth?.replace(/\D/g, ''), 10) || 1;
+      const w = parseInt(pos.activeWeek?.replace(/\D/g, ''), 10) || 1;
+      const gw = Math.min(16, Math.max(1, (m - 1) * 4 + w));
+      return calculateOverallBacklog(state, gw);
+    } catch (_e) {
+      return { hasBacklog: false, backlogWeeks: [] };
+    }
+  }, [overallBacklog, state, startDateStr]);
+
+  // Check if currently selected week is locked/paused by an earlier prerequisite backlog week
+  const blockingBacklog = useMemo(() => {
+    if (!evaluatedOverallBacklog?.backlogWeeks?.length) return null;
+    return evaluatedOverallBacklog.backlogWeeks.find(bw => bw.globalWeekIdx < globalWeekNum) || null;
+  }, [evaluatedOverallBacklog, globalWeekNum]);
+
+  const isWeekLockedByBacklog = Boolean(blockingBacklog);
 
   // Forward week switching handler with adaptive incomplete checkpoint guard
   const handleSelectWeek = (targetWeekName) => {
@@ -162,6 +185,7 @@ function DailyTrackerView({
   });
 
   const openConfigModal = (isCreating = false) => {
+    if (isWeekLockedByBacklog) return;
     setIsCreatingCustomObj(isCreating);
     setConfigForm({
       title: isCreating ? '' : (selectedDay.customTitle || ''),
@@ -242,6 +266,7 @@ function DailyTrackerView({
 
   // Handle drill completion toggle with sound
   const handleToggleDrill = (month, weekName, dayName, subject, isCompleted, e) => {
+    if (isWeekLockedByBacklog) return;
     const targetCompleted = !isCompleted;
 
     if (targetCompleted) {
@@ -306,6 +331,7 @@ function DailyTrackerView({
   };
 
   const handleStepQty = (month, weekName, dayName, subject, currentVal, delta) => {
+    if (isWeekLockedByBacklog) return;
     const current = parseInt(currentVal) || 0;
     const nextVal = Math.max(0, current + delta);
     const target = getSubjectTarget(subject, selectedDay);
@@ -314,6 +340,7 @@ function DailyTrackerView({
   };
 
   const handleDirectQtyChange = (month, weekName, dayName, subject, val) => {
+    if (isWeekLockedByBacklog) return;
     const qty = Math.max(0, parseInt(val) || 0);
     const target = getSubjectTarget(subject, selectedDay);
     const isCompleted = qty >= target;
@@ -416,7 +443,7 @@ function DailyTrackerView({
         <div className="minimal-header-left">
           <div className="minimal-tag">
             <span className="minimal-ping" />
-            <span>// DAILY QUOTA DISPATCH</span>
+            <span>DAILY QUOTA DISPATCH</span>
           </div>
           <h1 className="minimal-title">
             DAILY DRILLS <span className="minimal-title-italic">& Telemetry</span>
@@ -433,17 +460,21 @@ function DailyTrackerView({
           {/* Adaptive Syllabus & Quota Checkpoint Trigger */}
           <button 
             type="button" 
-            className="minimal-btn outline adaptive-pacing-btn"
+            className={`minimal-btn outline adaptive-pacing-btn ${isWeekLockedByBacklog ? 'is-backlog-locked' : ''}`}
             onClick={() => onOpenCheckpoint && onOpenCheckpoint(activeMonth, activeWeek, globalWeekNum)}
-            title="Review weekly syllabus progress, deficits, and recovery plans"
+            title={isWeekLockedByBacklog ? `Week is paused: ${blockingBacklog?.weekKey || 'Prerequisite'} backlog pending` : "Review weekly syllabus progress, deficits, and recovery plans"}
             style={{
-              borderColor: currentWeekProgress.badgeColor ? `${currentWeekProgress.badgeColor}55` : undefined,
-              color: currentWeekProgress.badgeColor || '#38bdf8'
+              borderColor: isWeekLockedByBacklog ? 'rgba(248, 113, 113, 0.4)' : (currentWeekProgress.badgeColor ? `${currentWeekProgress.badgeColor}55` : undefined),
+              color: isWeekLockedByBacklog ? '#f87171' : (currentWeekProgress.badgeColor || '#38bdf8')
             }}
           >
-            <Icons.Target size={12} color={currentWeekProgress.badgeColor || '#38bdf8'} />
+            {isWeekLockedByBacklog ? (
+              <Icons.Lock size={12} color="#f87171" />
+            ) : (
+              <Icons.Target size={12} color={currentWeekProgress.badgeColor || '#38bdf8'} />
+            )}
             <span>
-              {currentWeekProgress.statusBadge}: {currentWeekProgress.overallProgressPct}%
+              {isWeekLockedByBacklog ? 'Paused' : currentWeekProgress.statusBadge}: {currentWeekProgress.overallProgressPct}%
               {currentWeekProgress.isElapsed && currentWeekProgress.deficitQuant > 0 ? ` (-${currentWeekProgress.deficitQuant + currentWeekProgress.deficitLrdi} Qs)` : ''}
             </span>
           </button>
@@ -518,16 +549,28 @@ function DailyTrackerView({
 
           {/* Weeks */}
           <div className="period-pills-row">
-            {standardWeeks.map(w => (
-              <button
-                key={w.week}
-                type="button"
-                className={`period-pill week ${activeWeek === w.week ? 'active' : ''}`}
-                onClick={() => handleSelectWeek(w.week)}
-              >
-                {w.week.replace('Week ', 'W')}
-              </button>
-            ))}
+            {standardWeeks.map(w => {
+              const wNum = parseInt(w.week.replace(/\D/g, ''), 10) || 1;
+              const gIdx = (monthNum - 1) * 4 + wNum;
+              const isWLocked = Boolean(evaluatedOverallBacklog?.backlogWeeks?.some(bw => bw.globalWeekIdx < gIdx));
+              return (
+                <button
+                  key={w.week}
+                  type="button"
+                  aria-label={w.week.replace('Week ', 'W')}
+                  className={`period-pill week ${activeWeek === w.week ? 'active' : ''} ${isWLocked ? 'is-backlog-locked' : ''}`}
+                  onClick={() => handleSelectWeek(w.week)}
+                  title={isWLocked ? `${w.week} (Paused: Prerequisite deficit pending)` : w.week}
+                >
+                  <span>{w.week.replace('Week ', 'W')}</span>
+                  {isWLocked && (
+                    <span className="period-pill-lock-icon" aria-hidden="true">
+                      <Icons.Lock size={9} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -549,14 +592,18 @@ function DailyTrackerView({
               <button
                 key={d.day || dIdx}
                 type="button"
-                className={`mini-day-pill ${isSelected ? 'selected' : ''} ${isDayToday ? 'is-today' : ''} ${isPrior ? 'is-prior-day' : ''}`}
+                className={`mini-day-pill ${isSelected ? 'selected' : ''} ${isDayToday ? 'is-today' : ''} ${isPrior ? 'is-prior-day' : ''} ${isWeekLockedByBacklog ? 'is-backlog-locked-day' : ''}`}
                 onClick={() => setEffectiveDayName(d.day)}
-                title={isPrior ? `Prior to preparation start date (${startDateStr})` : `${d.day}: ${completed}/${dTotal} quotas`}
+                title={isPrior ? `Prior to preparation start date (${startDateStr})` : isWeekLockedByBacklog ? `${d.day}: Paused (${blockingBacklog?.weekKey || 'Prerequisite'} backlog pending)` : `${d.day}: ${completed}/${dTotal} quotas`}
               >
                 <span className="mini-day-name">{getDayShort(d.day)}</span>
                 {isPrior ? (
                   <span className="mini-day-lock-icon" title="Prior to prep start date">
                     <Icons.Lock size={10} />
+                  </span>
+                ) : isWeekLockedByBacklog ? (
+                  <span className="mini-day-lock-icon red" title={`Week paused: prerequisite ${blockingBacklog?.weekKey || 'Week 1'} pending`}>
+                    <Icons.Lock size={9} />
                   </span>
                 ) : (
                   <span className={`mini-day-dot ${completed === dTotal ? 'all' : completed > 0 ? 'some' : ''}`} />
@@ -780,8 +827,66 @@ function DailyTrackerView({
             </div>
           )}
 
+          {/* Prerequisite Syllabus Backlog Alert / Locked Card */}
+          {isWeekLockedByBacklog && (
+            <div className="daily-backlog-locked-card">
+              <div className="daily-locked-icon-red">
+                <Icons.Lock size={18} />
+              </div>
+              <div className="daily-locked-content">
+                <div className="daily-locked-tag-row">
+                  <span className="daily-locked-tag-red">NEXT IN LINE (PAUSED)</span>
+                </div>
+                <h4 className="daily-locked-title">
+                  {activeMonth} • {activeWeek} Regular Syllabus
+                </h4>
+                <p className="daily-locked-desc">
+                  Upcoming roadmap topics will automatically reactivate as soon as your {blockingBacklog?.weekKey || 'prerequisite'} prerequisite quota is cleared.
+                </p>
+                <div className="daily-locked-cta-row">
+                  {blockingBacklog?.weekKey && (
+                    <button
+                      type="button"
+                      className="daily-backlog-switch-btn"
+                      onClick={() => {
+                        if (blockingBacklog.monthKey && setActiveMonth) {
+                          setActiveMonth(blockingBacklog.monthKey);
+                        }
+                        if (blockingBacklog.weekKey && setActiveWeek) {
+                          setActiveWeek(blockingBacklog.weekKey);
+                        }
+                      }}
+                      title={`Switch to ${blockingBacklog.weekKey}`}
+                    >
+                      <Icons.ArrowRight size={13} />
+                      <span>Go to {blockingBacklog.weekKey} ({blockingBacklog.deficitDrills || 0} Deficit Qs)</span>
+                    </button>
+                  )}
+                  {onNavigateToBacklog && (
+                    <button
+                      type="button"
+                      className="daily-backlog-resolve-action-btn"
+                      onClick={onNavigateToBacklog}
+                      title="Open Backlog Recovery Cockpit"
+                    >
+                      <Icons.Zap size={13} />
+                      <span>Clear in Recovery Mode</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* The 3 Drill Cards */}
-          <div className={`drills-stack ${selectedDayIsPrior ? 'prior-day-blurred' : ''}`}>
+          <div className={`drills-stack ${selectedDayIsPrior ? 'prior-day-blurred' : ''} ${isWeekLockedByBacklog ? 'backlog-locked-stack' : ''}`}>
+            {isWeekLockedByBacklog && (
+              <div className="backlog-locked-watermark-bar">
+                <span className="backlog-watermark-pulse" />
+                <Icons.Lock size={13} />
+                <span>SYLLABUS LOCKED • CLEAR {blockingBacklog?.weekKey?.toUpperCase() || 'PREREQUISITE'} TO ENGAGE DRILLS</span>
+              </div>
+            )}
             
             {/* QUANT DRILL */}
             <div className={`drill-item-card quant ${selectedDay.quantCompleted ? 'done' : ''} ${Boolean(selectedDay.catchUpActive && selectedDay.catchUpQuant > 0) ? 'has-catch-up' : ''}`}>

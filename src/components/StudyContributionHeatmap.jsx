@@ -131,7 +131,8 @@ function StudyContributionHeatmap({ tracker = {}, startDateStr = '', compact = f
             className={`month-tab-btn ${selectedMonth === 'ALL' ? 'active' : ''}`}
             onClick={() => setSelectedMonth('ALL')}
           >
-            All 16 Weeks
+            <span className="month-tab-all-full">All 16 Weeks</span>
+            <span className="month-tab-all-short">All</span>
           </button>
           {MONTHS.map((m, idx) => (
             <button
@@ -173,7 +174,8 @@ function StudyContributionHeatmap({ tracker = {}, startDateStr = '', compact = f
               ) : (
                 MONTHS.map((m, mIdx) => (
                   <div key={mIdx} className="heatmap-month-span-label four-weeks-span">
-                    Month {mIdx + 1}
+                    <span className="heatmap-month-label-full">Month {mIdx + 1}</span>
+                    <span className="heatmap-month-label-short">M{mIdx + 1}</span>
                   </div>
                 ))
               )}

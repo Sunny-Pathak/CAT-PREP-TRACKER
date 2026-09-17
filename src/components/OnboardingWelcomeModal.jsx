@@ -135,7 +135,7 @@ export default function OnboardingWelcomeModal({
         {/* Sleek Top Header */}
         <div className="onb-header">
           <div className="onb-top-row">
-            <span className="onb-tag">// WORKSPACE CALIBRATION</span>
+            <span className="onb-tag">WORKSPACE CALIBRATION</span>
             <button 
               type="button" 
               className="onb-close-btn"
@@ -303,7 +303,7 @@ export default function OnboardingWelcomeModal({
                 {/* Tactical Status Pill */}
                 <div className="onb-ready-badge">
                   <span className="onb-ready-dot" />
-                  <span className="onb-ready-text">SYSTEM CALIBRATED // READY FOR CONQUEST</span>
+                  <span className="onb-ready-text">SYSTEM CALIBRATED • READY FOR CONQUEST</span>
                 </div>
 
                 {/* Hero Target Statement */}

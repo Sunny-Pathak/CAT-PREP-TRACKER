@@ -197,7 +197,7 @@ export default function JapaneseCatStampRallyModal({
         {/* 3. Prize Redemption Tray */}
         <div className="stamp-rally-rewards-panel">
           <div className="rewards-panel-header">
-            <span className="rewards-header-tag font-mono">// CULTURAL PRIZE PACK REWARDS</span>
+            <span className="rewards-header-tag font-mono">CULTURAL PRIZE PACK REWARDS</span>
             <span className="rewards-stamp-counter font-mono">
               STAMPS: <strong>{stampsCollected.length}</strong> / 6
             </span>

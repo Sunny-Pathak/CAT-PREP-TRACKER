@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icons } from './AspirantIcons';
 import CosmeticFrameSvg from './CosmeticFrameSvg';
+import { sanitizeUrl } from '../utils/textUtils';
 
 export const AVATAR_PRESETS = [
   { id: 'rocket', label: 'Rocket Voyager', icon: Icons.Rocket, color: '#3b82f6' },
@@ -13,7 +14,7 @@ export const AVATAR_PRESETS = [
   { id: 'user', label: 'Master Aspirant', icon: Icons.User, color: '#6366f1' }
 ];
 
-export default function AvatarRenderer({ 
+export default React.memo(function AvatarRenderer({ 
   avatar = '', 
   name = '', 
   avatarBg = '#3b82f6', 
@@ -28,14 +29,10 @@ export default function AvatarRenderer({
     setImgError(false);
   }, [avatar]);
 
-  const isImage = Boolean(avatar && (
-    avatar.startsWith('data:image') || 
-    avatar.startsWith('http://') || 
-    avatar.startsWith('https://') || 
-    avatar.startsWith('blob:')
-  ));
+  const safeImageUrl = sanitizeUrl(avatar);
+  const isImage = Boolean(safeImageUrl);
   const preset = AVATAR_PRESETS.find(p => p.id === avatar);
-  const PresetIcon = preset?.icon || (Icons[avatar] ? Icons[avatar] : null);
+  const PresetIcon = preset?.icon || (avatar && avatar in Icons ? Icons[avatar] : null);
 
   return (
     <div 
@@ -86,7 +83,7 @@ export default function AvatarRenderer({
       >
         {isImage && !imgError ? (
           <img 
-            src={avatar} 
+            src={safeImageUrl} 
             alt={name || 'Avatar'} 
             referrerPolicy="no-referrer"
             crossOrigin="anonymous"
@@ -125,4 +122,4 @@ export default function AvatarRenderer({
       )}
     </div>
   );
-}
+});

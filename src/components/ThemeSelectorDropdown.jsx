@@ -384,7 +384,7 @@ export default function ThemeSelectorDropdown({
         >
           <div className="popover-header-editorial">
             <div className="popover-header-titles">
-              <span className="popover-header-tag">// PALETTE PROTOCOL</span>
+              <span className="popover-header-tag">PALETTE PROTOCOL</span>
               <span className="popover-header-title">Color Tone System</span>
             </div>
             <span className="popover-counter-pill font-mono">{THEMES.length} TONES</span>

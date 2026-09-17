@@ -101,7 +101,7 @@ export default function MistakeLogModal({ isOpen, onClose, onSave, editingMistak
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text-primary, #f8fafc)' }}>
-                {editingMistake ? 'Edit Study Card' : 'New Study Card'}
+                {editingMistake?.id ? 'Edit Study Card' : 'New Study Card'}
               </h3>
               <p style={{ margin: '2px 0 0', fontSize: '11.5px', color: 'var(--text-secondary, #94a3b8)' }}>
                 Add a key takeaway, formula, or question reflection.

@@ -123,7 +123,7 @@ export default function OnboardingMascotGuide({
         <div className="mascot-speech-notch" />
         <div className="mascot-speech-content">
           <div className="mascot-speech-title-row">
-            <span className="mascot-badge-tag">// COMPANION GUIDE</span>
+            <span className="mascot-badge-tag">COMPANION GUIDE</span>
             <span className="mascot-speech-title">{speech.title}</span>
           </div>
           <p className="mascot-speech-detail">{speech.detail}</p>

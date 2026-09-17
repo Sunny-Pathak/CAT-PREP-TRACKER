@@ -72,80 +72,80 @@ export const AVATAR_FRAMES = [
 export const PROFILE_BANNERS = [
   {
     id: 'cyber_grid',
-    name: 'Retro Grid Wave',
+    name: 'Harmonic Wave Threads',
     minLevel: 1,
     tier: 'COMMON',
-    tierColor: '#94a3b8',
-    glowColor: 'rgba(56, 189, 248, 0.4)',
-    bg: 'linear-gradient(135deg, #090e1a 0%, #0d1b2a 50%, #050811 100%)',
+    tierColor: '#38bdf8',
+    glowColor: 'rgba(56, 189, 248, 0.45)',
+    bg: 'linear-gradient(135deg, #040814 0%, #081226 50%, #02040a 100%)',
     overlayClass: 'banner-anim-grid',
-    description: 'Perspective 80s synthwave neon wireframe stretching towards the horizon.'
+    description: 'Resonant multi-frequency sine ribbons with volumetric depth glow and drifting stardust.'
   },
   {
     id: 'tokyo_rain',
-    name: 'Neo-Tokyo Cyber Rain',
+    name: 'Cyber Matrix Stream',
     minLevel: 3,
     tier: 'RARE',
-    tierColor: '#38bdf8',
-    glowColor: 'rgba(56, 189, 248, 0.55)',
-    bg: 'linear-gradient(135deg, #032030 0%, #041421 50%, #010a12 100%)',
+    tierColor: '#22d3ee',
+    glowColor: 'rgba(34, 211, 238, 0.55)',
+    bg: 'linear-gradient(135deg, #031520 0%, #061e2e 50%, #01080e 100%)',
     overlayClass: 'banner-anim-rain',
-    description: 'Streaming laser cyan neon raindrops with puddle reflection ripples.'
+    description: 'Cascading laser phosphor rain streaks with ground puddle ripples and horizontal scanlines.'
   },
   {
     id: 'deep_nebula',
-    name: 'Cosmic Nebula',
+    name: 'Cosmic Aurora Beams',
     minLevel: 6,
     tier: 'EPIC',
     tierColor: '#c084fc',
     glowColor: 'rgba(192, 132, 252, 0.55)',
-    bg: 'linear-gradient(135deg, #2e1065 0%, #1e1b4b 50%, #0a0618 100%)',
+    bg: 'linear-gradient(135deg, #180838 0%, #110626 50%, #06020f 100%)',
     overlayClass: 'banner-anim-nebula',
-    description: 'Swirling deep violet astral auroras with twinkling stellar constellations.'
+    description: 'Silky undulating organic aurora light ribbons drifting across a deep-space constellation starfield.'
   },
   {
     id: 'solar_eclipse',
-    name: 'Solar Plasma Corona',
+    name: 'Solar Plasma Prominence',
     minLevel: 10,
     tier: 'LEGENDARY',
     tierColor: '#fb923c',
     glowColor: 'rgba(251, 146, 60, 0.65)',
-    bg: 'linear-gradient(135deg, #431407 0%, #2e0800 50%, #120300 100%)',
+    bg: 'linear-gradient(135deg, #240a02 0%, #1a0501 50%, #080100 100%)',
     overlayClass: 'banner-anim-solar',
-    description: 'Blazing coronal plasma flares and volcanic solar prominence heat rings.'
+    description: 'Volumetric coronal plasma shockwaves, magnetic flare loops, and rising molten solar embers.'
   },
   {
     id: 'mecha_cat',
-    name: 'Cyber Cat Sentinel',
+    name: '3D Lissajous Harmonic Knot',
     minLevel: 14,
     tier: 'MYTHIC',
     tierColor: '#2dd4bf',
     glowColor: 'rgba(45, 212, 191, 0.65)',
-    bg: 'linear-gradient(135deg, #062e2b 0%, #02201e 50%, #011110 100%)',
+    bg: 'linear-gradient(135deg, #021a17 0%, #011412 50%, #000a09 100%)',
     overlayClass: 'banner-anim-cat',
-    description: 'Holographic feline HUD with cyber visor scanlines and digital matrix radar.'
+    description: 'Precision 3D rotating acoustic Lissajous ribbon knot with gyroscopic orbital trajectory rings.'
   },
   {
     id: 'imperial_sovereign',
-    name: 'Imperial Gold Sovereign',
+    name: 'Imperial Gold Sunburst',
     minLevel: 18,
     tier: 'LEGENDARY',
     tierColor: '#fbbf24',
     glowColor: 'rgba(251, 191, 36, 0.7)',
-    bg: 'linear-gradient(135deg, #451a03 0%, #291102 50%, #120700 100%)',
+    bg: 'linear-gradient(135deg, #261202 0%, #170901 50%, #0a0300 100%)',
     overlayClass: 'banner-anim-gold',
-    description: 'Radiant golden sunburst with drifting gold dust particles and royal laurel aura.'
+    description: 'Radiant rotating 16-ray golden sunburst with central royal laurel geometry and floating 24K gold dust.'
   },
   {
     id: 'prismatic_warp',
-    name: 'Prismatic Hyperdrive',
+    name: 'Hyperspeed Warp Vortex',
     minLevel: 20,
     tier: 'MYTHIC',
     tierColor: '#f43f5e',
     glowColor: 'rgba(244, 63, 94, 0.75)',
-    bg: 'linear-gradient(135deg, #4c0519 0%, #23041a 50%, #08010f 100%)',
+    bg: 'linear-gradient(135deg, #240312 0%, #170114 50%, #080008 100%)',
     overlayClass: 'banner-anim-warp',
-    description: 'Hyperspace warp vortex with chromatic aberration and accelerating light rays.'
+    description: 'Accelerating relativistic 3D hyperspace light rays, chromatic shockwave rings, and singularity core.'
   }
 ];
 

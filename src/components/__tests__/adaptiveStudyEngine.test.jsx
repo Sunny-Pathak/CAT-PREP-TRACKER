@@ -486,4 +486,76 @@ describe('Adaptive Study Progress Engine & Quota Recovery Suite', () => {
     // Custom objective is NOT hijacked as a replacement for backlog
     expect(monday.customTitle).not.toBe('Catch-Up Micro Target');
   });
+
+  it('renders red-lined NEXT IN LINE (PAUSED) card and locks drills stack when week is blocked by prerequisite backlog', () => {
+    const setActiveWeek = vi.fn();
+    const setActiveMonth = vi.fn();
+    const updateDayMetric = vi.fn();
+    const onNavigateToBacklog = vi.fn();
+
+    const mockOverallBacklog = {
+      hasBacklog: true,
+      totalDeficitDrills: 24,
+      backlogWeeks: [
+        {
+          globalWeekIdx: 1,
+          monthKey: 'Month 1',
+          weekKey: 'Week 1',
+          deficitDrills: 24,
+          subtopicsIncomplete: 2
+        }
+      ],
+      primaryBottleneck: {
+        globalWeekIdx: 1,
+        monthKey: 'Month 1',
+        weekKey: 'Week 1',
+        deficitDrills: 24
+      }
+    };
+
+    const { container } = render(
+      <DailyTrackerView
+        state={mockState}
+        activeMonth="Month 1"
+        setActiveMonth={setActiveMonth}
+        activeWeek="Week 2"
+        setActiveWeek={setActiveWeek}
+        activeDayName="Thursday"
+        setActiveDayName={() => {}}
+        updateDayMetric={updateDayMetric}
+        updateDayNotes={() => {}}
+        overallBacklog={mockOverallBacklog}
+        onNavigateToBacklog={onNavigateToBacklog}
+      />
+    );
+
+    // Locked card should be displayed
+    expect(screen.getByText('NEXT IN LINE (PAUSED)')).toBeDefined();
+    expect(screen.getByText('Month 1 • Week 2 Regular Syllabus')).toBeDefined();
+    expect(screen.getByText(/Upcoming roadmap topics will automatically reactivate as soon as your Week 1 prerequisite quota is cleared/i)).toBeDefined();
+
+    // CTA buttons to jump to bottleneck week or recovery mode
+    const jumpWeek1Btn = screen.getByRole('button', { name: /Go to Week 1/i });
+    expect(jumpWeek1Btn).toBeDefined();
+    fireEvent.click(jumpWeek1Btn);
+    expect(setActiveWeek).toHaveBeenCalledWith('Week 1');
+
+    const recoveryBtn = screen.getByRole('button', { name: /Clear in Recovery Mode/i });
+    expect(recoveryBtn).toBeDefined();
+    fireEvent.click(recoveryBtn);
+    expect(onNavigateToBacklog).toHaveBeenCalled();
+
+    // Drills stack must be locked and red-lined
+    const drillsStack = container.querySelector('.drills-stack.backlog-locked-stack');
+    expect(drillsStack).not.toBeNull();
+    expect(screen.getByText(/SYLLABUS LOCKED • CLEAR WEEK 1 TO ENGAGE DRILLS/i)).toBeDefined();
+
+    // Clicking drill item does NOT trigger updateDayMetric
+    const quantCheckBtn = container.querySelector('.drill-check-bubble');
+    if (quantCheckBtn) {
+      fireEvent.click(quantCheckBtn);
+      expect(updateDayMetric).not.toHaveBeenCalled();
+    }
+  });
 });
+

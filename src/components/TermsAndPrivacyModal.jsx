@@ -120,7 +120,7 @@ export default function TermsAndPrivacyModal({ isOpen, onClose }) {
               <Icons.Shield size={18} />
             </div>
             <div>
-              <div className="tos-protocol-tag">// CATALYZE ARCHITECTURE & LEGAL</div>
+              <div className="tos-protocol-tag">CATALYZE ARCHITECTURE & LEGAL</div>
               <h2 className="tos-modal-title">Terms of Service & Licensing</h2>
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function TermsAndPrivacyModal({ isOpen, onClose }) {
         <div className="skiper-tos-body">
           {/* Left Sticky Sidebar Navigation */}
           <aside className="skiper-tos-sidebar">
-            <div className="tos-nav-title">// SECTIONS NAVIGATION</div>
+            <div className="tos-nav-title">SECTIONS NAVIGATION</div>
             <nav className="tos-sidebar-nav">
               {SECTIONS.map((sec) => {
                 const isActive = activeSection === sec.id;

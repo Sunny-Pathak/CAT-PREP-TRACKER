@@ -1,15 +1,43 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AnimatedPawIcon } from './AnimatedUiIcons';
+import { Icons } from './AspirantIcons';
+import { playSoftClick, playSoftZenChime, stopAmbientAudio } from '../utils/audioUtils';
+import {
+  CatTrapScratchpad,
+  CatStretchBreakTimer,
+  CatFlashcardDeck
+} from './CatCompanionUtilities';
+
+export const CAT_UTILITY_SATELLITES = [
+  {
+    id: 'scratchpad',
+    name: 'Trap Scratchpad',
+    desc: 'Instant trap capture to Mistake Vault',
+    icon: (size = 16) => <Icons.Edit size={size} />
+  },
+  {
+    id: 'break',
+    name: '5-Min Stretch Break',
+    desc: 'Posture, 20-20-20 eye rest & hydration',
+    icon: (size = 16) => <Icons.Timer size={size} />
+  },
+  {
+    id: 'flashcards',
+    name: 'Study Flashcards',
+    desc: 'User vault review & custom cards',
+    icon: (size = 16) => <Icons.Zap size={size} />
+  }
+];
 
 /**
- * ComicPeekingCatBuddy - The Exact Peeking "Zen Study Sprite" Mascot
- * - 100% visual match with official sprite (OnboardingMascotGuide & StudyCompanionEntity)
- * - Zero headset/headband (clean, elegant scholar sprite)
+ * ComicPeekingCatBuddy - The Exact Peeking "Zen Study Sprite" Mascot & Utility Dock
+ * - 100% visual match with official sprite
  * - AT REST: Only the ears and paws peek above the bottom edge; eyes are hidden
  * - ONLY ON HOVER: Head smoothly pops up so eyes emerge level with the ledge
- * - Speech active: head subtly bobs like it's talking
- * - Right tail: sways gently over the right edge
- * - Double-click headpat: happy ^ ^ arched eyes, blushing cheeks, floating vector hearts
+ * - SINGLE-CLICK: Smoothly toggles the 4 radial satellite utilities (Scratchpad, Break, Audio, Flashcards)
+ * - DOUBLE-CLICK: Headpat with joyful arched eyes, blushed cheeks, and vector heart burst
+ * - Zero Unicode emojis (Vector SVGs only)
+ * - Fully responsive across mobile viewports (<640px)
  */
 function ComicPeekingCatBuddy({
   onOpenTimer,
@@ -22,7 +50,11 @@ function ComicPeekingCatBuddy({
   const [isHovered, setIsHovered] = useState(false);
   const [showBubble, setShowBubble] = useState(false);
   const [isPatted, setIsPatted] = useState(false);
+  const [isRadialOpen, setIsRadialOpen] = useState(false);
+  const [hoveredSatelliteId, setHoveredSatelliteId] = useState(null);
+  const [activeUtility, setActiveUtility] = useState(null);
 
+  const wrapperRef = useRef(null);
   const lastClickRef = useRef(0);
   const patTimeoutRef = useRef(null);
 
@@ -40,26 +72,59 @@ function ComicPeekingCatBuddy({
     };
   }, []);
 
+  // Close radial menu and active modal on outside click or Escape
+  useEffect(() => {
+    if (!isRadialOpen && !activeUtility) return;
+    const handleClickOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setIsRadialOpen(false);
+        setActiveUtility(null);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsRadialOpen(false);
+        setActiveUtility(null);
+        setShowBubble(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isRadialOpen, activeUtility]);
+
   const triggerHeadpat = (e) => {
     if (e) e.stopPropagation();
     setIsPatted(true);
     setShowBubble(true);
+    playSoftZenChime();
     if (patTimeoutRef.current) clearTimeout(patTimeoutRef.current);
     patTimeoutRef.current = setTimeout(() => {
       setIsPatted(false);
     }, 2800);
   };
 
-  const handleClick = () => {
+  const handleClickCat = (e) => {
     const now = Date.now();
-    // Detect double click (under 380ms)
+    // Detect double click (under 380ms) -> Headpat
     if (now - lastClickRef.current < 380) {
-      triggerHeadpat();
+      triggerHeadpat(e);
       lastClickRef.current = 0;
     } else {
       lastClickRef.current = now;
-      setShowBubble(prev => !prev);
+      // Single click toggles radial satellite menu
+      setIsRadialOpen(prev => !prev);
+      playSoftClick();
     }
+  };
+
+  const handleSelectSatellite = (satId) => {
+    playSoftClick();
+    setActiveUtility(satId);
+    setShowBubble(false);
   };
 
   const handleCloseBubble = (e) => {
@@ -70,10 +135,33 @@ function ComicPeekingCatBuddy({
     }
   };
 
+  // Ensure ambient audio is stopped
+  useEffect(() => {
+    stopAmbientAudio();
+  }, []);
+
+  // Radial fan-out angles: items fan out into the card (upwards and leftwards)
+  const fanRadius = 88;
+  const fanAngles = [100, 137, 174]; // in degrees for 3 items
+
   return (
-    <div className={`bottom-peeking-cat-wrapper ${autoPromptTimer ? 'just-arrived' : ''}`}>
+    <div
+      className={`bottom-peeking-cat-wrapper ${autoPromptTimer ? 'just-arrived' : ''}`}
+      ref={wrapperRef}
+    >
+      {/* Active Utility Popover Card */}
+      {activeUtility === 'scratchpad' && (
+        <CatTrapScratchpad onClose={() => setActiveUtility(null)} />
+      )}
+      {activeUtility === 'break' && (
+        <CatStretchBreakTimer onClose={() => setActiveUtility(null)} />
+      )}
+      {activeUtility === 'flashcards' && (
+        <CatFlashcardDeck onClose={() => setActiveUtility(null)} />
+      )}
+
       {/* Speech Dialogue Bubble ("Psst let's go study!" / Headpat response) */}
-      {showBubble && (
+      {showBubble && !activeUtility && (
         <div className="bottom-peeking-cat-bubble animate-slide-up">
           <div className="cat-bubble-header">
             <div className="cat-bubble-tag">
@@ -87,6 +175,7 @@ function ComicPeekingCatBuddy({
               className="cat-bubble-close"
               onClick={handleCloseBubble}
               title="Close"
+              aria-label="Close dialogue"
             >
               ×
             </button>
@@ -119,10 +208,7 @@ function ComicPeekingCatBuddy({
             }}
           >
             <span>{isTimerRunning ? "View Active Timer" : "Start Focus Timer"}</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
+            <Icons.ArrowRight size={12} />
           </button>
           <div className="cat-bubble-notch" />
         </div>
@@ -143,16 +229,70 @@ function ComicPeekingCatBuddy({
         </div>
       )}
 
+      {/* Radial Satellite Fan-Out Menu */}
+      <div
+        className={`cat-radial-satellites-arc ${isRadialOpen ? 'is-expanded' : ''}`}
+        aria-hidden={!isRadialOpen}
+      >
+        {CAT_UTILITY_SATELLITES.map((sat, index) => {
+          const angleDeg = fanAngles[index] || 90;
+          const angleRad = (angleDeg * Math.PI) / 180;
+          const targetX = Math.round(fanRadius * Math.cos(angleRad));
+          const targetY = Math.round(-fanRadius * Math.sin(angleRad));
+
+          const satStyle = isRadialOpen ? {
+            transform: `translate(${targetX}px, ${targetY}px) scale(1)`,
+            opacity: 1,
+            pointerEvents: 'auto',
+            visibility: 'visible',
+            transitionDelay: `${index * 35}ms`
+          } : {
+            transform: 'translate(0px, 0px) scale(0)',
+            opacity: 0,
+            pointerEvents: 'none',
+            visibility: 'hidden',
+            transitionDelay: `${(3 - index) * 20}ms`
+          };
+
+          return (
+            <div
+              key={sat.id}
+              className={`cat-satellite-node ${activeUtility === sat.id ? 'is-active' : ''}`}
+              style={satStyle}
+              onMouseEnter={() => setHoveredSatelliteId(sat.id)}
+              onMouseLeave={() => setHoveredSatelliteId(null)}
+            >
+              {/* Tooltip on Hover */}
+              {hoveredSatelliteId === sat.id && (
+                <div className="cat-satellite-tooltip font-mono animate-fade-in">
+                  <span>{sat.name}</span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                className={`cat-satellite-btn ${activeUtility === sat.id ? 'active-ring' : ''}`}
+                onClick={() => handleSelectSatellite(sat.id)}
+                aria-label={`Open ${sat.name}`}
+                title={`${sat.name} — ${sat.desc}`}
+              >
+                {sat.icon(16)}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
       {/* The Peeking Cat: ONLY ears and paws visible at rest; ONLY on hover do eyes pop out */}
       <button
         type="button"
         className={`bottom-cat-peeking-trigger ${isHovered ? 'hovered' : ''} ${isPatted ? 'patted' : ''} ${showBubble ? 'talking' : ''}`}
-        onClick={handleClick}
+        onClick={handleClickCat}
         onDoubleClick={triggerHeadpat}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        title="Zen Study Sprite - Hover to peek, double-click to pat!"
-        aria-label="Zen Study Sprite - hover to peek"
+        title="Zen Study Sprite - Click to toggle utilities, double-click to pat!"
+        aria-label="Zen Study Sprite - click for tools, double click for headpat"
       >
         <svg 
           viewBox="18 10 76 56" 
@@ -201,7 +341,7 @@ function ComicPeekingCatBuddy({
 
               {/* Eyes Inside Glasses */}
               {isPatted ? (
-                /* Joyful Arched Smiling Eyes (^ ^ like Horimiya reference image) */
+                /* Joyful Arched Smiling Eyes */
                 <g stroke="var(--accent-color, #38bdf8)" strokeWidth="2" strokeLinecap="round" fill="none">
                   <path d="M37.5 43.5 Q41 39 44.5 43.5" />
                   <path d="M55.5 43.5 Q59 39 62.5 43.5" />

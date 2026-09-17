@@ -10,7 +10,9 @@ export default function HeaderProfileDropdown({
   onSignOut,
   onSignIn,
   timerState,
-  onOpenPatchNotes
+  onOpenPatchNotes,
+  onOpenDataAuditModal,
+  hasUnsyncedCloudChanges = false
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -189,6 +191,37 @@ export default function HeaderProfileDropdown({
                 <span className="item-sub">Cloud sync & preferences</span>
               </div>
             </button>
+
+            {onOpenDataAuditModal && (
+              <button
+                type="button"
+                className="menu-nav-item"
+                onClick={() => handleAction(onOpenDataAuditModal)}
+              >
+                <div className="menu-item-icon-box" style={{ background: 'rgba(56, 189, 248, 0.12)', color: 'var(--accent-color, #38bdf8)' }}>
+                  <Icons.Activity size={15} />
+                </div>
+                <div className="menu-item-text">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span className="item-title">Data & Sync Log</span>
+                    <span 
+                      style={{ 
+                        fontSize: '9.5px', 
+                        padding: '1px 6px', 
+                        borderRadius: '999px',
+                        background: hasUnsyncedCloudChanges ? 'rgba(245, 158, 11, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                        color: hasUnsyncedCloudChanges ? '#f59e0b' : '#22c55e',
+                        border: hasUnsyncedCloudChanges ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(34, 197, 94, 0.3)',
+                        fontWeight: '700'
+                      }}
+                    >
+                      {hasUnsyncedCloudChanges ? 'Pending' : 'Synced'}
+                    </span>
+                  </div>
+                  <span className="item-sub">Login history & data inventory</span>
+                </div>
+              </button>
+            )}
 
             {onOpenPatchNotes && (
               <button

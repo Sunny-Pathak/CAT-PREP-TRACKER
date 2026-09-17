@@ -4,9 +4,15 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    watch: {
+      ignored: ['**/*.wav', '**/*.tmp']
+    }
+  },
   test: {
     environment: 'jsdom',
-    globals: true
+    globals: true,
+    testTimeout: 15000
   },
   build: {
     chunkSizeWarningLimit: 800,

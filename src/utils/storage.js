@@ -1,5 +1,6 @@
 import defaultData from '../data/unified_data.json';
 import { getMondayOfWeek, formatDateISO } from './dateUtils';
+import { sanitizeObjectForPrototypePollution } from './textUtils';
 
 const STORAGE_KEY = 'cat_prep_tracker_state_v1';
 
@@ -258,4 +259,36 @@ export const exportStateAsFile = (state) => {
   downloadAnchor.click();
   downloadAnchor.remove();
 };
+
+/**
+ * Validates untrusted backup JSON text, enforces size limits (<= 10MB),
+ * strips prototype pollution keys, and safely normalizes against standard state schema.
+ * @param {string} rawContent - Raw JSON string from uploaded file
+ * @returns {object} Sanitized and schema-normalized state object
+ */
+export const validateAndSanitizeBackup = (rawContent) => {
+  if (!rawContent || typeof rawContent !== 'string') {
+    throw new Error("Invalid backup: empty or non-string file content.");
+  }
+  // Enforce max 10MB backup limit to prevent memory exhaustion / DoS
+  if (rawContent.length > 10 * 1024 * 1024) {
+    throw new Error("Backup file exceeds maximum allowed limit (10MB).");
+  }
+
+  const parsed = JSON.parse(rawContent);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error("Invalid backup format: root must be an object.");
+  }
+
+  // Strip any prototype pollution attempts (__proto__, constructor, prototype)
+  const safeData = sanitizeObjectForPrototypePollution(parsed);
+
+  if (!safeData.tracker || !safeData.studyPlan || !safeData.mocks) {
+    throw new Error("Invalid backup structure: missing tracker, studyPlan, or mocks.");
+  }
+
+  // Normalize and merge against default state to ensure complete schema compliance
+  return mergeTrackerStates(getInitialState(), safeData);
+};
+
 

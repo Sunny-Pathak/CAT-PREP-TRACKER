@@ -15,6 +15,7 @@ export default function PeerInspectorModal({
   loading: propLoading = false,
   onMessagePeer,
   onEditProfile,
+  onNavigateToTimer,
   currentUser
 }) {
   const activePeer = propActivePeer || friend;
@@ -44,16 +45,27 @@ export default function PeerInspectorModal({
       return;
     }
 
-    if (propTrackerData) {
-      setTrackerData(propTrackerData);
-    } else {
-      setTrackerData(activePeer);
-    }
-    setLoading(true);
+    const peerId = activePeer.uid || activePeer.id;
+    const isBot = String(peerId || '').startsWith('bot-') || String(peerId || '').startsWith('asp-');
 
+    if (isBot) {
+      import('../utils/aspirantBotEngine').then(({ generateBotTracker }) => {
+        const botTracker = generateBotTracker(activePeer);
+        setTrackerData(botTracker);
+        setLoading(false);
+      });
+      return;
+    }
+
+    if (propTrackerData && propTrackerData.tracker) {
+      setTrackerData(propTrackerData);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     import('../utils/firebase')
       .then(({ getUserTrackerData }) => {
-        const peerId = activePeer.uid || activePeer.id;
         if (!peerId || peerId === 'self') {
           setLoading(false);
           return;
@@ -70,7 +82,6 @@ export default function PeerInspectorModal({
       })
       .catch((err) => {
         console.error("Error fetching peer detailed progress:", err);
-        setTrackerData(activePeer);
       })
       .finally(() => setLoading(false));
   }, [activePeer, propTrackerData]);
@@ -78,6 +89,11 @@ export default function PeerInspectorModal({
   if (!activePeer || isOpen === false) return null;
 
   const isSelf = activePeer.isSelf || (currentUser && (activePeer.id === currentUser.uid || activePeer.uid === currentUser.uid));
+  const resolvedProfile = {
+    ...activePeer,
+    ...(trackerData?.profile || {})
+  };
+  const resolvedTracker = trackerData?.tracker || (trackerData?.['Month 1'] ? trackerData : null);
 
   return createPortal(
     <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" style={{ zIndex: 9999999 }}>
@@ -87,11 +103,12 @@ export default function PeerInspectorModal({
       >
         <AspirantProfileCard
           user={currentUser}
-          profile={trackerData || activePeer}
-          tracker={trackerData}
+          profile={resolvedProfile}
+          tracker={resolvedTracker}
           isSelf={isSelf}
           onEditProfile={onEditProfile}
           onMessagePeer={onMessagePeer}
+          onNavigateToTimer={onNavigateToTimer}
           onClose={onClose}
           compact={false}
         />

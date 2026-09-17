@@ -109,7 +109,7 @@ function DashboardView({
       {/* Minimalist Editorial Hero Header */}
       <div className="minimal-hero-section">
         <div className="minimal-hero-tag">
-          <span>// PREPARATION PROTOCOL • {todayPos.activeMonth?.toUpperCase()} ({todayPos.activeWeek?.toUpperCase()})</span>
+          <span>PREPARATION PROTOCOL • {todayPos.activeMonth?.toUpperCase()} ({todayPos.activeWeek?.toUpperCase()})</span>
         </div>
 
         <div className="minimal-hero-main">

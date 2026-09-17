@@ -32,6 +32,12 @@ import {
   calculatePreviousDayObjectiveExp
 } from "./expSystem";
 import { getEffectiveFrameId, getEffectiveBannerId } from "../data/cosmeticsData";
+import { 
+  isValidDocumentId, 
+  sanitizeText, 
+  sanitizeUrl, 
+  stripEmojis 
+} from "./textUtils";
 
 // Firebase configuration keys (loaded securely via environment variables)
 const firebaseConfig = {
@@ -114,13 +120,14 @@ export const signUpUser = async (email, password, displayName, targetExam = 'CAT
   const user = userCredential.user;
 
   const aspirantId = generateUniqueAspirantId(user.uid);
+  const cleanDisplayName = sanitizeText(displayName || normalizedEmail.split('@')[0], 50) || 'Aspirant';
 
   // Create profile doc in firestore
   const profileData = {
     uid: user.uid,
     aspirantId: aspirantId,
-    displayName: displayName || normalizedEmail.split('@')[0],
-    username: normalizedEmail.split('@')[0],
+    displayName: cleanDisplayName,
+    username: sanitizeText(normalizedEmail.split('@')[0], 30) || 'aspirant',
     email: normalizedEmail,
     streak: 0,
     solvedQs: 0,
@@ -130,12 +137,12 @@ export const signUpUser = async (email, password, displayName, targetExam = 'CAT
     loginStreak: 0,
     friends: [],
     avatar: 'rocket',
-    avatarBg: hashStringToColor(displayName || user.uid),
+    avatarBg: hashStringToColor(cleanDisplayName || user.uid),
     frameId: 'default',
     bannerId: 'cyber_grid',
     bannerBg: '#1e1f22',
     bio: '',
-    target: targetExam || 'CAT (99.5+%ile • IIM-A Focus)',
+    target: sanitizeText(targetExam || 'CAT (99.5+%ile • IIM-A Focus)', 60),
     location: '',
     lastActive: new Date().toISOString()
   };
@@ -217,7 +224,7 @@ export const signOutUser = logOutUser;
 
 // 4. Save Study Tracker data to Firestore
 export const saveTrackerToCloud = async (userId, trackerState, studyPlanState, mocksState, streak, solvedQs, lastUpdatedMs = null) => {
-  if (!isFirebaseConfigured || !userId) return;
+  if (!isFirebaseConfigured || !userId || !isValidDocumentId(userId)) return;
 
   const nowMs = lastUpdatedMs || Date.now();
   try {
@@ -237,27 +244,27 @@ export const saveTrackerToCloud = async (userId, trackerState, studyPlanState, m
       lastActive: new Date(nowMs).toISOString()
     }).catch(() => {});
   } catch (err) {
-    console.warn("Could not sync tracker to Cloud (offline or quota full):", err.message || err);
+    console.warn("Could not sync tracker to Cloud (offline or quota full):", err?.message || err);
   }
 };
 
 // 5. Load Study Tracker data from Firestore
 export const loadTrackerFromCloud = async (userId) => {
-  if (!isFirebaseConfigured || !userId) return null;
+  if (!isFirebaseConfigured || !userId || !isValidDocumentId(userId)) return null;
   try {
     const docSnap = await getDoc(doc(db, "trackers", userId));
     if (docSnap.exists()) {
       return docSnap.data();
     }
   } catch (err) {
-    console.error("Error loading tracker from Cloud:", err);
+    console.error("Error loading tracker from Cloud:", err?.message || err);
   }
   return null;
 };
 
 // 6. Fetch single user profile (Ensures persistent unique aspirantId)
 export const getUserProfile = async (userId) => {
-  if (!isFirebaseConfigured || !userId) return null;
+  if (!isFirebaseConfigured || !userId || !isValidDocumentId(userId)) return null;
   try {
     const docSnap = await getDoc(doc(db, "profiles", userId));
     if (docSnap.exists()) {
@@ -771,19 +778,23 @@ export const addFriendByEmail = async (currentUserId, identifier) => {
 
 // 13. Update User Profile in Firestore & sync to presence
 export const updateUserProfile = async (userId, profileData) => {
-  if (!isFirebaseConfigured || !userId) return;
+  if (!isFirebaseConfigured || !userId || !isValidDocumentId(userId)) return;
 
   try {
+    const rawAvatar = profileData.avatar || '';
+    const safeAvatar = sanitizeUrl(rawAvatar) || (rawAvatar.length <= 30 ? sanitizeText(rawAvatar, 30) : 'rocket');
+    const cleanName = sanitizeText(profileData.displayName || '', 50) || 'Aspirant';
+
     const updatePayload = {
-      displayName: profileData.displayName || '',
-      username: profileData.username || '',
-      avatar: profileData.avatar || '',
-      avatarBg: profileData.avatarBg || hashStringToColor(profileData.displayName || userId),
+      displayName: cleanName,
+      username: sanitizeText(profileData.username || '', 30),
+      avatar: safeAvatar,
+      avatarBg: profileData.avatarBg || hashStringToColor(cleanName || userId),
       bannerBg: profileData.bannerBg || '#1e1f22',
-      bio: profileData.bio || '',
-      target: profileData.target || 'CAT (99.5+%ile)',
-      location: profileData.location || '',
-      aspirantId: profileData.aspirantId || generateUniqueAspirantId(userId),
+      bio: sanitizeText(profileData.bio || '', 300),
+      target: sanitizeText(profileData.target || 'CAT (99.5+%ile)', 60),
+      location: sanitizeText(profileData.location || '', 50),
+      aspirantId: sanitizeText(profileData.aspirantId || generateUniqueAspirantId(userId), 20),
       updatedAt: new Date().toISOString()
     };
 
@@ -807,7 +818,7 @@ export const updateUserProfile = async (userId, profileData) => {
 
     return true;
   } catch (err) {
-    console.error("Error updating user profile:", err);
+    console.error("Error updating user profile:", err?.message || err);
     throw err;
   }
 };
@@ -1226,24 +1237,25 @@ export const sendChatMessage = async (
   targetFriendId = null
 ) => {
   if (!isFirebaseConfigured || !user || !text) return null;
-  const cleanText = text.trim().slice(0, 1000);
+  const cleanText = sanitizeText(text, 1000);
   if (!cleanText) return null;
 
   try {
-    const name = userProfile?.displayName || user.displayName || user.name || user.email?.split('@')[0] || 'Aspirant';
-    const avatar = userProfile?.avatar || user.avatar || 'rocket';
+    const name = sanitizeText(userProfile?.displayName || user.displayName || user.name || user.email?.split('@')[0] || 'Aspirant', 50);
+    const rawAvatar = userProfile?.avatar || user.avatar || 'rocket';
+    const avatar = sanitizeUrl(rawAvatar) || (rawAvatar.length <= 30 ? sanitizeText(rawAvatar, 30) : 'rocket');
     const avatarBg = userProfile?.avatarBg || user.avatarBg || '#5865f2';
-    const location = userProfile?.location || user.location || '';
-    const target = userProfile?.target || user.target || 'CAT';
-    const aspirantId = userProfile?.aspirantId || user.aspirantId || '';
-    const friendsList = Array.isArray(userProfile?.friends) ? userProfile.friends : [];
+    const location = sanitizeText(userProfile?.location || user.location || '', 50);
+    const target = sanitizeText(userProfile?.target || user.target || 'CAT', 60);
+    const aspirantId = sanitizeText(userProfile?.aspirantId || user.aspirantId || '', 20);
+    const friendsList = Array.isArray(userProfile?.friends) ? userProfile.friends.filter(isValidDocumentId) : [];
 
     const isPrivateChannel = channel === 'friends' || channel === 'buddies-circle' || channel.startsWith('dm_') || !!targetFriendId;
     let roomId = channel;
     let participants = [];
 
     if (isPrivateChannel) {
-      if (targetFriendId) {
+      if (targetFriendId && isValidDocumentId(targetFriendId)) {
         roomId = `dm_${[user.uid, targetFriendId].sort().join('_')}`;
         participants = [user.uid, targetFriendId];
       } else {
@@ -1373,13 +1385,13 @@ export const subscribeToChatMessages = (
 
 // 22. Delete Chat Message (Self-cleanup)
 export const deleteChatMessage = async (messageId, channel = 'buddies-circle') => {
-  if (!isFirebaseConfigured || !db || !messageId) return;
+  if (!isFirebaseConfigured || !db || !messageId || !isValidDocumentId(messageId)) return;
   try {
     const isPrivate = channel === 'friends' || channel === 'buddies-circle' || channel.startsWith('dm_');
     const targetCollection = isPrivate ? "private_circle_messages_v4" : "hub_channel_messages_v4";
     await deleteDoc(doc(db, targetCollection, messageId));
   } catch (err) {
-    console.error("Error deleting chat message:", err);
+    console.error("Error deleting chat message:", err?.message || err);
   }
 };
 

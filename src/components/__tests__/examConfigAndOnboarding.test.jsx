@@ -104,7 +104,7 @@ describe('Multi-Exam Config Registry, Timelines & Minimal Welcome Modal', () => 
       );
 
       // Title & Minimal header
-      expect(screen.getByText('// WORKSPACE CALIBRATION')).toBeDefined();
+      expect(screen.getByText('WORKSPACE CALIBRATION')).toBeDefined();
       expect(screen.getByText('Target Examination & Timeline')).toBeDefined();
 
       // Check exam items
@@ -203,7 +203,7 @@ describe('Multi-Exam Config Registry, Timelines & Minimal Welcome Modal', () => 
       );
 
       // Step 1 check
-      expect(screen.getByText(/\/\/ COMPANION GUIDE/i)).toBeDefined();
+      expect(screen.getByText(/COMPANION GUIDE/i)).toBeDefined();
       expect(screen.getByText(/Select your target examination/i)).toBeDefined();
       expect(screen.getByRole('button', { name: /Step 1: Target Exam/i })).toBeDefined();
 
@@ -220,7 +220,7 @@ describe('Multi-Exam Config Registry, Timelines & Minimal Welcome Modal', () => 
 
       // Step 3 check
       expect(screen.getByText(/Workspace calibration complete!/i)).toBeDefined();
-      expect(screen.getByText(/SYSTEM CALIBRATED \/\/ READY FOR CONQUEST/i)).toBeDefined();
+      expect(screen.getByText(/SYSTEM CALIBRATED • READY FOR CONQUEST/i)).toBeDefined();
 
       // Click Back button
       const backBtn = screen.getByRole('button', { name: /Back/i });

@@ -4,41 +4,11 @@ import { Icons } from './AspirantIcons';
 import DitherBackground from './DitherBackground';
 import SmoothCaretInput from './animations/SmoothCaretInput';
 import AnimatedSelect from './animations/AnimatedSelect';
+import LiquidMetalLogo from './LiquidMetalLogo';
 
-// Official CATalyze Vector Logo
+// Official CATalyze Vector Liquid Metal Logo
 function BrandLogo({ size = 32 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" style={{ display: 'block' }}>
-      <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#authBrandGradA)" stroke="var(--accent-color, #38bdf8)" strokeWidth="1.2" strokeOpacity="0.4" />
-      <path 
-        d="M23 10.5C20.8 8.2 17.8 7 14.5 7.5C10.2 8.2 7.2 12 7.5 16.2C7.8 20.8 11.5 24.5 16 24.5C19.5 24.5 22.2 22.8 24 20" 
-        stroke="url(#authBrandArcGrad)" 
-        strokeWidth="2.4" 
-        strokeLinecap="round" 
-      />
-      <path 
-        d="M16 8L24.5 12L19.5 13.5L23.5 18L17.5 14.5L20 12.5L16 8Z" 
-        fill="url(#authBrandSparkGrad)" 
-      />
-      <circle cx="14.5" cy="16" r="1.6" fill="#ffffff" />
-      <circle cx="14.5" cy="16" r="3.2" stroke="var(--accent-color, #38bdf8)" strokeWidth="0.8" opacity="0.8" />
-      <defs>
-        <linearGradient id="authBrandGradA" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#080d1a" />
-          <stop offset="100%" stopColor="#111827" />
-        </linearGradient>
-        <linearGradient id="authBrandArcGrad" x1="7" y1="7" x2="25" y2="25" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#38bdf8" />
-          <stop offset="50%" stopColor="#818cf8" />
-          <stop offset="100%" stopColor="#c084fc" />
-        </linearGradient>
-        <linearGradient id="authBrandSparkGrad" x1="16" y1="8" x2="24" y2="18" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#38bdf8" />
-          <stop offset="100%" stopColor="#60a5fa" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
+  return <LiquidMetalLogo size={size} />;
 }
 
 // Minimal, Smoothly Animated Zen Scholar Mascot
@@ -285,6 +255,8 @@ function Skiper103FeatureAccordion() {
   );
 }
 
+import { stripEmojis } from '../utils/textUtils';
+
 export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -298,6 +270,18 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
   const [isMascotHappy, setIsMascotHappy] = useState(false);
   const [transitionState, setTransitionState] = useState('idle'); // 'idle' | 'success-exit' | 'error-return'
   const [transitionMessage, setTransitionMessage] = useState('');
+
+  // Brute-force & credential stuffing defense: Progressive lockout cooldown
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setLockoutSeconds(prev => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutSeconds]);
 
   // Condition statement: Has user visited the site before?
   const [hasVisitedBefore, setHasVisitedBefore] = useState(() => {
@@ -336,13 +320,50 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setAuthError('');
-    if (!email.trim() || !password.trim()) {
+
+    // Check brute force cooldown
+    if (lockoutSeconds > 0) {
+      setAuthError(`Too many failed attempts. Cooldown active: wait ${lockoutSeconds}s.`);
+      setTransitionState('error-return');
+      setTimeout(() => setTransitionState('idle'), 600);
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password;
+    const cleanName = stripEmojis(displayName).trim().slice(0, 50);
+
+    if (!cleanEmail || !cleanPassword) {
       setAuthError('Please enter both email and password.');
       setTransitionState('error-return');
       setTimeout(() => setTransitionState('idle'), 600);
       return;
     }
-    if (isSignUp && !displayName.trim()) {
+
+    // RFC-compliant email regex pattern
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setAuthError('Please enter a valid email address.');
+      setTransitionState('error-return');
+      setTimeout(() => setTransitionState('idle'), 600);
+      return;
+    }
+
+    // Password length boundaries
+    if (cleanPassword.length < 6) {
+      setAuthError('Password must be at least 6 characters.');
+      setTransitionState('error-return');
+      setTimeout(() => setTransitionState('idle'), 600);
+      return;
+    }
+    if (cleanPassword.length > 128) {
+      setAuthError('Password cannot exceed 128 characters.');
+      setTransitionState('error-return');
+      setTimeout(() => setTransitionState('idle'), 600);
+      return;
+    }
+
+    if (isSignUp && !cleanName) {
       setAuthError('Please enter your full name.');
       setTransitionState('error-return');
       setTimeout(() => setTransitionState('idle'), 600);
@@ -353,28 +374,43 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
     try {
       let u;
       if (isSignUp) {
-        u = await signUpUser(email, password, displayName, targetExam);
+        u = await signUpUser(cleanEmail, cleanPassword, cleanName, targetExam);
       } else {
-        u = await logInUser(email, password);
+        u = await logInUser(cleanEmail, cleanPassword);
       }
 
       if (!u) {
         throw new Error('Authentication process did not return an active session.');
       }
 
+      setFailedAttempts(0);
+      setLockoutSeconds(0);
       markVisited();
       if (onAuthSuccess) onAuthSuccess(u);
     } catch (err) {
-      console.error("Auth error:", err);
-      let msg = err.message || 'Authentication failed. Please try again.';
-      if (msg.includes('auth/invalid-credential') || msg.includes('auth/wrong-password') || msg.includes('auth/user-not-found')) {
+      console.warn("Auth failure code:", err?.code || 'unknown');
+      let msg = 'Authentication failed. Please try again.';
+      const errCode = err?.code || '';
+      const errMsg = err?.message || '';
+
+      if (errCode === 'auth/invalid-credential' || errMsg.includes('invalid-credential') || errMsg.includes('wrong-password') || errMsg.includes('user-not-found')) {
         msg = 'Invalid email or password. Please check your credentials.';
-      } else if (msg.includes('auth/email-already-in-use')) {
+      } else if (errCode === 'auth/email-already-in-use' || errMsg.includes('email-already-in-use')) {
         msg = 'This email is already registered. Please sign in instead.';
-      } else if (msg.includes('auth/weak-password')) {
+      } else if (errCode === 'auth/weak-password' || errMsg.includes('weak-password')) {
         msg = 'Password should be at least 6 characters.';
-      } else if (msg.includes('auth/invalid-email')) {
+      } else if (errCode === 'auth/invalid-email' || errMsg.includes('invalid-email')) {
         msg = 'Please enter a valid email address.';
+      } else if (errCode === 'auth/too-many-requests' || errMsg.includes('too-many-requests')) {
+        msg = 'Access temporarily restricted due to many failed attempts. Please wait a moment.';
+      }
+
+      // Increment failed attempts counter and engage progressive lockout
+      const nextFailures = failedAttempts + 1;
+      setFailedAttempts(nextFailures);
+      if (nextFailures >= 5) {
+        setLockoutSeconds(30);
+        msg = '5 failed attempts detected. Cooldown activated for 30 seconds.';
       }
       
       // Cancel/Error return animation to bring form back into view smoothly
@@ -390,25 +426,31 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
 
   const handleGoogleSignIn = async () => {
     setAuthError('');
+    if (lockoutSeconds > 0) {
+      setAuthError(`Cooldown active: please wait ${lockoutSeconds}s.`);
+      return;
+    }
     setGoogleLoading(true);
     try {
       const u = await signInWithGoogle();
       if (!u) {
         throw new Error('Sign-in cancelled.');
       }
+      setFailedAttempts(0);
+      setLockoutSeconds(0);
       markVisited();
       if (onAuthSuccess) onAuthSuccess(u);
     } catch (err) {
-      console.error("Google Auth error:", err);
+      console.warn("Google Auth failure:", err?.code || err?.message || 'unknown');
       // Cancel/Error return animation back to sign up screen
       setTransitionState('error-return');
       setTimeout(() => setTransitionState('idle'), 600);
 
-      if (!err.message?.includes('popup-closed-by-user')) {
-        if (err.code === 'auth/operation-not-allowed' || err.message?.includes('operation-not-allowed')) {
+      if (!err?.message?.includes('popup-closed-by-user')) {
+        if (err?.code === 'auth/operation-not-allowed' || err?.message?.includes('operation-not-allowed')) {
           setAuthError("Google Sign-In is disabled in Firebase Console. You can sign in with Email & Password or Continue as Guest.");
         } else {
-          setAuthError(err.message || 'Google sign-in failed. Please try again.');
+          setAuthError(err?.message || 'Google sign-in failed. Please try again.');
         }
       }
     } finally {
@@ -514,7 +556,9 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
                   placeholder="Sunny Pathak"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  disabled={loading || googleLoading}
+                  disabled={loading || googleLoading || lockoutSeconds > 0}
+                  autoComplete="name"
+                  maxLength={50}
                   required
                 />
               </div>
@@ -527,7 +571,11 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
                 placeholder="youremail@yourdomain.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={loading || googleLoading}
+                disabled={loading || googleLoading || lockoutSeconds > 0}
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                maxLength={100}
                 required
               />
             </div>
@@ -540,7 +588,10 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
                   placeholder="Create a password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading || googleLoading}
+                  disabled={loading || googleLoading || lockoutSeconds > 0}
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
+                  minLength={6}
+                  maxLength={128}
                   required
                 >
                   <button
@@ -562,7 +613,7 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
                 <AnimatedSelect
                   value={targetExam}
                   onChange={(e) => setTargetExam(e.target.value)}
-                  disabled={loading || googleLoading}
+                  disabled={loading || googleLoading || lockoutSeconds > 0}
                   options={[
                     { value: 'CAT', label: 'CAT', badge: 'Primary' },
                     { value: 'XAT', label: 'XAT', badge: 'Decision' },
@@ -577,11 +628,13 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
             <button
               type="submit"
               className="skiper-submit-btn"
-              disabled={loading || googleLoading}
+              disabled={loading || googleLoading || lockoutSeconds > 0}
             >
               <div className="skiper-btn-bottom-glow" />
               {loading ? (
                 <span className="skiper-loading-spinner" />
+              ) : lockoutSeconds > 0 ? (
+                <span>Cooldown ({lockoutSeconds}s)</span>
               ) : isSignUp ? (
                 <span>Create Account</span>
               ) : (

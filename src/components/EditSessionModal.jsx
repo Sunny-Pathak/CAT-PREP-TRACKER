@@ -42,13 +42,11 @@ export default function EditSessionModal({
   onClose,
   onSave
 }) {
-  if (!isOpen || !session) return null;
-
-  const [subject, setSubject] = useState(session.subject || 'General');
-  const [durationMinutes, setDurationMinutes] = useState(session.durationMinutes || 1);
-  const [startTime24, setStartTime24] = useState(to24Hour(session.startTime || ''));
-  const [endTime24, setEndTime24] = useState(to24Hour(session.endTime || ''));
-  const [notes, setNotes] = useState(session.notes || '');
+  const [subject, setSubject] = useState(session?.subject || 'General');
+  const [durationMinutes, setDurationMinutes] = useState(session?.durationMinutes || 1);
+  const [startTime24, setStartTime24] = useState(to24Hour(session?.startTime || ''));
+  const [endTime24, setEndTime24] = useState(to24Hour(session?.endTime || ''));
+  const [notes, setNotes] = useState(session?.notes || '');
 
   useEffect(() => {
     if (session) {
@@ -59,6 +57,8 @@ export default function EditSessionModal({
       setNotes(session.notes || '');
     }
   }, [session]);
+
+  if (!isOpen || !session) return null;
 
   // Handle duration changes: update duration and auto-calculate endTime
   const updateDuration = (newMins) => {
