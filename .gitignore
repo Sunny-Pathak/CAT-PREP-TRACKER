@@ -34,10 +34,21 @@ graphify-out/
 *.mp3
 *.ogg
 
+# Firebase Cache & Runtime
+.firebase/
+
+# Testing & Coverage
+coverage/
+
 # Local Visualizations & Scratch
 graph.html
 graph.json
+
+# Agent Instructions & Workspace Customizations (Local-Only)
+.agents/
+.gemini/
 GEMINI.md
+AGENTS.md
 
 # Environment & Secrets
 .env
