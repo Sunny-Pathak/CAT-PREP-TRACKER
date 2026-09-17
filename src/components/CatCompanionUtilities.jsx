@@ -176,24 +176,13 @@ export function CatStretchBreakTimer({ onClose }) {
   const [secondsLeft, setSecondsLeft] = useState(300); // 5 minutes
   const [isRunning, setIsRunning] = useState(false);
   const [activeTipIndex, setActiveTipIndex] = useState(0);
+  const [showTips, setShowTips] = useState(true);
   const timerRef = useRef(null);
 
   const tips = [
-    {
-      title: '20-20-20 Eye Rest',
-      detail: 'Look at an object 20 feet away for 20 seconds. Relaxes ciliary muscles and prevents screen fatigue.',
-      icon: (s = 16) => <Icons.Eye size={s} />
-    },
-    {
-      title: 'Spine & Shoulder Roll',
-      detail: 'Roll shoulders back 5 times, lower shoulders away from ears, and sit upright with feet flat.',
-      icon: (s = 16) => <Icons.Activity size={s} />
-    },
-    {
-      title: 'Cognitive Hydration',
-      detail: 'Drink 200ml of cool water. Just 1% dehydration degrades working memory and math recall.',
-      icon: (s = 16) => <Icons.Sparkles size={s} />
-    }
+    'Look at an object 20 feet away for 20 seconds. Relaxes your eye muscles and prevents screen fatigue!',
+    'Roll your shoulders back 5 times, sit upright, and take a slow, deep breath.',
+    'Drink 200ml of cool water! Even mild dehydration degrades focus and memory recall.'
   ];
 
   useEffect(() => {
@@ -235,83 +224,89 @@ export function CatStretchBreakTimer({ onClose }) {
     setIsRunning(prev => !prev);
   };
 
-  const currentTip = tips[activeTipIndex];
+  // Automatically cycle through tips every 7.5s - pure direct speech
+  useEffect(() => {
+    const cycleTimer = setInterval(() => {
+      setActiveTipIndex(prev => (prev === tips.length - 1 ? 0 : prev + 1));
+    }, 7500);
+
+    return () => clearInterval(cycleTimer);
+  }, [tips.length]);
 
   return (
-    <div className="cat-utility-card cat-break-card animate-slide-up" role="dialog" aria-label="Stretch and Posture Break">
-      <div className="cat-utility-header">
-        <div className="cat-utility-title-box">
-          <Icons.Timer size={16} className="cat-utility-icon-accent" />
-          <span className="cat-utility-title">5-Min Posture & Eye Break</span>
+    <div className="cat-break-mini-container animate-slide-up">
+      {/* 1. Mini simple timer pod (no bulky card) */}
+      <div className="cat-mini-timer-pod" role="dialog" aria-label="5-Minute Break Timer">
+        <div className="cat-mini-timer-bar">
+          <button
+            type="button"
+            className="cat-mini-icon-btn"
+            onClick={handleReset}
+            title="Reset to 5:00"
+            aria-label="Reset timer to 5:00"
+          >
+            <Icons.RotateCcw size={11} />
+          </button>
+          <span className="cat-mini-timer-tag font-mono">{'5\u2011MIN'}</span>
+          <button
+            type="button"
+            className="cat-mini-icon-btn is-close"
+            onClick={onClose}
+            title="Close Break Timer"
+            aria-label="Close Break Timer"
+          >
+            <Icons.Close size={11} />
+          </button>
         </div>
-        <button type="button" className="cat-utility-close-btn" onClick={onClose} aria-label="Close Break Timer">
-          <Icons.Close size={14} />
+
+        <button
+          type="button"
+          className={`cat-mini-clock-face ${isRunning ? 'is-ticking' : ''}`}
+          onClick={handleToggleTimer}
+          aria-label={isRunning ? 'Pause Break' : secondsLeft === 0 ? 'Restart Break' : 'Start 5-Min Break'}
+          title={isRunning ? 'Tap to pause' : 'Tap to start 5-min break'}
+        >
+          <svg className="cat-mini-clock-svg" viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="44" className="cat-clock-track" strokeWidth="4" />
+            <circle
+              cx="50"
+              cy="50"
+              r="44"
+              className="cat-clock-progress"
+              strokeWidth="4.5"
+              style={{
+                strokeDasharray: 276.5,
+                strokeDashoffset: 276.5 * (1 - secondsLeft / 300)
+              }}
+            />
+          </svg>
+
+          <span className="cat-mini-time font-mono">{formatTime(secondsLeft)}</span>
+
+          <span className="cat-mini-tap-badge" aria-hidden="true">
+            {isRunning ? <Icons.Pause size={10} /> : secondsLeft === 0 ? <Icons.RotateCcw size={10} /> : <Icons.Play size={10} />}
+          </span>
         </button>
       </div>
 
-      <div className="cat-utility-body">
-        {/* Countdown Ring Display */}
-        <div className="cat-break-clock-wrap">
-          <div className={`cat-break-clock-face ${isRunning ? 'is-ticking' : ''}`}>
-            <span className="cat-break-time font-mono">{formatTime(secondsLeft)}</span>
-            <span className="cat-break-label">{isRunning ? 'Break in session' : secondsLeft === 0 ? 'Break complete!' : 'Ready'}</span>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="cat-break-controls">
+      {/* 2. Mini comic speech bubble: direct speech only, auto-cycling, mini close icon */}
+      {showTips && (
+        <div className="cat-mini-speech-bubble animate-slide-up" role="region" aria-label="Resting tip comic speech bubble">
           <button
             type="button"
-            className={`cat-utility-primary-btn ${isRunning ? 'is-pause' : ''}`}
-            onClick={handleToggleTimer}
+            className="cat-mini-bubble-close-btn"
+            onClick={() => setShowTips(false)}
+            title="Dismiss tip bubble"
+            aria-label="Close tips bubble"
           >
-            <span>{isRunning ? 'Pause Break' : secondsLeft === 0 ? 'Restart Break' : 'Start 5-Min Break'}</span>
+            <Icons.Close size={10} />
           </button>
-          <button
-            type="button"
-            className="cat-utility-secondary-btn"
-            onClick={handleReset}
-            title="Reset timer to 5:00"
-          >
-            <Icons.RotateCcw size={14} />
-          </button>
-        </div>
 
-        {/* Ergonomic Tip Carousel */}
-        <div className="cat-break-tip-box">
-          <div className="cat-break-tip-header">
-            <div className="cat-break-tip-icon">
-              {currentTip.icon(14)}
-            </div>
-            <span className="cat-break-tip-title">{currentTip.title}</span>
-            <div className="cat-break-tip-nav">
-              <button
-                type="button"
-                className="cat-tip-nav-btn"
-                onClick={() => {
-                  playSoftClick();
-                  setActiveTipIndex(prev => (prev === 0 ? tips.length - 1 : prev - 1));
-                }}
-                aria-label="Previous tip"
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                className="cat-tip-nav-btn"
-                onClick={() => {
-                  playSoftClick();
-                  setActiveTipIndex(prev => (prev === tips.length - 1 ? 0 : prev + 1));
-                }}
-                aria-label="Next tip"
-              >
-                ›
-              </button>
-            </div>
-          </div>
-          <p className="cat-break-tip-desc">{currentTip.detail}</p>
+          <p className="cat-mini-speech-text">
+            “{tips[activeTipIndex]}”
+          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 }

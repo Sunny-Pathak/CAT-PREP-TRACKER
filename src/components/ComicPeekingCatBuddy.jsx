@@ -53,6 +53,7 @@ function ComicPeekingCatBuddy({
   const [isRadialOpen, setIsRadialOpen] = useState(false);
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState(null);
   const [activeUtility, setActiveUtility] = useState(null);
+  const isTakingBreak = activeUtility === 'break';
 
   const wrapperRef = useRef(null);
   const lastClickRef = useRef(0);
@@ -283,10 +284,10 @@ function ComicPeekingCatBuddy({
         })}
       </div>
 
-      {/* The Peeking Cat: ONLY ears and paws visible at rest; ONLY on hover do eyes pop out */}
+      {/* The Peeking Cat: ONLY ears and paws visible at rest; pops out fully on hover, break, or dialogue */}
       <button
         type="button"
-        className={`bottom-cat-peeking-trigger ${isHovered ? 'hovered' : ''} ${isPatted ? 'patted' : ''} ${showBubble ? 'talking' : ''}`}
+        className={`bottom-cat-peeking-trigger ${isHovered ? 'hovered' : ''} ${isPatted ? 'patted' : ''} ${showBubble || isTakingBreak ? 'talking peeking-active' : ''}`}
         onClick={handleClickCat}
         onDoubleClick={triggerHeadpat}
         onMouseEnter={() => setIsHovered(true)}
@@ -318,8 +319,8 @@ function ComicPeekingCatBuddy({
             className="cat-ledge-tail" 
           />
 
-          {/* Head & Face Group (Bobs subtly when talking, pops up on hover) */}
-          <g className={`cat-head-group ${showBubble ? 'talking' : ''}`}>
+          {/* Head & Face Group (Bobs subtly when talking, pops up on hover/break) */}
+          <g className={`cat-head-group ${showBubble || isTakingBreak ? 'talking' : ''}`}>
             {/* Seamless Organic Cat Head & Ears Silhouette */}
             <path 
               d="M 50,66 C 26,66 26,42 30,28 L 32,12 L 42,22 Q 50,19 58,22 L 68,12 L 70,28 C 74,42 74,66 50,66 Z" 
@@ -330,46 +331,60 @@ function ComicPeekingCatBuddy({
             <polygon points="34,26 33,16 41,23" fill="url(#zenSpriteEarInnerGrad)" opacity="0.85" />
             <polygon points="66,26 67,16 59,23" fill="url(#zenSpriteEarInnerGrad)" opacity="0.85" />
 
-            {/* Scholar Glasses (NO HEADSET!) */}
-            <g className="scholar-glasses">
-              {/* Left Lens */}
-              <circle cx="41" cy="42" r="7.5" fill="rgba(11, 15, 25, 0.75)" stroke="#ffffff" strokeWidth="1.4" />
-              {/* Right Lens */}
-              <circle cx="59" cy="42" r="7.5" fill="rgba(11, 15, 25, 0.75)" stroke="#ffffff" strokeWidth="1.4" />
-              {/* Bridge */}
-              <path d="M48.5 42 Q50 40 51.5 42" stroke="#ffffff" strokeWidth="1.4" fill="none" />
+            {/* Eyes: Image 2 (Focused alert) when normal -> Image 1 (Glossy anime break eyes) when taking break -> Arched when patted */}
+            {isPatted ? (
+              /* Joyful Arched Smiling Eyes when patted */
+              <g stroke="#ffffff" strokeWidth="2.4" strokeLinecap="round" fill="none">
+                <path d="M 35 41 Q 40 35 45 41" />
+                <path d="M 55 41 Q 60 35 65 41" />
+              </g>
+            ) : isTakingBreak ? (
+              /* Image 1: Big Glossy Anime Eyes with Catchlights when Taking a Break */
+              <g className="cat-doodle-eyes-break">
+                {/* Left Eye */}
+                <ellipse cx="40" cy="40" rx="6.5" ry="7.2" fill="#09090b" stroke="#ffffff" strokeWidth="1.1" />
+                <circle cx="38" cy="37.5" r="2.4" fill="#ffffff" />
+                <circle cx="41.5" cy="42.5" r="1.1" fill="#ffffff" />
 
-              {/* Eyes Inside Glasses */}
-              {isPatted ? (
-                /* Joyful Arched Smiling Eyes */
-                <g stroke="var(--accent-color, #38bdf8)" strokeWidth="2" strokeLinecap="round" fill="none">
-                  <path d="M37.5 43.5 Q41 39 44.5 43.5" />
-                  <path d="M55.5 43.5 Q59 39 62.5 43.5" />
-                </g>
-              ) : (
-                /* Focused Studying Eyes with Shiny Specular Highlight */
-                <g fill="var(--accent-color, #38bdf8)">
-                  <circle cx="41" cy="42" r="2.6" />
-                  <circle cx="59" cy="42" r="2.6" />
-                  <circle cx="42.2" cy="40.8" r="0.9" fill="#ffffff" />
-                  <circle cx="60.2" cy="40.8" r="0.9" fill="#ffffff" />
-                </g>
-              )}
-            </g>
+                {/* Right Eye */}
+                <ellipse cx="60" cy="40" rx="6.5" ry="7.2" fill="#09090b" stroke="#ffffff" strokeWidth="1.1" />
+                <circle cx="58" cy="37.5" r="2.4" fill="#ffffff" />
+                <circle cx="61.5" cy="42.5" r="1.1" fill="#ffffff" />
+              </g>
+            ) : (
+              /* Image 2: Alert Round Focused Eyes (Dark iris with solid white center pupil) */
+              <g className="cat-doodle-eyes-focus">
+                {/* Left Eye */}
+                <ellipse cx="40" cy="40" rx="6.5" ry="7.2" fill="#334155" stroke="#ffffff" strokeWidth="0.9" />
+                <circle cx="40" cy="40" r="3.2" fill="#ffffff" />
+
+                {/* Right Eye */}
+                <ellipse cx="60" cy="40" rx="6.5" ry="7.2" fill="#334155" stroke="#ffffff" strokeWidth="0.9" />
+                <circle cx="60" cy="40" r="3.2" fill="#ffffff" />
+              </g>
+            )}
 
             {/* Nose & Whiskers */}
-            <path d="M48.5 48.5 L51.5 48.5 L50 50.5 Z" fill="#f472b6" />
-            <path d="M50 50.5 L50 52.5" stroke="rgba(255,255,255,0.7)" strokeWidth="0.9" strokeLinecap="round" />
-            <path d="M34 49 L25 47 M34 51 L24 52" stroke="rgba(255,255,255,0.55)" strokeWidth="0.8" strokeLinecap="round" />
-            <path d="M66 49 L75 47 M66 51 L76 52" stroke="rgba(255,255,255,0.55)" strokeWidth="0.8" strokeLinecap="round" />
+            <path d="M48.5 47 L51.5 47 L50 49 Z" fill="#f472b6" />
+            <path d="M34 47 L23 45 M34 49 L22 50" stroke="rgba(255,255,255,0.65)" strokeWidth="0.9" strokeLinecap="round" />
+            <path d="M66 47 L77 45 M66 49 L78 50" stroke="rgba(255,255,255,0.65)" strokeWidth="0.9" strokeLinecap="round" />
 
-            {/* Blushing Cheeks when Patted */}
-            {isPatted && (
+            {/* Blushing Pink Cheeks when Taking Break or Patted */}
+            {(isPatted || isTakingBreak) && (
               <g className="cat-blush">
-                <ellipse cx="33" cy="46" rx="3.5" ry="2" fill="#f43f5e" opacity="0.8" />
-                <ellipse cx="67" cy="46" rx="3.5" ry="2" fill="#f43f5e" opacity="0.8" />
-                <path d="M47.5 52 Q50 54 52.5 52" stroke="rgba(255,255,255,0.85)" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+                <ellipse cx="32" cy="45" rx="3.5" ry="2.2" fill="#f43f5e" opacity="0.85" />
+                <ellipse cx="68" cy="45" rx="3.5" ry="2.2" fill="#f43f5e" opacity="0.85" />
               </g>
+            )}
+
+            {/* Mouth: Talking animation when taking break or when dialogue bubble is active */}
+            {isTakingBreak || showBubble ? (
+              <g className="cat-sprite-talking-mouth">
+                <ellipse cx="50" cy="51" rx="3.8" ry="2.8" fill="#be123c" stroke="#09090b" strokeWidth="0.8" />
+                <ellipse cx="50" cy="52.2" rx="2.4" ry="1.2" fill="#f472b6" />
+              </g>
+            ) : (
+              <path d="M46.5 50 Q48.5 51.5 50 50 Q51.5 51.5 53.5 50" stroke="#09090b" strokeWidth="1.4" strokeLinecap="round" fill="none" />
             )}
           </g>
 

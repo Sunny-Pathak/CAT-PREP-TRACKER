@@ -89,21 +89,31 @@ describe('Cat Companion Radial Utilities', () => {
     expect(mistakes[0].takeawayRule).toContain('Convert km/h to m/s');
   });
 
-  it('controls 5-minute countdown and tip navigation in CatStretchBreakTimer', () => {
+  it('controls 5-minute countdown and direct comic speech bubble in CatStretchBreakTimer', () => {
     const handleClose = vi.fn();
     render(<CatStretchBreakTimer onClose={handleClose} />);
 
-    expect(screen.getByText('5-Min Posture & Eye Break')).toBeDefined();
+    // Mini timer pod exists with 5:00
+    expect(screen.getByRole('dialog', { name: /5-Minute Break Timer/i })).toBeDefined();
     expect(screen.getByText('5:00')).toBeDefined();
 
+    // Start timer
     const startBtn = screen.getByRole('button', { name: /Start 5-Min Break/i });
     fireEvent.click(startBtn);
 
-    // Tip navigation
-    expect(screen.getByText(/20-20-20 Eye Rest/i)).toBeDefined();
-    const nextTipBtn = screen.getByLabelText(/Next tip/i);
-    fireEvent.click(nextTipBtn);
-    expect(screen.getByText(/Spine & Shoulder Roll/i)).toBeDefined();
+    // Direct speech comic bubble exists with resting tip
+    expect(screen.getByRole('region', { name: /Resting tip comic speech bubble/i })).toBeDefined();
+    expect(screen.getByText(/Look at an object 20 feet away/i)).toBeDefined();
+
+    // Dismiss tip bubble via its mini close icon
+    const closeTipBtn = screen.getByRole('button', { name: /Close tips bubble/i });
+    fireEvent.click(closeTipBtn);
+    expect(screen.queryByRole('region', { name: /Resting tip comic speech bubble/i })).toBeNull();
+
+    // Close timer via its mini close icon
+    const closeTimerBtn = screen.getByRole('button', { name: /Close Break Timer/i });
+    fireEvent.click(closeTimerBtn);
+    expect(handleClose).toHaveBeenCalled();
   });
 
   it('records companion bond streak without currency in CatHeadpatBonusCard', () => {
