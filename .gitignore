@@ -37,6 +37,7 @@ graphify-out/
 # Local Visualizations & Scratch
 graph.html
 graph.json
+GEMINI.md
 
 # Environment & Secrets
 .env
