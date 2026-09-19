@@ -14,7 +14,7 @@ import gsap from 'gsap';
  * - Recalculates dynamically during window scroll or resize.
  * - Immediately unlocks on tab changes.
  */
-export default function CustomCursor({ activeTheme, activeTab }) {
+function CustomCursor({ activeTheme, activeTab }) {
   // Completely deactivate and remove reticle when in the battle arena or lounge/gauntlet views
   const isArenaActive = activeTab === 'arena' || activeTab === 'lounge' || (typeof document !== 'undefined' && Boolean(document.querySelector('.arena-gauntlet-view')));
 
@@ -366,3 +366,5 @@ export default function CustomCursor({ activeTheme, activeTab }) {
     document.body
   );
 }
+
+export default React.memo(CustomCursor);

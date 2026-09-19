@@ -353,4 +353,11 @@ function DashboardView({
   );
 }
 
-export default React.memo(DashboardView);
+export default React.memo(DashboardView, (prevProps, nextProps) => {
+  return (
+    prevProps.state === nextProps.state &&
+    prevProps.userProfile === nextProps.userProfile &&
+    prevProps.currentUser?.uid === nextProps.currentUser?.uid &&
+    prevProps.friends === nextProps.friends
+  );
+});

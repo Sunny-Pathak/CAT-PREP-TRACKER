@@ -28,7 +28,6 @@ import {
 } from './utils/dateUtils';
 import { stripEmojis } from './utils/textUtils';
 import HeaderProfileDropdown from './components/HeaderProfileDropdown';
-import DataSyncAuditModal from './components/DataSyncAuditModal';
 import GooeyThemeSwitch from './components/GooeyThemeSwitch';
 
 import DashboardView from './components/DashboardView';
@@ -42,7 +41,6 @@ import ActivityNotificationToast from './components/ActivityNotificationToast';
 import { checkForAppUpdate } from './utils/versionCheck';
 import { audioEngine } from './utils/audioUtils';
 import { calculateUserBadges } from './utils/badgeUtils';
-import AuthScreen from './components/AuthScreen';
 import CookieConsentBanner from './components/CookieConsentBanner';
 import CustomCursor from './components/CustomCursor';
 
@@ -58,7 +56,10 @@ const SettingsView = lazy(() => import('./components/SettingsView'));
 const AchievementsView = lazy(() => import('./components/AchievementsView'));
 const BacklogRecoveryView = lazy(() => import('./components/BacklogRecoveryView'));
 
-// Code-split lazy modals
+// Code-split lazy modals & secondary screens
+const AuthScreen = lazy(() => import('./components/AuthScreen'));
+const DataSyncAuditModal = lazy(() => import('./components/DataSyncAuditModal'));
+const LiquidIntroLoader = lazy(() => import('./components/LiquidIntroLoader'));
 const ThemeRedeemModal = lazy(() => import('./components/ThemeRedeemModal'));
 const JapaneseCatStampRallyModal = lazy(() => import('./components/JapaneseCatStampRallyModal'));
 const TermsAndPrivacyModal = lazy(() => import('./components/TermsAndPrivacyModal'));
@@ -78,7 +79,6 @@ import {
 } from './utils/adaptiveStudyEngine';
 import { recordBehaviorTelemetry } from './utils/studyBehaviorEngine';
 import DitherBackground from './components/DitherBackground';
-import LiquidIntroLoader from './components/LiquidIntroLoader';
 import ClickSpark from './components/ClickSpark';
 import AnimatedStreakBadge from './components/AnimatedStreakBadge';
 import ComicPeekingCatBuddy from './components/ComicPeekingCatBuddy';
@@ -295,7 +295,6 @@ export default function App() {
   const [isStampRallyOpen, setIsStampRallyOpen] = useState(false);
   const [isPatchNotesOpen, setIsPatchNotesOpen] = useState(false);
   const [triggerStampAnimation, setTriggerStampAnimation] = useState(false);
-  const [appLoading, setAppLoading] = useState(true);
   const [isInitialEntrance, setIsInitialEntrance] = useState(false);
 
   const [levelUpModalData, setLevelUpModalData] = useState({
@@ -734,14 +733,6 @@ export default function App() {
   const todayDayObj = todayWeekObj?.days?.find(d => d.day === todayPositionNow.dayName);
   const todaySessions = todayDayObj?.sessions || [];
   const todayTotalHours = todayDayObj?.studyHours || (todaySessions.reduce((acc, s) => acc + (s.durationMinutes || 0) / 60, 0));
-
-  // Initial mount application hydration
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setAppLoading(false);
-    }, 750);
-    return () => clearTimeout(timer);
-  }, []);
 
   const fileInputRef = useRef(null);
 
@@ -2535,20 +2526,23 @@ export default function App() {
   // Auth Gate: Require login or create account before accessing the main dashboard/app
   if (!user && !isGuestMode) {
     return (
-      <AuthScreen
-        onAuthSuccess={(u) => {
-          setUser(u);
-          setIsGuestMode(false);
-          setShowIntro(true);
-          localStorage.removeItem('catalyze_guest_mode');
-          localStorage.removeItem('aspiranto_guest_mode');
-        }}
-        onContinueAsGuest={() => {
-          setIsGuestMode(true);
-          setShowIntro(true);
-          localStorage.setItem('catalyze_guest_mode', 'true');
-        }}
-      />
+      <Suspense fallback={<ViewLoadingFallback />}>
+        <AuthScreen
+          onAuthSuccess={(u) => {
+            setUser(u);
+            setIsGuestMode(false);
+            setShowIntro(true);
+            localStorage.removeItem('catalyze_guest_mode');
+            localStorage.removeItem('aspiranto_guest_mode');
+          }}
+          onContinueAsGuest={() => {
+            setIsGuestMode(true);
+            setShowIntro(true);
+            localStorage.setItem('catalyze_guest_mode', 'true');
+          }}
+          isFirebaseAvailable={isFirebaseConfigured}
+        />
+      </Suspense>
     );
   }
 
@@ -2556,10 +2550,12 @@ export default function App() {
     <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Spylt-Inspired Cinematic Liquid Intro Loader */}
       {showIntro && (
-        <LiquidIntroLoader 
-          activeTheme={theme} 
-          onComplete={handleIntroComplete} 
-        />
+        <Suspense fallback={null}>
+          <LiquidIntroLoader 
+            activeTheme={theme} 
+            onComplete={handleIntroComplete} 
+          />
+        </Suspense>
       )}
 
 
@@ -2864,7 +2860,6 @@ export default function App() {
               }}
               currentUser={user}
               userProfile={userProfile}
-              timerState={timerState}
               onNavigateToDay={handleJumpToDay}
             />
           )}
@@ -3295,17 +3290,21 @@ export default function App() {
       )}
 
       {/* Data Transparency & Cloud Sync Audit Modal */}
-      <DataSyncAuditModal
-        isOpen={isDataAuditOpen}
-        onClose={() => setIsDataAuditOpen(false)}
-        user={user}
-        userProfile={userProfile}
-        syncStatus={syncStatus}
-        lastSyncedTimeStr={lastSyncedTimeStr}
-        hasUnsyncedCloudChanges={hasUnsyncedCloudChanges}
-        onTriggerManualSync={handleTriggerManualSync}
-        state={state}
-      />
+      {isDataAuditOpen && (
+        <Suspense fallback={null}>
+          <DataSyncAuditModal
+            isOpen={isDataAuditOpen}
+            onClose={() => setIsDataAuditOpen(false)}
+            user={user}
+            userProfile={userProfile}
+            syncStatus={syncStatus}
+            lastSyncedTimeStr={lastSyncedTimeStr}
+            hasUnsyncedCloudChanges={hasUnsyncedCloudChanges}
+            onTriggerManualSync={handleTriggerManualSync}
+            state={state}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

@@ -15,13 +15,21 @@ export default defineConfig({
     testTimeout: 15000
   },
   build: {
+    target: 'es2022',
+    cssMinify: 'lightningcss',
     chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('firebase')) {
-              return 'firebase';
+            if (id.includes('firebase') || id.includes('@firebase')) {
+              if (id.includes('firestore') || id.includes('webchannel-wrapper')) {
+                return 'firebase-firestore';
+              }
+              if (id.includes('auth')) {
+                return 'firebase-auth';
+              }
+              return 'firebase-core';
             }
             if (id.includes('react') || id.includes('scheduler')) {
               return 'react-vendor';
