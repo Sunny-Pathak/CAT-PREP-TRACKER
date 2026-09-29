@@ -2,44 +2,70 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 1. User Profiles: Any user can read and update profile
+    // Helper functions for secure authentication & ownership verification
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 1. User Profiles: Publicly viewable for leaderboards & peer inspection;
+    // only the authenticated account owner can create or update their profile.
     match /profiles/{userId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create, update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
     
-    // 2. Study Trackers: Real-time study sync
+    // 2. Study Trackers: Strictly private; only the owner can read or write their study logs & progress.
     match /trackers/{userId} {
-      allow read, write: if true;
+      allow read, write: if isOwner(userId);
     }
     
-    // 3. Live Presence & Timers: Live online status & active sessions
+    // 3. Live Presence & Timers: Publicly readable; only the owner can write their active state.
     match /presence/{userId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isOwner(userId);
     }
 
-    // 4. Friend Requests: Friend invites & buddy network
+    // 4. Friend Requests: Only sender or recipient can access.
     match /friend_requests/{requestId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated() && (
+        resource == null ||
+        resource.data.fromUid == request.auth.uid ||
+        resource.data.toUid == request.auth.uid ||
+        request.resource.data.fromUid == request.auth.uid
+      );
     }
 
-    // 5. Public Text Channels Chat
+    // 5. Public Text Channels Chat: Publicly readable; authenticated users can send their own messages.
     match /hub_channel_messages_v4/{messageId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
     }
 
-    // 6. Private Study Circle & Direct Messages
+    // 6. Private Study Circle & Direct Messages: Strictly restricted to sender and recipient.
     match /private_circle_messages_v4/{messageId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (
+        (resource != null && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid))
+      );
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.senderId == request.auth.uid;
     }
 
-    // 7. Community Study Lounge Chat
+    // 7. Community Study Lounge Chat: Publicly readable; sender-authenticated message creation.
     match /study_lounge_chat/{messageId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
     }
 
-    // Global Fallback for open connectivity across all devices
+    // Global Fallback: Deny all other unmatched paths
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }
