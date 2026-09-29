@@ -162,11 +162,12 @@ function ComicPeekingCatBuddy({
       )}
 
       {/* Speech Dialogue Bubble ("Psst let's go study!" / Headpat response) */}
+      {/* Speech Dialogue Bubble ("Psst let's go study!" / Headpat response) */}
       {showBubble && !activeUtility && (
         <div className="bottom-peeking-cat-bubble animate-slide-up">
           <div className="cat-bubble-header">
             <div className="cat-bubble-tag">
-              <AnimatedPawIcon size={12} color="var(--accent-color, #38bdf8)" />
+              <AnimatedPawIcon size={12} color="currentColor" />
               <span className="cat-bubble-callout">
                 {isPatted ? "*PURRR~!*" : "*PSST!*"}
               </span>
@@ -195,14 +196,6 @@ function ComicPeekingCatBuddy({
           <button 
             type="button"
             className="cat-bubble-action-btn"
-            style={{
-              background: 'var(--accent-color, #38bdf8)',
-              color: 'var(--accent-text, #09090b)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6
-            }}
             onClick={() => {
               handleCloseBubble();
               onOpenTimer();
@@ -217,7 +210,7 @@ function ComicPeekingCatBuddy({
 
       {/* Floating Headpat Vector Particles (No Emojis) */}
       {isPatted && (
-        <div className="cat-headpat-burst" aria-hidden="true">
+        <div className={`cat-headpat-burst ${showBubble ? 'burst-above-bubble' : 'burst-above-cat'}`} aria-hidden="true">
           <svg className="burst-heart burst-1" viewBox="0 0 24 24" fill="#ec4899">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
@@ -333,8 +326,13 @@ function ComicPeekingCatBuddy({
 
             {/* Eyes: Image 2 (Focused alert) when normal -> Image 1 (Glossy anime break eyes) when taking break -> Arched when patted */}
             {isPatted ? (
-              /* Joyful Arched Smiling Eyes when patted */
-              <g stroke="#ffffff" strokeWidth="2.4" strokeLinecap="round" fill="none">
+              /* Joyful Arched Smiling Eyes when patted - high contrast across all themes */
+              <g 
+                stroke={activeTheme === 'light' ? '#ffffff' : '#09090b'} 
+                strokeWidth="2.5" 
+                strokeLinecap="round" 
+                fill="none"
+              >
                 <path d="M 35 41 Q 40 35 45 41" />
                 <path d="M 55 41 Q 60 35 65 41" />
               </g>
@@ -366,8 +364,8 @@ function ComicPeekingCatBuddy({
 
             {/* Nose & Whiskers */}
             <path d="M48.5 47 L51.5 47 L50 49 Z" fill="#f472b6" />
-            <path d="M34 47 L23 45 M34 49 L22 50" stroke="rgba(255,255,255,0.65)" strokeWidth="0.9" strokeLinecap="round" />
-            <path d="M66 47 L77 45 M66 49 L78 50" stroke="rgba(255,255,255,0.65)" strokeWidth="0.9" strokeLinecap="round" />
+            <path d="M34 47 L23 45 M34 49 L22 50" stroke={activeTheme === 'light' ? 'rgba(255,255,255,0.7)' : 'rgba(15,23,42,0.35)'} strokeWidth="0.9" strokeLinecap="round" />
+            <path d="M66 47 L77 45 M66 49 L78 50" stroke={activeTheme === 'light' ? 'rgba(255,255,255,0.7)' : 'rgba(15,23,42,0.35)'} strokeWidth="0.9" strokeLinecap="round" />
 
             {/* Blushing Pink Cheeks when Taking Break or Patted */}
             {(isPatted || isTakingBreak) && (
@@ -390,8 +388,8 @@ function ComicPeekingCatBuddy({
 
           {/* Resting Paws Gripping the Ledge */}
           <g className="cat-ledge-paws">
-            <ellipse cx="38" cy="62" rx="6" ry="4" fill="url(#zenSpriteBodyGrad)" stroke="rgba(255,255,255,0.3)" strokeWidth="0.9" />
-            <ellipse cx="62" cy="62" rx="6" ry="4" fill="url(#zenSpriteBodyGrad)" stroke="rgba(255,255,255,0.3)" strokeWidth="0.9" />
+            <ellipse cx="38" cy="62" rx="6" ry="4" fill="url(#zenSpriteBodyGrad)" stroke={activeTheme === 'light' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.14)'} strokeWidth="0.9" />
+            <ellipse cx="62" cy="62" rx="6" ry="4" fill="url(#zenSpriteBodyGrad)" stroke={activeTheme === 'light' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.14)'} strokeWidth="0.9" />
           </g>
         </svg>
       </button>
@@ -399,4 +397,10 @@ function ComicPeekingCatBuddy({
   );
 }
 
-export default React.memo(ComicPeekingCatBuddy);
+export default React.memo(ComicPeekingCatBuddy, (prev, next) => {
+  return (
+    Boolean(prev.timerState?.isRunning) === Boolean(next.timerState?.isRunning) &&
+    prev.activeTheme === next.activeTheme &&
+    prev.autoPromptTimer === next.autoPromptTimer
+  );
+});

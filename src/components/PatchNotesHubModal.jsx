@@ -142,7 +142,7 @@ export default function PatchNotesHubModal({
            ======================================================== */}
         <div className="blueprint-top-bar">
           <div className="blueprint-id-cluster">
-            <span className="blueprint-tag">SPEC // SYSTEM LOG</span>
+            <span className="blueprint-tag">SPEC • SYSTEM LOG</span>
             <span className="blueprint-version-tag">
               <AnimatedSparkleIcon size={11} color="#38bdf8" />
               <span>BUILD v{activePatch.version}</span>

@@ -9,7 +9,7 @@ import { AnimatedFlameIcon } from './AnimatedUiIcons';
  * - Ambient gradient pulse glow border
  * - Interactive milestone popover on hover/click
  */
-export default function AnimatedStreakBadge({ streak = 0, totalDays = 112 }) {
+function AnimatedStreakBadge({ streak = 0, totalDays = 112 }) {
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
@@ -62,3 +62,5 @@ export default function AnimatedStreakBadge({ streak = 0, totalDays = 112 }) {
     </div>
   );
 }
+
+export default React.memo(AnimatedStreakBadge);

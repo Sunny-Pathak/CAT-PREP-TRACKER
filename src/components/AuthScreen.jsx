@@ -138,16 +138,12 @@ function SmoothZenMascot({ isPatted, onHeadpat }) {
 }
 
 // Skiper103 Bouncy Accordion Feature Card Component
-function Skiper103FeatureAccordion() {
-  const [expandedIndex, setExpandedIndex] = useState(0);
-
+function MinimalCoreFeatures() {
   const features = [
     {
       id: 'quant-matrix',
       title: 'Quantitative & Error Log Matrix',
-      summary: 'Topic mastery analytics with isolated error logging',
-      desc: 'Systematically tracks Arithmetic, Algebra, and Geometry practice accuracy with isolated error logging to identify revision areas.',
-      tag: 'Topic Accuracy',
+      desc: 'Systematically tracks Arithmetic, Algebra, and Geometry practice accuracy with isolated error logging.',
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
@@ -158,9 +154,7 @@ function Skiper103FeatureAccordion() {
     {
       id: 'study-lounge',
       title: 'Live Aspirant Study Lounge',
-      summary: 'Synchronized Pomodoro focus with peer accountability',
-      desc: 'Join real-time focus rooms with fellow CAT aspirants. 25-minute structured sprints keep you disciplined and eliminate procrastination.',
-      tag: 'Study Lounge',
+      desc: '25-minute Pomodoro focus sprints with real-time peer accountability to eliminate procrastination.',
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -173,9 +167,7 @@ function Skiper103FeatureAccordion() {
     {
       id: 'stamp-rally',
       title: 'Cat Hanko Stamp Rally',
-      summary: 'Gamified Japanese ink seals for daily quota streaks',
-      desc: 'Earn traditional Japanese Hanko seals upon completing your daily study quotas, unlocking progression milestones and secret bonuses.',
-      tag: 'Daily Quota',
+      desc: 'Gamified Japanese ink seals for daily quota streaks, unlocking progression milestones and secret bonuses.',
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="8" r="7" />
@@ -186,9 +178,7 @@ function Skiper103FeatureAccordion() {
     {
       id: 'offline-sync',
       title: 'Offline-First Cloud Sync',
-      summary: 'Zero-latency local storage with background sync',
-      desc: 'Log study sessions anywhere without worrying about internet drops. All drills sync seamlessly to your account when connected.',
-      tag: 'Offline-First',
+      desc: 'Zero-latency local storage with automatic cloud background persistence across devices.',
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2v4" />
@@ -205,59 +195,26 @@ function Skiper103FeatureAccordion() {
   ];
 
   return (
-    <div className="skiper103-accordion-wrapper">
-      {features.map((feat, index) => {
-        const isOpen = expandedIndex === index;
-        return (
-          <div 
-            key={feat.id} 
-            className={`skiper103-item ${isOpen ? 'is-expanded' : ''}`}
-            onClick={() => setExpandedIndex(isOpen ? -1 : index)}
-          >
-            <div className="skiper103-trigger">
-              <div className="skiper103-icon-box">
-                {feat.icon}
-              </div>
-              <div className="skiper103-title-box">
-                <span className="skiper103-title">{feat.title}</span>
-                <span className="skiper103-summary">{feat.summary}</span>
-              </div>
-              <div className="skiper103-chevron">
-                <svg 
-                  width="16" 
-                  height="16" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                  style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-            </div>
-
-            <div className="skiper103-expand-wrapper">
-              <div className="skiper103-content-inner">
-                <p className="skiper103-desc">{feat.desc}</p>
-                <div className="skiper103-meta-tag">
-                  <span className="skiper103-dot" />
-                  <span>{feat.tag}</span>
-                </div>
-              </div>
-            </div>
+    <div className="minimal-features-list">
+      {features.map((feat) => (
+        <div key={feat.id} className="minimal-feature-row">
+          <div className="minimal-feature-icon-box">
+            {feat.icon}
           </div>
-        );
-      })}
+          <div className="minimal-feature-text">
+            <span className="minimal-feature-title">{feat.title}</span>
+            <span className="minimal-feature-desc">{feat.desc}</span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
 import { stripEmojis } from '../utils/textUtils';
 
-export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
+export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) {
+  const activeTheme = theme || (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : null) || 'dark';
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -472,11 +429,14 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
     : 'The high-precision preparation operating system for CAT & OMETs aspirants.';
 
   return (
-    <div className={`skiper-auth-root ${transitionState === 'success-exit' ? 'is-exiting' : ''} ${transitionState === 'error-return' ? 'is-returning' : ''}`}>
+    <div 
+      className={`skiper-auth-root ${transitionState === 'success-exit' ? 'is-exiting' : ''} ${transitionState === 'error-return' ? 'is-returning' : ''}`}
+      data-theme={activeTheme}
+    >
       {/* ReactBits High-Performance WebGL Dither Wave Background */}
       <div className="auth-dither-backdrop" aria-hidden="true">
         <DitherBackground 
-          activeTheme="dark" 
+          activeTheme={activeTheme} 
           opacity={0.32} 
           ditherSize={2.4} 
           waveSpeed={0.22} 
@@ -743,13 +703,12 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest }) {
             </div>
           </div>
 
-          {/* Skiper103 Bouncy Expandable Accordion */}
-          <div className="skiper-accordion-container">
+          {/* Minimalist Core Features Showcase */}
+          <div className="skiper-features-container">
             <div className="accordion-section-header">
               <span className="accordion-label">Core Preparation Features</span>
-              <span className="accordion-sub">click to expand</span>
             </div>
-            <Skiper103FeatureAccordion />
+            <MinimalCoreFeatures />
           </div>
 
           {/* Clean Minimal Security & Sync Badge Footer (No Quotes) */}

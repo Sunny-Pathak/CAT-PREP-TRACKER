@@ -23,7 +23,7 @@ export default function AsciiMascot({ isRunning = false, subject = 'QUANT', size
     <div className="ascii-mascot-container" style={{ minHeight: `${size}px` }}>
       <pre className="ascii-mascot-pre">
 {`   .-----------------------.
-  /  [ SCHOLAR_BOT // 01 ]  \\
+  /  [ SCHOLAR_BOT • 01 ]  \\
  |     +---------------+     |
  |     |  ${eye} |     |
  |     |  ${mouth} |     |

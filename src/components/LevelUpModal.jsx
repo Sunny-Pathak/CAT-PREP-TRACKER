@@ -16,8 +16,10 @@ export default function LevelUpModal({
   oldLevel = 1, 
   newLevel = 2,
   totalExp = 0,
-  isMilestone = false
+  isMilestone = false,
+  theme
 }) {
+  const activeTheme = theme || (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : null) || 'dark';
   const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
@@ -69,12 +71,14 @@ export default function LevelUpModal({
     <div 
       className="mock-modal-overlay level-up-modal-overlay" 
       data-lenis-prevent="true"
+      data-theme={activeTheme}
       onWheel={(e) => e.stopPropagation()}
       onClick={onClose}
     >
       <div 
         className={`level-up-modal-box ${isMythic ? 'milestone-mythic-box' : milestone ? 'milestone-decade-box' : 'standard-level-box'} ${showContent ? 'modal-animate-in' : ''}`}
         data-lenis-prevent="true"
+        data-theme={activeTheme}
         onWheel={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
@@ -104,7 +108,7 @@ export default function LevelUpModal({
             </div>
           ) : (
             <div className="standard-badge-pill font-mono">
-              <AnimatedSparkleIcon size={14} color="#38bdf8" />
+              <AnimatedSparkleIcon size={14} color="var(--accent-color, #38bdf8)" />
               <span>PROGRESSION ADVANCEMENT</span>
             </div>
           )}
@@ -149,14 +153,14 @@ export default function LevelUpModal({
         {unlockedRewards.length > 0 && (
           <div className="unlocked-rewards-drawer">
             <div className="rewards-drawer-heading font-mono">
-              <AnimatedLightningIcon size={13} color={isMythic ? '#fb7185' : milestone ? '#fbbf24' : '#38bdf8'} />
+              <AnimatedLightningIcon size={13} color={isMythic ? '#fb7185' : milestone ? '#fbbf24' : 'var(--accent-color, #38bdf8)'} />
               <span>UNLOCKED CLEARANCE PERKS</span>
             </div>
 
             <div className="rewards-cards-grid">
               {unlockedRewards.map((rew, idx) => {
                 const tier = rew.tier?.toLowerCase() || 'common';
-                const tierColor = rew.tier === 'MYTHIC' ? '#fb7185' : rew.tier === 'LEGENDARY' ? '#fbbf24' : rew.tier === 'EPIC' ? '#c084fc' : '#38bdf8';
+                const tierColor = rew.tier === 'MYTHIC' ? '#fb7185' : rew.tier === 'LEGENDARY' ? '#fbbf24' : rew.tier === 'EPIC' ? '#c084fc' : 'var(--accent-color, #38bdf8)';
 
                 return (
                   <div key={idx} className={`reward-unlock-card tier-card-${tier}`}>
@@ -187,7 +191,7 @@ export default function LevelUpModal({
             className={`btn-claim-level ${isMythic ? 'btn-milestone-mythic' : milestone ? 'btn-milestone-gold' : 'btn-standard-cyan'}`}
             onClick={onClose}
           >
-            <AnimatedTargetIcon size={16} color={isMythic ? '#ffffff' : milestone ? '#000000' : '#ffffff'} />
+            <AnimatedTargetIcon size={16} color={isMythic ? '#ffffff' : milestone ? '#000000' : 'var(--accent-text, #ffffff)'} />
             <span>{isMythic ? 'Claim Mythic Ascension' : milestone ? 'Claim Milestone Prestige' : 'Continue Preparation'}</span>
           </button>
         </div>

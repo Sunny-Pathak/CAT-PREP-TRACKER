@@ -52,7 +52,7 @@ describe('Cat Companion Radial Utilities', () => {
   });
 
   it('toggles the radial menu when the cat sprite is clicked, and triggers headpat on double-click', () => {
-    render(<ComicPeekingCatBuddy onOpenTimer={vi.fn()} />);
+    const { unmount } = render(<ComicPeekingCatBuddy onOpenTimer={vi.fn()} activeTheme="dark" />);
     const catTrigger = screen.getByLabelText(/Zen Study Sprite/i);
     const arc = document.querySelector('.cat-radial-satellites-arc');
 
@@ -65,6 +65,33 @@ describe('Cat Companion Radial Utilities', () => {
     // Double-click triggers headpat and purr reaction
     fireEvent.doubleClick(catTrigger);
     expect(screen.getAllByText(/PURRR/i).length).toBeGreaterThanOrEqual(1);
+
+    // Burst particles are positioned above the bubble to avoid occluding the action button
+    const burst = document.querySelector('.cat-headpat-burst');
+    expect(burst).toBeTruthy();
+    expect(burst.classList.contains('burst-above-bubble')).toBe(true);
+
+    // Action button does not have jarring hardcoded inline styles
+    const actionBtn = document.querySelector('.cat-bubble-action-btn');
+    expect(actionBtn).toBeTruthy();
+    expect(actionBtn.style.background).toBe('');
+
+    // In dark theme, smiling eyes have dark contrasting stroke on the white cat body
+    const eyePaths = document.querySelectorAll('path[d="M 35 41 Q 40 35 45 41"]');
+    expect(eyePaths.length).toBeGreaterThan(0);
+    const eyeGroup = eyePaths[0].closest('g');
+    expect(eyeGroup.getAttribute('stroke')).toBe('#09090b');
+
+    unmount();
+
+    // In light theme, smiling eyes have white stroke on dark cat body
+    render(<ComicPeekingCatBuddy onOpenTimer={vi.fn()} activeTheme="light" />);
+    const lightCatTrigger = screen.getByLabelText(/Zen Study Sprite/i);
+    fireEvent.doubleClick(lightCatTrigger);
+    const lightEyePaths = document.querySelectorAll('path[d="M 35 41 Q 40 35 45 41"]');
+    expect(lightEyePaths.length).toBeGreaterThan(0);
+    const lightEyeGroup = lightEyePaths[0].closest('g');
+    expect(lightEyeGroup.getAttribute('stroke')).toBe('#ffffff');
   });
 
   it('opens and saves traps directly in CatTrapScratchpad without currency', () => {

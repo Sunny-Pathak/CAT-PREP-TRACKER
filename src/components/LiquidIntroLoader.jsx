@@ -153,6 +153,7 @@ export default function LiquidIntroLoader({ onComplete, activeTheme = 'dark' }) 
     <div 
       ref={containerRef} 
       className="liquid-intro-container" 
+      data-theme={activeTheme}
       aria-label="Loading CATalyze"
       onClick={handleFinish}
     >
@@ -173,7 +174,7 @@ export default function LiquidIntroLoader({ onComplete, activeTheme = 'dark' }) 
       <div className="liquid-intro-content">
         <div className="spylt-subtag">
           <span className="subtag-dot"></span>
-          <span>CAT-2026 // ASPIRANT PROTOCOL</span>
+          <span>CAT-2026 • ASPIRANT PROTOCOL</span>
         </div>
 
         <div className="spylt-title-wrapper">

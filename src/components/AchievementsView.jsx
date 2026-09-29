@@ -64,7 +64,9 @@ export default function AchievementsView({
               <Icons.Sparkles size={13} />
               <span>{currentRank.tier}</span>
             </div>
-            <h1 className="hero-rank-title">{currentRank.title}</h1>
+            <h1 className="hero-rank-title font-display" style={{ color: currentRank.color }}>
+              {currentRank.title}
+            </h1>
             <p className="hero-rank-subtitle">
               {isGrandmaster 
                 ? "Legendary status achieved. You have unlocked all consistency, drill, and mock milestones!"

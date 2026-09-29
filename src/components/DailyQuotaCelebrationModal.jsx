@@ -17,8 +17,10 @@ export default function DailyQuotaCelebrationModal({
   dayName = 'Today',
   activeStreak = 1,
   totalSolvedToday = 26,
-  onOpenStampRally
+  onOpenStampRally,
+  theme
 }) {
+  const activeTheme = theme || (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : null) || 'dark';
   const [stampActive, setStampActive] = useState(false);
   const [particles, setParticles] = useState([]);
 
@@ -64,6 +66,7 @@ export default function DailyQuotaCelebrationModal({
   return createPortal(
     <div 
       className="quota-celebrate-backdrop"
+      data-theme={activeTheme}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -71,6 +74,7 @@ export default function DailyQuotaCelebrationModal({
     >
       <div 
         className="quota-celebrate-card"
+        data-theme={activeTheme}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Radiant Ambient Victory Halo */}

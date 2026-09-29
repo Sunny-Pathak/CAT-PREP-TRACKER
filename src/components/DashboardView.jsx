@@ -139,6 +139,15 @@ function DashboardView({
               <Icons.Clock size={14} />
               <span>Focus Timer</span>
             </button>
+            <button 
+              type="button" 
+              className="minimal-btn-secondary" 
+              onClick={() => setActiveTab('terminal')}
+              title="Launch Bloomberg Quantitative Prep Terminal"
+            >
+              <Icons.Terminal size={14} />
+              <span>CAT Terminal</span>
+            </button>
           </div>
         </div>
 

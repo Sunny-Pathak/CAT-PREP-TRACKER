@@ -1921,6 +1921,7 @@ function DailyTrackerView({
           (Number(selectedDay.customCount) || 0)
         }
         onOpenStampRally={onOpenStampRally}
+        theme={state?.settings?.theme}
       />
 
       {/* Floating Sparkle Particles */}

@@ -336,54 +336,38 @@ export default function SettingsView({
          ======================================================== */}
       <div className="settings-command-header">
         <div className="settings-header-left">
-          <div className="settings-badge-pill">
-            <AnimatedRadarBeaconIcon size={13} color="#38bdf8" />
-            <span>SYSTEM PREFERENCES // PROTOCOL</span>
+          <div className="settings-title-cluster">
+            <div className="settings-header-icon-box" aria-hidden="true">
+              <Icons.Sliders size={22} color="var(--accent-color, #38bdf8)" />
+            </div>
+            <div>
+              <h1 className="settings-hero-headline minimal-headline">
+                SETTINGS <span className="settings-hero-italic">&amp; Preferences</span>
+              </h1>
+              <p className="settings-hero-subtitle">
+                Customize your themes, typography, study schedule, and account preferences.
+              </p>
+            </div>
           </div>
-          <h1 className="settings-hero-title">Command Settings & Preferences</h1>
-          <p className="settings-hero-subtitle">
-            Configure visual themes, UI typography scaling, prep schedule calibration, and cloud sync.
-          </p>
         </div>
 
-        <div className="settings-header-telemetry">
-          <div className="settings-telemetry-chip">
-            <span className="telemetry-lbl">THEME</span>
-            <span className="telemetry-val">{activeThemeObj.name}</span>
+        <div className="settings-header-actions">
+          <div className={`settings-status-pill ${user ? 'is-synced' : 'is-local'}`}>
+            <span className="settings-status-dot" />
+            <span>{user ? 'Cloud Active' : 'Local Offline'}</span>
           </div>
-          <div className="settings-telemetry-chip">
-            <span className="telemetry-lbl">FONT</span>
-            <span className="telemetry-val">{selectedFont}</span>
-          </div>
-          {user ? (
-            <div className="settings-telemetry-chip online">
-              <span className="telemetry-lbl">SYNC</span>
-              <span className="telemetry-val">Cloud Active</span>
-            </div>
-          ) : (
-            <div className="settings-telemetry-chip offline">
-              <span className="telemetry-lbl">MODE</span>
-              <span className="telemetry-val">Local Offline</span>
-            </div>
+          {onOpenPatchNotes && (
+            <button
+              type="button"
+              className="settings-patch-btn"
+              onClick={onOpenPatchNotes}
+              aria-label="Patch v1.0.88 Notes"
+              title="Inspect What's New & System Updates Hub"
+            >
+              <Icons.FileText size={13} />
+              <span>Patch v1.0.88 · Notes</span>
+            </button>
           )}
-          <button
-            type="button"
-            className="settings-telemetry-chip patch-hub-chip"
-            onClick={onOpenPatchNotes}
-            title="Inspect What's New & System Updates Hub"
-            style={{ 
-              cursor: 'pointer', 
-              background: 'rgba(56, 189, 248, 0.12)', 
-              border: '1px solid rgba(56, 189, 248, 0.35)',
-              borderRadius: '8px',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <span className="telemetry-lbl" style={{ color: 'var(--accent-color, #38bdf8)' }}>PATCH</span>
-            <span className="telemetry-val" style={{ color: '#ffffff', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              v1.0.88 // NOTES
-            </span>
-          </button>
         </div>
       </div>
 
@@ -452,103 +436,81 @@ export default function SettingsView({
       {activeTab === 'themes' && (
         <div className="settings-pane-content fade-in">
           
-          {/* Reacticx-Inspired Gooey Theme Switcher for Quick Dual Favorite Toggle */}
-          <GooeyThemeSwitch 
-            currentTheme={currentTheme}
-            onSelectTheme={onSelectTheme}
-          />
-
-          {/* Quick Dual Theme Flip Top Bar Setting */}
-          <div 
-            className="settings-topbar-toggle-card"
-            style={{
-              margin: '12px 0 16px',
-              padding: '12px 18px',
-              borderRadius: '12px',
-              background: 'rgba(15, 23, 42, 0.65)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '16px'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  width: '32px', 
-                  height: '32px', 
-                  borderRadius: '8px', 
-                  background: 'rgba(56, 189, 248, 0.1)', 
-                  color: 'var(--accent-color, #38bdf8)' 
-                }}
-              >
-                <Icons.Layers size={16} />
-              </div>
+          {/* Active Theme & Quick Switch Controls Panel */}
+          <div className="settings-sub-panel">
+            <div className="sub-panel-header">
               <div>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary, #f8fafc)' }}>
-                  Pin Quick Theme Switch to Top Bar
-                </div>
-                <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #94a3b8)' }}>
-                  Show the compact dual-theme toggle directly in the top navigation cluster.
-                </div>
+                <h3 className="sub-panel-title">Active Theme & Quick Switch</h3>
+                <p className="sub-panel-subtitle">Current applied theme and fast dual-theme switcher configuration.</p>
               </div>
             </div>
-            <button
-              type="button"
-              className={`topbar-toggle-pill-btn ${showTopBarThemeSwitch ? 'is-active' : ''}`}
-              onClick={() => onToggleTopBarThemeSwitch(!showTopBarThemeSwitch)}
+
+            {/* Active Theme Spotlight Card - Fixed & Stable */}
+            <div 
+              className="theme-spotlight-card"
               style={{
-                padding: '6px 14px',
-                borderRadius: '999px',
-                border: showTopBarThemeSwitch ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.16)',
-                background: showTopBarThemeSwitch ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255, 255, 255, 0.06)',
-                color: showTopBarThemeSwitch ? '#38bdf8' : 'var(--text-muted, #94a3b8)',
-                fontSize: '11.5px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.18s ease'
+                borderColor: activeThemeObj.colors[3],
+                background: `linear-gradient(135deg, ${activeThemeObj.colors[0]} 0%, ${activeThemeObj.colors[1]} 100%)`
               }}
-              aria-pressed={showTopBarThemeSwitch}
             >
-              {showTopBarThemeSwitch ? 'Pinned to Top' : 'Off'}
-            </button>
-          </div>
-
-          {/* Active Theme Spotlight Card - Fixed & Stable to Eliminate Layout Jitter */}
-          <div 
-            className="theme-spotlight-card"
-            style={{
-              borderColor: activeThemeObj.colors[3],
-              background: `linear-gradient(135deg, ${activeThemeObj.colors[0]} 0%, ${activeThemeObj.colors[1]} 100%)`
-            }}
-          >
-            <div className="spotlight-left">
-              <div className="spotlight-title-row">
-                <span className="spotlight-icon" style={{ color: activeThemeObj.colors[3] }}>
-                  <ActivePreviewIcon />
-                </span>
-                <span className="spotlight-name" style={{ color: activeThemeObj.colors[3] }}>
-                  {activeThemeObj.name}
-                </span>
-                <span className="spotlight-active-badge">
-                  <Icons.Check size={11} />
-                  <span>Active System Theme</span>
-                </span>
+              <div className="spotlight-left">
+                <div className="spotlight-title-row">
+                  <span className="spotlight-icon" style={{ color: activeThemeObj.colors[3] }}>
+                    <ActivePreviewIcon />
+                  </span>
+                  <span className="spotlight-name" style={{ color: activeThemeObj.colors[3] }}>
+                    {activeThemeObj.name}
+                  </span>
+                  <span className="spotlight-active-badge">
+                    <Icons.Check size={11} />
+                    <span>Active System Theme</span>
+                  </span>
+                </div>
+                <p className="spotlight-desc">
+                  {THEME_DESCRIPTIONS[activeThemeObj.id] || "Curated interface theme palette tailored for high-focus preparation."}
+                </p>
               </div>
-              <p className="spotlight-desc">
-                {THEME_DESCRIPTIONS[activeThemeObj.id] || "Curated interface theme palette tailored for high-focus preparation."}
-              </p>
+
+              <div className="spotlight-right">
+                <div className="spotlight-palette-chips">
+                  {activeThemeObj.colors.map((c, i) => (
+                    <span key={i} className="palette-color-chip" style={{ backgroundColor: c }} title={c} />
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <div className="spotlight-right">
-              <div className="spotlight-palette-chips">
-                {activeThemeObj.colors.map((c, i) => (
-                  <span key={i} className="palette-color-chip" style={{ backgroundColor: c }} title={c} />
-                ))}
+            {/* Quick Switch Controls Grid: 2 Equal Columns for Dual Flip & Top Bar Pin */}
+            <div className="settings-quick-switch-grid">
+              <div className="settings-quick-control-item">
+                <GooeyThemeSwitch 
+                  currentTheme={currentTheme}
+                  onSelectTheme={onSelectTheme}
+                />
+              </div>
+
+              <div className="settings-topbar-toggle-card">
+                <div className="topbar-toggle-meta">
+                  <div className="topbar-toggle-icon">
+                    <Icons.Layers size={16} />
+                  </div>
+                  <div className="topbar-toggle-text">
+                    <div className="topbar-toggle-title">
+                      Pin Quick Theme Switch to Top Bar
+                    </div>
+                    <div className="topbar-toggle-desc">
+                      Show the compact dual-theme toggle directly in the top navigation cluster.
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={`topbar-toggle-pill-btn ${showTopBarThemeSwitch ? 'is-active' : ''}`}
+                  onClick={() => onToggleTopBarThemeSwitch(!showTopBarThemeSwitch)}
+                  aria-pressed={showTopBarThemeSwitch}
+                >
+                  {showTopBarThemeSwitch ? 'Pinned to Top' : 'Off'}
+                </button>
               </div>
             </div>
           </div>
@@ -1268,41 +1230,49 @@ export default function SettingsView({
             const allExamsList = getAllExams();
             return (
               <>
-                <div 
-                  className="theme-spotlight-card" 
-                  style={{ 
-                    borderColor: activeExam.color,
-                    background: `linear-gradient(135deg, rgba(13, 19, 34, 0.95) 0%, rgba(20, 29, 52, 0.95) 100%)`
-                  }}
-                >
-                  <div className="spotlight-left">
-                    <div className="spotlight-title-row">
-                      <span className="spotlight-icon" style={{ color: activeExam.color }}>
-                        <Icons.Target size={20} />
-                      </span>
-                      <span className="spotlight-name" style={{ color: activeExam.color }}>
-                        {activeExam.name}
-                      </span>
-                      <span className="spotlight-active-badge">
-                        <Icons.Check size={11} />
-                        <span>Active Preparation Target</span>
-                      </span>
+                <div className="settings-sub-panel">
+                  <div className="sub-panel-header">
+                    <div>
+                      <h3 className="sub-panel-title">Active Preparation Target</h3>
+                      <p className="sub-panel-subtitle">Current examination curriculum and milestone tracking profile.</p>
                     </div>
-                    <p className="spotlight-desc">
-                      {activeExam.targetAudience} • Default target year: {activeExam.defaultYear}
-                    </p>
                   </div>
+                  <div 
+                    className="theme-spotlight-card" 
+                    style={{ 
+                      borderColor: activeExam.color,
+                      background: `linear-gradient(135deg, rgba(13, 19, 34, 0.95) 0%, rgba(20, 29, 52, 0.95) 100%)`
+                    }}
+                  >
+                    <div className="spotlight-left">
+                      <div className="spotlight-title-row">
+                        <span className="spotlight-icon" style={{ color: activeExam.color }}>
+                          <Icons.Target size={20} />
+                        </span>
+                        <span className="spotlight-name" style={{ color: activeExam.color }}>
+                          {activeExam.name}
+                        </span>
+                        <span className="spotlight-active-badge">
+                          <Icons.Check size={11} />
+                          <span>Active Preparation Target</span>
+                        </span>
+                      </div>
+                      <p className="spotlight-desc">
+                        {activeExam.targetAudience} • Default target year: {activeExam.defaultYear}
+                      </p>
+                    </div>
 
-                  <div className="spotlight-right">
-                    <button
-                      type="button"
-                      className="vip-gallery-link-btn"
-                      onClick={() => onOpenOnboarding()}
-                      style={{ background: 'rgba(56, 189, 248, 0.12)', borderColor: 'var(--accent-color, #38bdf8)' }}
-                    >
-                      <Icons.Sparkles size={14} />
-                      <span>Open Setup Dialog</span>
-                    </button>
+                    <div className="spotlight-right">
+                      <button
+                        type="button"
+                        className="vip-gallery-link-btn"
+                        onClick={() => onOpenOnboarding()}
+                        style={{ background: 'rgba(56, 189, 248, 0.12)', borderColor: 'var(--accent-color, #38bdf8)' }}
+                      >
+                        <Icons.Sparkles size={14} />
+                        <span>Open Setup Dialog</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 

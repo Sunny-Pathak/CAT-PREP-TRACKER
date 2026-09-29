@@ -21,6 +21,7 @@ import StudyContributionHeatmap from './StudyContributionHeatmap';
 import { calculateUserBadges } from '../utils/badgeUtils';
 import { AVATAR_FRAMES, PROFILE_BANNERS, getEffectiveFrameId, getEffectiveBannerId } from '../data/cosmeticsData';
 import MythicBannerOverlay from './MythicBannerOverlay';
+import AnimatedChip from './AnimatedChip';
 import { Icons } from './AspirantIcons';
 import { 
   AnimatedFlameIcon, 
@@ -65,6 +66,7 @@ const TARGET_PRESETS = [
 export default function ProfileView({ 
   user, 
   userProfile,
+  theme = 'dark',
   tracker = null,
   mocks = [],
   onAuthSuccess, 
@@ -138,6 +140,8 @@ export default function ProfileView({
     });
     const avgMockScore = mocksCount > 0 ? Math.round((mockTotalPoints / mocksCount) * 10) / 10 : 0;
 
+    const finalMocksCount = userProfile?.mocksCount !== undefined ? userProfile.mocksCount : mocksCount;
+
     return {
       streak: userProfile?.streak !== undefined ? userProfile.streak : streak,
       solvedQs: userProfile?.solvedQs !== undefined ? userProfile.solvedQs : solvedQs,
@@ -145,8 +149,12 @@ export default function ProfileView({
       lrdiQs,
       varcQs,
       activeDaysCount,
-      mocksCount: userProfile?.mocksCount !== undefined ? userProfile.mocksCount : mocksCount,
-      avgMockScore
+      mocksCount: finalMocksCount,
+      avgMockScore,
+      quantPercent: Math.min(100, Math.round((quantQs / 2500) * 100)),
+      lrdiPercent: Math.min(100, Math.round((lrdiQs / 500) * 100)),
+      varcPercent: Math.min(100, Math.round((varcQs / 500) * 100)),
+      mockPercent: Math.min(100, Math.round((finalMocksCount / 30) * 100))
     };
   }, [tracker, mocks, userProfile]);
 
@@ -620,7 +628,7 @@ export default function ProfileView({
   };
 
   return (
-    <div className="profile-dashboard-wrapper fade-in">
+    <div className="profile-dashboard-wrapper fade-in" data-theme={theme}>
       
       {/* Floating Assurance Toast */}
       {toastMsg && (
@@ -630,70 +638,90 @@ export default function ProfileView({
         </div>
       )}
 
-      {/* TOP NAVIGATION TABS (Passport, Network, Settings) */}
-      <div className="profile-unified-nav-strip">
-        <div className="nav-tabs-left">
-          <button
-            type="button"
-            className={`profile-nav-pill ${activeSection === 'passport' ? 'active' : ''}`}
-            onClick={() => setActiveSection('passport')}
-          >
-            <Icons.User size={14} />
-            <span className="pill-text-desktop">Aspirant Passport</span>
-            <span className="pill-text-mobile">Passport</span>
-          </button>
-          
-          <button
-            type="button"
-            className="profile-nav-pill"
-            onClick={() => setActiveTab && setActiveTab('achievements')}
-          >
-            <Icons.Award size={14} />
-            <span className="pill-text-desktop">Achievements</span>
-            <span className="pill-text-mobile">Badges</span>
-          </button>
-
-          <button
-            type="button"
-            className={`profile-nav-pill ${activeSection === 'network' ? 'active' : ''}`}
-            onClick={() => setActiveSection('network')}
-          >
-            <Icons.Users size={14} />
-            <span className="pill-text-desktop">Study Buddies ({friends.length})</span>
-            <span className="pill-text-mobile">Buddies ({friends.length})</span>
-            {incomingRequests.length > 0 && (
-              <span className="nav-ping-badge">{incomingRequests.length}</span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            className={`profile-nav-pill ${activeSection === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveSection('settings')}
-          >
-            <Icons.Database size={14} />
-            <span className="pill-text-desktop">Data & Sync</span>
-            <span className="pill-text-mobile">Sync</span>
-          </button>
+      {/* ========================================================
+          PROMINENT PROFILE COMMAND HEADER (Modeled cleanly like Settings menu)
+         ======================================================== */}
+      <div className="settings-command-header profile-command-header">
+        <div className="settings-header-left">
+          <div className="settings-title-cluster">
+            <div className="settings-header-icon-box profile-icon-box" aria-hidden="true">
+              <Icons.User size={22} color="var(--accent-color, #38bdf8)" />
+            </div>
+            <div>
+              <h1 className="profile-hero-headline minimal-headline">
+                ASPIRANT <span className="profile-hero-italic">Profile</span>
+              </h1>
+              <p className="settings-hero-subtitle">
+                Manage candidate identity, study statistics, peer network, and cloud sync.
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="nav-status-right">
+        <div className="settings-header-actions">
           {user ? (
-            <div className="cloud-status-chip online">
-              <AnimatedRadarBeaconIcon size={14} color="#34d399" />
-              <span>Cloud Synced ({user.email})</span>
+            <div className="settings-status-pill is-synced">
+              <span className="settings-status-dot" />
+              <span>Cloud Synced</span>
             </div>
           ) : (
             <button 
               type="button" 
-              className="cloud-sign-in-btn"
+              className="settings-status-pill is-local"
               onClick={() => setIsAuthModalOpen(true)}
+              style={{ cursor: 'pointer', border: '1px solid rgba(251, 191, 36, 0.4)' }}
             >
-              <Icons.Shield size={13} />
-              <span>Sign In for Cloud Sync</span>
+              <span className="settings-status-dot" />
+              <span>Local Mode · Sign In</span>
             </button>
           )}
+
+          <button
+            type="button"
+            className="settings-patch-btn profile-edit-cta-btn"
+            onClick={() => setIsEditModalOpen(true)}
+            title="Edit Candidate Identity & Avatar Loadout"
+          >
+            <Icons.Edit3 size={13} />
+            <span>Edit Loadout</span>
+          </button>
         </div>
+      </div>
+
+      {/* SEGMENTED CATEGORY NAVIGATION BAR (Modeled cleanly like Settings menu using AnimatedChip) */}
+      <div className="settings-category-nav-bar animated-chips-wrapper profile-category-nav-bar">
+        <AnimatedChip
+          icon={() => <Icons.User size={14} />}
+          label="Aspirant Passport"
+          mobileLabel="Passport"
+          active={activeSection === 'passport'}
+          onClick={() => setActiveSection('passport')}
+        />
+
+        <AnimatedChip
+          icon={() => <AnimatedCrownIcon size={14} color="#ffd700" />}
+          label="Achievements"
+          mobileLabel="Badges"
+          active={false}
+          onClick={() => setActiveTab && setActiveTab('achievements')}
+        />
+
+        <AnimatedChip
+          icon={() => <Icons.Users size={14} />}
+          label={`Study Buddies (${friends.length})`}
+          mobileLabel={`Buddies (${friends.length})`}
+          badge={incomingRequests.length > 0 ? incomingRequests.length : undefined}
+          active={activeSection === 'network'}
+          onClick={() => setActiveSection('network')}
+        />
+
+        <AnimatedChip
+          icon={() => <Icons.Database size={14} />}
+          label="Data & Cloud Sync"
+          mobileLabel="Sync"
+          active={activeSection === 'settings'}
+          onClick={() => setActiveSection('settings')}
+        />
       </div>
 
       {/* ========================================================
@@ -727,33 +755,83 @@ export default function ProfileView({
               tracker={tracker}
               showcaseBadges={showcaseBadges}
               isSelf={true}
+              theme={theme}
               onEditProfile={() => setIsEditModalOpen(true)}
               compact={false}
             />
           </div>
 
-          {/* Candidate Level & EXP Progression Ribbon */}
-          <div className="exp-ribbon-panel">
-            <div className="exp-ribbon-top">
-              <div className="exp-ribbon-badge-col font-mono">
-                <span className="exp-ribbon-level">LEVEL {expProgress.currentLevel}</span>
-                <span className="exp-ribbon-title">{expProgress.milestoneTitle.toUpperCase()}</span>
+          {/* 4 Core Subject Metrics Grid (Modeled minimal like Dashboard) */}
+          <div className="minimal-metrics-grid" style={{ margin: '16px 0 24px 0' }}>
+            <div className="minimal-metric-card">
+              <div className="minimal-metric-header">
+                <span className="minimal-metric-title">Quantitative Questions</span>
+                <span className="minimal-metric-badge">{liveStats.quantPercent}%</span>
               </div>
-              <div className="exp-ribbon-actions font-mono">
-                <span className="exp-ribbon-counter">
-                  {expProgress.totalExp} TOTAL EXP • {expProgress.expIntoLevel} / {expProgress.expNeededForNext} to Level {expProgress.currentLevel + 1} ({expProgress.progressPercent}%)
-                </span>
+              <div className="minimal-metric-number">
+                {liveStats.quantQs.toLocaleString()} <span className="minimal-target">/ 2,500</span>
+              </div>
+              <div className="minimal-progress-track">
+                <div 
+                  className="minimal-progress-fill quant-fill" 
+                  style={{ width: `${liveStats.quantPercent}%` }} 
+                />
               </div>
             </div>
-            <div className="exp-bar-track">
-              <div className="exp-bar-fill" style={{ width: `${expProgress.progressPercent}%` }} />
+
+            <div className="minimal-metric-card">
+              <div className="minimal-metric-header">
+                <span className="minimal-metric-title">DILR Sets</span>
+                <span className="minimal-metric-badge">{liveStats.lrdiPercent}%</span>
+              </div>
+              <div className="minimal-metric-number">
+                {liveStats.lrdiQs.toLocaleString()} <span className="minimal-target">/ 500</span>
+              </div>
+              <div className="minimal-progress-track">
+                <div 
+                  className="minimal-progress-fill lrdi-fill" 
+                  style={{ width: `${liveStats.lrdiPercent}%` }} 
+                />
+              </div>
+            </div>
+
+            <div className="minimal-metric-card">
+              <div className="minimal-metric-header">
+                <span className="minimal-metric-title">VARC Articles & RCs</span>
+                <span className="minimal-metric-badge">{liveStats.varcPercent}%</span>
+              </div>
+              <div className="minimal-metric-number">
+                {liveStats.varcQs.toLocaleString()} <span className="minimal-target">/ 500</span>
+              </div>
+              <div className="minimal-progress-track">
+                <div 
+                  className="minimal-progress-fill varc-fill" 
+                  style={{ width: `${liveStats.varcPercent}%` }} 
+                />
+              </div>
+            </div>
+
+            <div className="minimal-metric-card">
+              <div className="minimal-metric-header">
+                <span className="minimal-metric-title">Full CAT Mocks</span>
+                <span className="minimal-metric-badge">{liveStats.mockPercent}%</span>
+              </div>
+              <div className="minimal-metric-number">
+                {liveStats.mocksCount} <span className="minimal-target">/ 30</span>
+              </div>
+              <div className="minimal-progress-track">
+                <div 
+                  className="minimal-progress-fill mock-fill" 
+                  style={{ width: `${liveStats.mockPercent}%` }} 
+                />
+              </div>
             </div>
           </div>
 
           {/* LOWER WORKSPACE: 2-Column Telemetry & Social Hub */}
           <div className="tactical-lower-workspace-grid">
             
-            {/* LEFT COLUMN: Activity Matrix & Dungeon Quotas */}
+            {/* LEFT COLUMN: Activity Matrix */}
             <div className="tactical-lower-main-col">
               
               {/* Panel 1: Activity Matrix (GitHub-Style Heatmap) */}
@@ -763,7 +841,7 @@ export default function ProfileView({
                     <Icons.Calendar size={16} className="panel-ico" />
                     <h3>Study Contribution Activity Matrix</h3>
                   </div>
-                  <span className="panel-tag">4-Month Cadence</span>
+                  <span className="panel-tag font-mono">4-Month Cadence</span>
                 </div>
                 <p className="panel-explainer">
                   Visual intensity corresponds to daily questions conquered and sectional drills completed.
@@ -771,85 +849,6 @@ export default function ProfileView({
 
                 <div className="embedded-heatmap-container">
                   <StudyContributionHeatmap tracker={tracker || {}} startDateStr={startDate} compact={false} />
-                </div>
-              </div>
-
-              {/* Panel 2: Dungeon Campaign Quotas (Quant, DILR, VARC) */}
-              <div className="passport-glass-panel">
-                <div className="panel-top-title-row">
-                  <div className="title-left">
-                    <Icons.Target size={16} className="panel-ico" />
-                    <h3>Dungeon Campaign Syllabus Telemetry</h3>
-                  </div>
-                  <span className="panel-tag font-mono">TARGET RATIO</span>
-                </div>
-                
-                <div className="syllabus-cards-container" style={{ margin: '8px 0 0 0' }}>
-                  {/* Quant Dungeon */}
-                  <div className="syllabus-progress-card quant-theme">
-                    <div className="syllabus-label-row">
-                      <div className="syllabus-sub-title">
-                        <span className="syllabus-icon-badge quant-badge"><Icons.Calculator size={13} /></span>
-                        <span className="syllabus-subject-name font-mono">QUANTITATIVE LABYRINTH</span>
-                      </div>
-                      <div className="syllabus-stats-badge font-mono">
-                        <span className="syllabus-count-val">{liveStats.quantQs.toLocaleString()} / 2,500 Qs</span>
-                        <span className="syllabus-percent-pill quant-pill">
-                          {Math.min(100, Math.round((liveStats.quantQs / 2500) * 100))}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="syllabus-track">
-                      <div 
-                        className="syllabus-fill quant" 
-                        style={{ width: `${Math.min(100, Math.round((liveStats.quantQs / 2500) * 100))}%` }} 
-                      />
-                    </div>
-                  </div>
-
-                  {/* DILR Logic Crypt */}
-                  <div className="syllabus-progress-card lrdi-theme">
-                    <div className="syllabus-label-row">
-                      <div className="syllabus-sub-title">
-                        <span className="syllabus-icon-badge lrdi-badge"><Icons.Puzzle size={13} /></span>
-                        <span className="syllabus-subject-name font-mono">DILR LOGIC CRYPT</span>
-                      </div>
-                      <div className="syllabus-stats-badge font-mono">
-                        <span className="syllabus-count-val">{liveStats.lrdiQs.toLocaleString()} / 500 Sets</span>
-                        <span className="syllabus-percent-pill lrdi-pill">
-                          {Math.min(100, Math.round((liveStats.lrdiQs / 500) * 100))}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="syllabus-track">
-                      <div 
-                        className="syllabus-fill lrdi" 
-                        style={{ width: `${Math.min(100, Math.round((liveStats.lrdiQs / 500) * 100))}%` }} 
-                      />
-                    </div>
-                  </div>
-
-                  {/* VARC Spire */}
-                  <div className="syllabus-progress-card varc-theme">
-                    <div className="syllabus-label-row">
-                      <div className="syllabus-sub-title">
-                        <span className="syllabus-icon-badge varc-badge"><Icons.BookOpen size={13} /></span>
-                        <span className="syllabus-subject-name font-mono">VARC COMPREHENSION SPIRE</span>
-                      </div>
-                      <div className="syllabus-stats-badge font-mono">
-                        <span className="syllabus-count-val">{liveStats.varcQs.toLocaleString()} / 500 Articles</span>
-                        <span className="syllabus-percent-pill varc-pill">
-                          {Math.min(100, Math.round((liveStats.varcQs / 500) * 100))}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="syllabus-track">
-                      <div 
-                        className="syllabus-fill varc" 
-                        style={{ width: `${Math.min(100, Math.round((liveStats.varcQs / 500) * 100))}%` }} 
-                      />
-                    </div>
-                  </div>
                 </div>
               </div>
 

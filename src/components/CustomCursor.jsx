@@ -15,20 +15,22 @@ import gsap from 'gsap';
  * - Immediately unlocks on tab changes.
  */
 function CustomCursor({ activeTheme, activeTab }) {
-  // Completely deactivate and remove reticle when in the battle arena or lounge/gauntlet views
-  const isArenaActive = activeTab === 'arena' || activeTab === 'lounge' || (typeof document !== 'undefined' && Boolean(document.querySelector('.arena-gauntlet-view')));
+  // Suppress reticle inside arena or lounge tabs (visible in terminal and dashboard)
+  const isSuppressed = activeTab === 'arena' || activeTab === 'lounge';
 
   const coreRef = useRef(null);
   const reticleRef = useRef(null);
   const isLockedRef = useRef(false);
   const currentTargetRef = useRef(null);
   const isCardRef = useRef(false);
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
 
   useEffect(() => {
     // Disable on touch devices or fine pointer absent
     const hasTouch = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || 'ontouchstart' in window;
     const canHover = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)').matches : true;
-    if (hasTouch || !canHover || isArenaActive) return;
+    if (hasTouch || !canHover) return;
 
     const core = coreRef.current;
     const reticle = reticleRef.current;
@@ -41,105 +43,61 @@ function CustomCursor({ activeTheme, activeTab }) {
     const setCoreX = gsap.quickTo(core, 'x', { duration: 0.04, ease: 'power3.out' });
     const setCoreY = gsap.quickTo(core, 'y', { duration: 0.04, ease: 'power3.out' });
 
-    const setReticleX = gsap.quickTo(reticle, 'x', { duration: 0.16, ease: 'power3.out' });
-    const setReticleY = gsap.quickTo(reticle, 'y', { duration: 0.16, ease: 'power3.out' });
+    const setReticleX = gsap.quickTo(reticle, 'x', { duration: 0.14, ease: 'power3.out' });
+    const setReticleY = gsap.quickTo(reticle, 'y', { duration: 0.14, ease: 'power3.out' });
 
     let latestMouseX = window.innerWidth / 2;
     let latestMouseY = window.innerHeight / 2;
     let isVisible = false;
     let isHoveringText = false;
+    let isHoveringControl = false;
     let rafPending = false;
 
-    const unlockTarget = () => {
-      isLockedRef.current = false;
-      currentTargetRef.current = null;
-      isCardRef.current = false;
-      reticle.classList.remove('target-locked', 'card-lock', 'target', 'text');
-      core.classList.remove('target', 'text');
+    const setControlHoverState = (isHover) => {
+      if (isHover === isHoveringControl) return;
+      isHoveringControl = isHover;
 
-      // Instantly restore target position to current mouse coordinates
-      setReticleX(latestMouseX);
-      setReticleY(latestMouseY);
-
-      gsap.to(reticle, {
-        width: 28,
-        height: 28,
-        borderRadius: '50%',
-        scale: 1,
-        duration: 0.2,
-        ease: 'power2.out'
-      });
-
-      gsap.to(core, {
-        scale: 1,
-        opacity: 1,
-        duration: 0.18,
-        ease: 'power2.out'
-      });
-    };
-
-    const lockOntoTarget = (targetElement, isCard = false) => {
-      const rect = targetElement.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
-
-      // Strictly reject oversized elements (never lock onto full view containers, heroes, or large cards)
-      if (rect.width > 340 || rect.height > 180) {
-        if (isLockedRef.current) unlockTarget();
-        return;
-      }
-
-      isLockedRef.current = true;
-      currentTargetRef.current = targetElement;
-      isCardRef.current = isCard;
-
-      reticle.classList.add('target-locked');
-      if (isCard) {
-        reticle.classList.add('card-lock');
+      if (isHover) {
+        reticle.classList.add('target-locked');
+        core.classList.add('target');
+        gsap.to(reticle, {
+          width: 38,
+          height: 38,
+          borderRadius: 8,
+          scale: 1.15,
+          duration: 0.18,
+          ease: 'power2.out'
+        });
+        gsap.to(core, {
+          scale: 0.5,
+          opacity: 0.5,
+          duration: 0.15,
+          ease: 'power2.out'
+        });
       } else {
-        reticle.classList.remove('card-lock');
+        reticle.classList.remove('target-locked', 'card-lock', 'target', 'text');
+        core.classList.remove('target', 'text');
+        gsap.to(reticle, {
+          width: 28,
+          height: 28,
+          borderRadius: '50%',
+          scale: 1,
+          duration: 0.18,
+          ease: 'power2.out'
+        });
+        gsap.to(core, {
+          scale: 1,
+          opacity: 1,
+          duration: 0.15,
+          ease: 'power2.out'
+        });
       }
-      reticle.classList.remove('text');
-      core.classList.add('target');
-
-      const padX = isCard ? 4 : 6;
-      const padY = isCard ? 4 : 5;
-      const targetW = Math.round(rect.width + padX * 2);
-      const targetH = Math.round(rect.height + padY * 2);
-      const targetCenterX = Math.round(rect.left + rect.width / 2);
-      const targetCenterY = Math.round(rect.top + rect.height / 2);
-
-      const computedStyle = window.getComputedStyle(targetElement);
-      const rawRadius = parseInt(computedStyle.borderRadius, 10);
-      const cornerRadius = !isNaN(rawRadius) && rawRadius > 0 
-        ? Math.min(rawRadius + (isCard ? 3 : 2), 26) 
-        : (isCard ? 14 : 8);
-
-      // Guide reticle position using setReticleX/Y WITHOUT killing quickTo
-      setReticleX(targetCenterX);
-      setReticleY(targetCenterY);
-
-      // Morph size and border radius only
-      gsap.to(reticle, {
-        width: targetW,
-        height: targetH,
-        borderRadius: cornerRadius,
-        scale: 1,
-        duration: isCard ? 0.22 : 0.18,
-        ease: 'power2.out'
-      });
-
-      gsap.to(core, {
-        scale: isCard ? 0.7 : 0.5,
-        opacity: 0.45,
-        duration: 0.16,
-        ease: 'power2.out'
-      });
     };
 
     const scanAtPoint = (x, y) => {
       const target = document.elementFromPoint(x, y);
       if (!target) {
-        if (isLockedRef.current) unlockTarget();
+        if (isHoveringControl) setControlHoverState(false);
         return;
       }
 
@@ -148,7 +106,7 @@ function CustomCursor({ activeTheme, activeTab }) {
       if (textEl) {
         if (!isHoveringText) {
           isHoveringText = true;
-          if (isLockedRef.current) unlockTarget();
+          if (isHoveringControl) setControlHoverState(false);
           core.classList.add('text');
           reticle.classList.add('text');
           gsap.to(reticle, { opacity: 0, scale: 0.5, duration: 0.15 });
@@ -172,38 +130,8 @@ function CustomCursor({ activeTheme, activeTab }) {
         '.fab-status-hub-btn, .sheet-action-chip, .period-pill, .mini-day-pill, [data-cursor="target"]'
       );
 
-      // 3. Compact cards only (e.g. Achievement badge card) - strictly reject large elements
-      const cardEl = !controlEl ? target.closest(
-        '.achievement-card-wrapper, .achievement-card'
-      ) : null;
-
-      const targetEl = controlEl || cardEl;
-
-      if (targetEl && targetEl.offsetWidth > 0 && targetEl.offsetHeight > 0) {
-        // Reject disabled or inert controls
-        if (targetEl.disabled || targetEl.getAttribute('aria-disabled') === 'true' || targetEl.classList.contains('disabled')) {
-          if (isLockedRef.current) unlockTarget();
-          return;
-        }
-
-        const rect = targetEl.getBoundingClientRect();
-        // Strict boundary: Only lock onto controls that are reasonably sized (never large cards or view containers)
-        if (rect.width > 340 || rect.height > 180 || rect.width < 8 || rect.height < 8) {
-          if (isLockedRef.current) unlockTarget();
-          return;
-        }
-
-        // If already locked onto this exact target, stay locked with 0 jitter
-        if (isLockedRef.current && currentTargetRef.current === targetEl) {
-          return;
-        }
-
-        lockOntoTarget(targetEl, !!cardEl);
-      } else {
-        if (isLockedRef.current) {
-          unlockTarget();
-        }
-      }
+      const isInteractive = !!controlEl && !controlEl.disabled && controlEl.getAttribute('aria-disabled') !== 'true';
+      setControlHoverState(isInteractive);
     };
 
     const onMouseMove = (e) => {
@@ -212,38 +140,22 @@ function CustomCursor({ activeTheme, activeTab }) {
       latestMouseX = mouseX;
       latestMouseY = mouseY;
 
+      if (activeTabRef.current === 'arena' || activeTabRef.current === 'lounge') {
+        return;
+      }
+
       if (!isVisible) {
-        gsap.to([core, reticle], { opacity: 1, duration: 0.18 });
+        gsap.to([core, reticle], { opacity: 1, duration: 0.15 });
         isVisible = true;
       }
 
+      // ALWAYS pipe mouse coordinates directly to both elements - zero decoupling or freezing
       setCoreX(mouseX);
       setCoreY(mouseY);
+      setReticleX(mouseX);
+      setReticleY(mouseY);
 
-      // If currently locked to a target, check if mouse has exited the target's bounding box
-      if (isLockedRef.current && currentTargetRef.current) {
-        if (!document.body.contains(currentTargetRef.current)) {
-          unlockTarget();
-        } else {
-          const rect = currentTargetRef.current.getBoundingClientRect();
-          if (
-            mouseX < rect.left - 8 || 
-            mouseX > rect.right + 8 || 
-            mouseY < rect.top - 8 || 
-            mouseY > rect.bottom + 8
-          ) {
-            unlockTarget();
-          }
-        }
-      }
-
-      // If not locked, reticle directly tracks the mouse pointer
-      if (!isLockedRef.current) {
-        setReticleX(mouseX);
-        setReticleY(mouseY);
-      }
-
-      // Frame-rate aligned scan for interactive targets without cancellation starvation
+      // Frame-rate aligned scan for interactive targets
       if (!rafPending) {
         rafPending = true;
         requestAnimationFrame(() => {
@@ -254,66 +166,57 @@ function CustomCursor({ activeTheme, activeTab }) {
     };
 
     const onMouseDown = () => {
-      gsap.to(reticle, { scale: isLockedRef.current ? 0.96 : 0.85, duration: 0.1, ease: 'power2.out' });
-      gsap.to(core, { scale: 1.3, duration: 0.1, ease: 'power2.out' });
+      gsap.to(reticle, { scale: 0.85, duration: 0.08, ease: 'power2.out' });
+      gsap.to(core, { scale: 1.35, duration: 0.08, ease: 'power2.out' });
     };
 
     const onMouseUp = () => {
-      gsap.to(reticle, { scale: 1, duration: 0.2, ease: 'power2.out' });
-      gsap.to(core, { scale: isLockedRef.current ? 0.55 : 1, duration: 0.18, ease: 'power2.out' });
+      gsap.to(reticle, { scale: isHoveringControl ? 1.15 : 1, duration: 0.18, ease: 'power2.out' });
+      gsap.to(core, { scale: isHoveringControl ? 0.5 : 1, duration: 0.16, ease: 'power2.out' });
     };
 
     const onMouseLeave = () => {
-      gsap.to([core, reticle], { opacity: 0, duration: 0.18 });
+      gsap.to([core, reticle], { opacity: 0, duration: 0.16 });
       isVisible = false;
-      if (isLockedRef.current) unlockTarget();
+      if (isHoveringControl) setControlHoverState(false);
     };
 
-    const onScroll = () => {
-      if (isLockedRef.current && currentTargetRef.current) {
-        if (!document.body.contains(currentTargetRef.current)) {
-          unlockTarget();
-          return;
-        }
-        const rect = currentTargetRef.current.getBoundingClientRect();
-        if (rect.bottom < 0 || rect.top > window.innerHeight || rect.right < 0 || rect.left > window.innerWidth) {
-          unlockTarget();
-          return;
-        }
-        if (
-          latestMouseX < rect.left - 8 || 
-          latestMouseX > rect.right + 8 || 
-          latestMouseY < rect.top - 8 || 
-          latestMouseY > rect.bottom + 8
-        ) {
-          unlockTarget();
-          return;
-        }
-
-        const targetCenterX = Math.round(rect.left + rect.width / 2);
-        const targetCenterY = Math.round(rect.top + rect.height / 2);
-        setReticleX(targetCenterX);
-        setReticleY(targetCenterY);
-      }
+    const onWindowBlur = () => {
+      onMouseLeave();
     };
 
     window.addEventListener('mousemove', onMouseMove, { passive: true });
     window.addEventListener('mousedown', onMouseDown, { passive: true });
     window.addEventListener('mouseup', onMouseUp, { passive: true });
-    window.addEventListener('scroll', onScroll, { passive: true });
-    document.body.addEventListener('mouseleave', onMouseLeave);
+    window.addEventListener('blur', onWindowBlur);
+    document.addEventListener('mouseleave', onMouseLeave);
+    window.addEventListener('mouseout', (e) => {
+      if (!e.relatedTarget && !e.toElement) {
+        onMouseLeave();
+      }
+    });
 
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mouseup', onMouseUp);
-      window.removeEventListener('scroll', onScroll);
-      document.body.removeEventListener('mouseleave', onMouseLeave);
+      window.removeEventListener('blur', onWindowBlur);
+      document.removeEventListener('mouseleave', onMouseLeave);
     };
   }, []);
 
-  // Unlock immediately when activeTab changes
+  // Handle tab switches: hide in arena/lounge, restore immediately in dashboard/terminal/other tabs
   useEffect(() => {
+    const suppressed = activeTab === 'arena' || activeTab === 'lounge';
+    
+    if (suppressed) {
+      if (coreRef.current) gsap.set(coreRef.current, { opacity: 0 });
+      if (reticleRef.current) gsap.set(reticleRef.current, { opacity: 0 });
+    } else {
+      if (coreRef.current) gsap.to(coreRef.current, { opacity: 1, duration: 0.18 });
+      if (reticleRef.current) gsap.to(reticleRef.current, { opacity: 1, duration: 0.18 });
+    }
+
     if (isLockedRef.current) {
       isLockedRef.current = false;
       currentTargetRef.current = null;
@@ -340,10 +243,17 @@ function CustomCursor({ activeTheme, activeTab }) {
     }
   }, [activeTab]);
 
-  if (isArenaActive || typeof document === 'undefined') return null;
+  if (typeof document === 'undefined') return null;
 
   return createPortal(
-    <>
+    <div 
+      className="focus-cursor-container" 
+      style={{ 
+        display: isSuppressed ? 'none' : 'block',
+        pointerEvents: 'none'
+      }}
+      aria-hidden="true"
+    >
       {/* Central Laser Star Core */}
       <div 
         ref={coreRef} 
@@ -362,7 +272,7 @@ function CustomCursor({ activeTheme, activeTab }) {
         <span className="reticle-corner bottom-left" />
         <span className="reticle-corner bottom-right" />
       </div>
-    </>,
+    </div>,
     document.body
   );
 }

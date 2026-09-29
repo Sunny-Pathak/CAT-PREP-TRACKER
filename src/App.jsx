@@ -43,6 +43,7 @@ import { audioEngine } from './utils/audioUtils';
 import { calculateUserBadges } from './utils/badgeUtils';
 import CookieConsentBanner from './components/CookieConsentBanner';
 import CustomCursor from './components/CustomCursor';
+import LiquidIntroLoader from './components/LiquidIntroLoader';
 
 // Code-split lazy views for high-performance initial bundle
 const TimelineView = lazy(() => import('./components/TimelineView'));
@@ -55,11 +56,11 @@ const StudyLounge = lazy(() => import('./components/StudyLounge'));
 const SettingsView = lazy(() => import('./components/SettingsView'));
 const AchievementsView = lazy(() => import('./components/AchievementsView'));
 const BacklogRecoveryView = lazy(() => import('./components/BacklogRecoveryView'));
+const BloombergTerminalView = lazy(() => import('./components/BloombergTerminalView'));
 
 // Code-split lazy modals & secondary screens
 const AuthScreen = lazy(() => import('./components/AuthScreen'));
 const DataSyncAuditModal = lazy(() => import('./components/DataSyncAuditModal'));
-const LiquidIntroLoader = lazy(() => import('./components/LiquidIntroLoader'));
 const ThemeRedeemModal = lazy(() => import('./components/ThemeRedeemModal'));
 const JapaneseCatStampRallyModal = lazy(() => import('./components/JapaneseCatStampRallyModal'));
 const TermsAndPrivacyModal = lazy(() => import('./components/TermsAndPrivacyModal'));
@@ -271,12 +272,19 @@ const Icons = {
       <circle cx="15" cy="5" r="1.5" fill="currentColor" />
       <circle cx="15" cy="19" r="1.5" fill="currentColor" />
     </svg>
+  ),
+  Terminal: ({ size = 20 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <polyline points="4 17 10 11 4 5" />
+      <line x1="12" y1="19" x2="20" y2="19" />
+    </svg>
   )
 };
 
-function ViewLoadingFallback() {
+function ViewLoadingFallback({ theme }) {
+  const activeTheme = theme || (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : null) || 'dark';
   return (
-    <div className="view-loading-skeleton" aria-busy="true" aria-label="Loading module">
+    <div className="view-loading-skeleton" data-theme={activeTheme} aria-busy="true" aria-label="Loading module">
       <div className="skeleton-spinner" />
       <span className="skeleton-text font-mono">INITIALIZING MODULE...</span>
     </div>
@@ -2526,7 +2534,7 @@ export default function App() {
   // Auth Gate: Require login or create account before accessing the main dashboard/app
   if (!user && !isGuestMode) {
     return (
-      <Suspense fallback={<ViewLoadingFallback />}>
+      <Suspense fallback={<ViewLoadingFallback theme={theme} />}>
         <AuthScreen
           onAuthSuccess={(u) => {
             setUser(u);
@@ -2541,33 +2549,32 @@ export default function App() {
             localStorage.setItem('catalyze_guest_mode', 'true');
           }}
           isFirebaseAvailable={isFirebaseConfigured}
+          theme={theme}
         />
       </Suspense>
     );
   }
 
   return (
-    <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''} ${activeTab === 'terminal' ? 'terminal-fullscreen-active' : ''}`}>
       {/* Spylt-Inspired Cinematic Liquid Intro Loader */}
       {showIntro && (
-        <Suspense fallback={null}>
-          <LiquidIntroLoader 
-            activeTheme={theme} 
-            onComplete={handleIntroComplete} 
-          />
-        </Suspense>
+        <LiquidIntroLoader 
+          activeTheme={theme} 
+          onComplete={handleIntroComplete} 
+        />
       )}
 
 
 
-      {/* ReactBits Dither Background WebGL Shader (Dynamic continuous retro pixel wave) */}
-      <DitherBackground activeTheme={theme} opacity={0.16} ditherSize={2.2} />
+      {/* ReactBits Dither Background WebGL Shader (Dynamic continuous retro pixel wave, paused in terminal to free GPU) */}
+      <DitherBackground activeTheme={theme} opacity={0.16} ditherSize={2.2} disabled={activeTab === 'terminal'} />
 
       {/* ReactBits ClickSpark Particle Burst Animation */}
       <ClickSpark activeTheme={theme} />
 
       {/* Luxury Liquid Glow Custom Cursor with GSAP Physics */}
-      <CustomCursor activeTheme={theme} />
+      <CustomCursor activeTheme={theme} activeTab={activeTab} />
 
       {/* Draggable Floating Overlay Dock for Tabs (Zero Logo on Dock - Pure Tab Capsule Overlay) */}
       <aside 
@@ -2686,6 +2693,17 @@ export default function App() {
           </DockItem>
 
           <DockItem 
+            active={activeTab === 'terminal'} 
+            onClick={() => setActiveTab('terminal')} 
+            ariaLabel="CAT Terminal"
+            tooltipTitle="CAT Terminal"
+            tooltipTag="QUANT & YIELD INTEL"
+            className="dock-item-terminal"
+          >
+            <Icons.Terminal />
+          </DockItem>
+
+          <DockItem 
             active={activeTab === 'achievements'} 
             onClick={() => setActiveTab('achievements')} 
             ariaLabel="Prestige Achievement Badges"
@@ -2764,7 +2782,7 @@ export default function App() {
             <div className="cyber-protocol-badge desktop-only">
               <span className="cyber-pulse-dot" />
               <span className="cyber-page-name" key={activeTab}>
-                {activeTab === 'dashboard' ? 'DASHBOARD' : activeTab === 'recovery' ? 'BACKLOG RECOVERY' : activeTab === 'lounge' ? 'STUDY LOUNGE' : activeTab === 'timeline' ? 'STUDY PLAN' : activeTab === 'timer' ? 'FOCUS SANCTUARY' : activeTab === 'daily' ? 'DAILY DRILLS' : activeTab === 'mocks' ? 'MOCK TESTS' : activeTab === 'achievements' ? 'ACHIEVEMENTS' : activeTab === 'errors' ? 'ERROR LOG' : activeTab === 'profile' ? 'PROFILE' : activeTab === 'settings' ? 'SETTINGS' : 'DASHBOARD'}
+                {activeTab === 'dashboard' ? 'DASHBOARD' : activeTab === 'terminal' ? 'CAT TERMINAL' : activeTab === 'recovery' ? 'BACKLOG RECOVERY' : activeTab === 'lounge' ? 'STUDY LOUNGE' : activeTab === 'timeline' ? 'STUDY PLAN' : activeTab === 'timer' ? 'FOCUS SANCTUARY' : activeTab === 'daily' ? 'DAILY DRILLS' : activeTab === 'mocks' ? 'MOCK TESTS' : activeTab === 'achievements' ? 'ACHIEVEMENTS' : activeTab === 'errors' ? 'ERROR LOG' : activeTab === 'profile' ? 'PROFILE' : activeTab === 'settings' ? 'SETTINGS' : 'DASHBOARD'}
               </span>
             </div>
           </div>
@@ -2820,7 +2838,7 @@ export default function App() {
         </header>
 
         {/* Comic Peeking Cat Study Buddy on Right Edge */}
-        {activeTab !== 'timer' && (
+        {activeTab !== 'timer' && activeTab !== 'terminal' && (
           <ComicPeekingCatBuddy 
             onOpenTimer={() => {
               setActiveTab('timer');
@@ -2863,7 +2881,7 @@ export default function App() {
               onNavigateToDay={handleJumpToDay}
             />
           )}
-          <Suspense fallback={<ViewLoadingFallback />}>
+          <Suspense fallback={<ViewLoadingFallback theme={theme} />}>
             {activeTab === 'timeline' && (
             <TimelineView 
               state={state} 
@@ -2926,6 +2944,14 @@ export default function App() {
               updateMockRow={updateMockRow} 
             />
           )}
+          {activeTab === 'terminal' && (
+            <BloombergTerminalView
+              state={state}
+              onNavigateTab={setActiveTab}
+              theme={theme}
+              onSelectTheme={handleSelectTheme}
+            />
+          )}
           {activeTab === 'errors' && (
             <ErrorLogView 
               state={state} 
@@ -2980,6 +3006,7 @@ export default function App() {
             <ProfileView
               user={user}
               userProfile={userProfile}
+              theme={theme}
               tracker={state.tracker}
               mocks={state.mocks}
               onAuthSuccess={setUser}
@@ -3053,6 +3080,7 @@ export default function App() {
       <nav 
         className="mobile-bottom-nav"
         aria-label="Mobile Navigation"
+        style={{ display: activeTab === 'terminal' ? 'none' : undefined }}
       >
         <Dock direction="horizontal" magnification={1.25} distance={80} baseItemSize={44} className="mobile-dock-wrap">
           <DockItem 
@@ -3120,7 +3148,7 @@ export default function App() {
           </DockItem>
 
           <DockItem 
-            active={activeTab === 'profile' || activeTab === 'timeline' || activeTab === 'errors' || activeTab === 'achievements' || activeTab === 'settings'} 
+            active={activeTab === 'profile' || activeTab === 'terminal' || activeTab === 'timeline' || activeTab === 'errors' || activeTab === 'achievements' || activeTab === 'settings'} 
             onClick={() => setActiveTab('profile')} 
             ariaLabel="More Menu"
             tooltipTitle="Menu"
@@ -3132,7 +3160,7 @@ export default function App() {
       </nav>
 
       {/* Floating Timer Mini Widget */}
-      {activeTab !== 'timer' && (
+      {activeTab !== 'timer' && activeTab !== 'terminal' && (
         <FloatingTimerWidget
           timerState={timerState}
           onPause={handlePauseTimer}
@@ -3256,6 +3284,7 @@ export default function App() {
             newLevel={levelUpModalData.newLevel}
             totalExp={levelUpModalData.totalExp}
             isMilestone={levelUpModalData.isMilestone}
+            theme={theme}
           />
         </Suspense>
       )}

@@ -77,7 +77,7 @@ export default function AnimatedInputBar({
           <div className="bar-prompt-icon">
             <Icons.FileText size={15} />
           </div>
-          <span className="bar-header-tag font-mono">DISK STORAGE // RAPID JOT</span>
+          <span className="bar-header-tag font-mono">DISK STORAGE • RAPID JOT</span>
           <span className="bar-header-title">Quick Scratchpad &amp; Local File Vault</span>
         </div>
 

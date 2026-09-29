@@ -27,7 +27,7 @@ function WeekContributionHeatmap({
   const activeWeek = todayPos.activeWeek;
 
   const weekObj = useMemo(() => {
-    const monthWeeks = tracker[activeMonth] || [];
+    const monthWeeks = tracker[activeMonth] || Object.values(tracker)[0] || [];
     return monthWeeks.find(w => w.week === activeWeek) || monthWeeks[0] || { days: [] };
   }, [tracker, activeMonth, activeWeek]);
 

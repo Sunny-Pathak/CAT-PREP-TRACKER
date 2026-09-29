@@ -282,9 +282,10 @@ const Icons = {
   )
 };
 
-function ViewLoadingFallback() {
+function ViewLoadingFallback({ theme }) {
+  const activeTheme = theme || (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : null) || 'dark';
   return (
-    <div className="view-loading-skeleton" aria-busy="true" aria-label="Loading module">
+    <div className="view-loading-skeleton" data-theme={activeTheme} aria-busy="true" aria-label="Loading module">
       <div className="skeleton-spinner" />
       <span className="skeleton-text font-mono">INITIALIZING MODULE...</span>
     </div>
@@ -2545,6 +2546,7 @@ export default function App() {
           setShowIntro(true);
           localStorage.setItem('catalyze_guest_mode', 'true');
         }}
+        theme={theme}
       />
     );
   }
@@ -2963,7 +2965,7 @@ export default function App() {
               onNavigateToDay={handleJumpToDay}
             />
           )}
-          <Suspense fallback={<ViewLoadingFallback />}>
+          <Suspense fallback={<ViewLoadingFallback theme={theme} />}>
             {activeTab === 'timeline' && (
             <TimelineView 
               state={state} 
@@ -3100,6 +3102,7 @@ export default function App() {
             <ProfileView
               user={user}
               userProfile={userProfile}
+              theme={theme}
               tracker={state.tracker}
               mocks={state.mocks}
               onAuthSuccess={setUser}
@@ -3166,6 +3169,7 @@ export default function App() {
       <nav 
         className="mobile-bottom-nav"
         aria-label="Mobile Navigation"
+        style={{ display: activeTab === 'terminal' ? 'none' : undefined }}
       >
         <Dock direction="horizontal" magnification={1.25} distance={80} baseItemSize={44} className="mobile-dock-wrap">
           <DockItem 
@@ -3387,6 +3391,7 @@ export default function App() {
             newLevel={levelUpModalData.newLevel}
             totalExp={levelUpModalData.totalExp}
             isMilestone={levelUpModalData.isMilestone}
+            theme={theme}
           />
         </Suspense>
       )}

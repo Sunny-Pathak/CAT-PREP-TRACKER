@@ -46,6 +46,10 @@ export function initSmoothScroll() {
       return (
         node.hasAttribute?.('data-lenis-prevent') ||
         Boolean(node.closest('[data-lenis-prevent]')) ||
+        Boolean(node.closest('.modern-cli-terminal-page')) ||
+        Boolean(node.closest('.terminal-cyberdeck-window')) ||
+        Boolean(node.closest('.cli-stream')) ||
+        Boolean(node.closest('.cyberdeck-stream-container')) ||
         Boolean(node.closest('.mock-modal-overlay')) ||
         Boolean(node.closest('.edit-profile-modal-box')) ||
         Boolean(node.closest('.showcase-modal-box')) ||

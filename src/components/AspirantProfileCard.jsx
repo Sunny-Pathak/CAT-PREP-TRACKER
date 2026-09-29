@@ -9,13 +9,13 @@ import { AnimatedSparkleIcon } from './AnimatedUiIcons';
 import { calculateLevelFromExp, getExpProgress, getExpForLevel } from '../utils/expSystem';
 
 /**
- * AspirantProfileCard - Spacious Esports Tactical Operative Profile
+ * AspirantProfileCard - Minimal, Elegant Executive Operative Profile
  * Features:
- * - Panoramic, de-cluttered layout with generous breathing room
- * - Unlockable Special Avatar Frames & Animated Banners (with GIF support)
- * - Clean, spacious EXP Progression Bar
- * - Wide 3-column Apex Legends Stat Trackers
- * - Fluid tab transitions with active indicator sliding
+ * - Minimal, uncluttered single-tier card architecture matching Dashboard
+ * - Theme-synchronized using CSS variables from the active site theme
+ * - Integrated, clean EXP Progression Bar
+ * - Minimal Horizon Stat Strip (Active Streak, Questions, Mocks, Tier)
+ * - Zero nested card clutter
  */
 export default function AspirantProfileCard({
   user,
@@ -27,7 +27,8 @@ export default function AspirantProfileCard({
   onClose,
   compact = false,
   tracker = null,
-  showcaseBadges = null
+  showcaseBadges = null,
+  theme = 'dark'
 }) {
   const [activeTab, setActiveTab] = useState('trackers'); // 'trackers' | 'syllabus' | 'heatmap'
   const [showCosmeticsModal, setShowCosmeticsModal] = useState(false);
@@ -91,7 +92,7 @@ export default function AspirantProfileCard({
 
   let classTitle = 'SCHOLAR OPERATIVE';
   let tierRank = 'BRONZE III';
-  let tierColor = '#94a3b8';
+  let tierColor = 'var(--text-tertiary)';
 
   if (level >= 50) {
     classTitle = 'IMMORTAL ACHIEVER';
@@ -112,7 +113,7 @@ export default function AspirantProfileCard({
   } else if (level >= 15) {
     classTitle = 'PERCENTILE WARLORD';
     tierRank = 'DIAMOND I';
-    tierColor = '#38bdf8';
+    tierColor = 'var(--accent-color)';
   } else if (level >= 10) {
     classTitle = 'QUANT SPELLBLADE';
     tierRank = 'PLATINUM II';
@@ -124,11 +125,11 @@ export default function AspirantProfileCard({
   } else if (level >= 2) {
     classTitle = 'TACTICAL ASPIRANT';
     tierRank = 'SILVER I';
-    tierColor = '#38bdf8';
+    tierColor = 'var(--accent-color)';
   } else {
     classTitle = 'SCHOLAR OPERATIVE';
     tierRank = 'NOVICE I';
-    tierColor = '#94a3b8';
+    tierColor = 'var(--text-tertiary)';
   }
 
   const handleCopyId = (e) => {
@@ -154,21 +155,22 @@ export default function AspirantProfileCard({
 
   return (
     <div 
-      className={`panoramic-operative-card ${compact ? 'compact' : ''}`}
+      className={`panoramic-operative-card minimal-profile-card ${compact ? 'compact' : ''}`}
+      data-theme={theme}
       onClick={() => setActiveBadgeTooltip(null)}
     >
       {/* 1. PANORAMIC ANIMATED BANNER HERO */}
       <div 
         className={`panoramic-banner-canvas ${activeBannerPreset.overlayClass || ''}`}
         style={{
-          background: isGifOrImgBanner ? undefined : activeBannerPreset.bg,
+          background: isGifOrImgBanner ? undefined : (activeBannerPreset.id === 'cyber_grid' ? 'var(--bg-secondary)' : activeBannerPreset.bg),
           backgroundImage: isGifOrImgBanner ? `url(${customBannerUrl})` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
       >
         <div className="panoramic-banner-scrim" />
-        {!isGifOrImgBanner && <MythicBannerOverlay bannerId={activeBannerPreset.id} />}
+        {!isGifOrImgBanner && activeBannerPreset.id !== 'cyber_grid' && <MythicBannerOverlay bannerId={activeBannerPreset.id} />}
 
         {/* Top Floating Controls on Banner */}
         <div className="panoramic-top-row">
@@ -190,9 +192,9 @@ export default function AspirantProfileCard({
                   fontSize: '11px',
                   fontWeight: 800,
                   letterSpacing: '0.05em',
-                  background: rank === 1 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(56, 189, 248, 0.2)',
-                  border: rank === 1 ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(56, 189, 248, 0.4)',
-                  color: rank === 1 ? '#f87171' : '#38bdf8'
+                  background: rank === 1 ? 'rgba(239, 68, 68, 0.25)' : 'var(--bg-tertiary)',
+                  border: rank === 1 ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid var(--border-color)',
+                  color: rank === 1 ? '#f87171' : 'var(--accent-color)'
                 }}
               >
                 <span>RANK #{rank}</span>
@@ -253,7 +255,7 @@ export default function AspirantProfileCard({
               {percentile && (
                 <span 
                   className="panoramic-target-tag font-mono"
-                  style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.35)', background: 'rgba(56, 189, 248, 0.12)' }}
+                  style={{ color: 'var(--accent-color)', borderColor: 'var(--border-color)', background: 'var(--bg-tertiary)' }}
                 >
                   {percentile}%ile
                 </span>
@@ -269,13 +271,14 @@ export default function AspirantProfileCard({
             )}
           </div>
 
-          {/* Action Button: Loadout / Transmit / Challenge */}
+          {/* Action Button: Loadout / Challenge */}
           <div className="panoramic-action-slot">
             {isSelf ? (
               <button 
                 type="button" 
-                className="panoramic-loadout-btn font-mono"
+                className="minimal-btn-primary font-mono"
                 onClick={onEditProfile || (() => setShowCosmeticsModal(true))}
+                title="Edit Candidate Identity & Avatar Loadout"
               >
                 <Icons.Edit3 size={13} />
                 <span>LOADOUT CONFIG</span>
@@ -286,7 +289,7 @@ export default function AspirantProfileCard({
                 {onNavigateToTimer && (
                   <button 
                     type="button" 
-                    className="panoramic-challenge-btn font-mono"
+                    className="minimal-btn-primary font-mono"
                     onClick={() => {
                       if (onClose) onClose();
                       onNavigateToTimer(profile);
@@ -300,7 +303,7 @@ export default function AspirantProfileCard({
                 {onMessagePeer && (
                   <button 
                     type="button" 
-                    className="panoramic-loadout-btn font-mono"
+                    className="minimal-btn-secondary font-mono"
                     onClick={() => onMessagePeer(profile)}
                     title={`Message ${displayName}`}
                   >
@@ -342,215 +345,163 @@ export default function AspirantProfileCard({
         </div>
       </div>
 
-      {/* 3. FLUID SEGMENTED TAB SWITCHER */}
-      <div className="panoramic-tab-nav font-mono">
-        <button
-          type="button"
-          className={`panoramic-nav-pill ${activeTab === 'trackers' ? 'active' : ''}`}
-          onClick={() => setActiveTab('trackers')}
-        >
-          <Icons.Zap size={13} />
-          <span>COMBAT TRACKERS</span>
-        </button>
-        <button
-          type="button"
-          className={`panoramic-nav-pill ${activeTab === 'syllabus' ? 'active' : ''}`}
-          onClick={() => setActiveTab('syllabus')}
-        >
-          <Icons.Target size={13} />
-          <span>DUNGEON QUOTAS</span>
-        </button>
-        <button
-          type="button"
-          className={`panoramic-nav-pill ${activeTab === 'heatmap' ? 'active' : ''}`}
-          onClick={() => setActiveTab('heatmap')}
-        >
-          <Icons.Calendar size={13} />
-          <span>STUDY MATRIX</span>
-        </button>
-      </div>
+      {/* 3. MINIMAL HORIZON STATS STRIP (Modeled cleanly like Dashboard's minimal-horizon-strip for candidate profile) */}
+      {isSelf && (
+        <div className="minimal-horizon-strip profile-horizon-strip font-mono">
+          <div className="horizon-stat-item">
+            <span className="horizon-stat-lbl">Active Streak</span>
+            <span className="horizon-stat-val">
+              {streak} <span className="horizon-unit">{streak === 1 ? 'DAY STREAK' : 'DAYS ACTIVE'}</span>
+            </span>
+          </div>
+          <div className="horizon-divider" />
+          <div className="horizon-stat-item">
+            <span className="horizon-stat-lbl">Questions Conquered</span>
+            <span className="horizon-stat-val">
+              {solvedQs.toLocaleString()} <span className="horizon-unit">QUESTIONS</span>
+            </span>
+          </div>
+          <div className="horizon-divider" />
+          <div className="horizon-stat-item">
+            <span className="horizon-stat-lbl">Boss Battles</span>
+            <span className="horizon-stat-val">
+              {mocksCount} <span className="horizon-unit">/ 30 MOCKS</span>
+            </span>
+          </div>
+          <div className="horizon-divider" />
+          <div className="horizon-stat-item">
+            <span className="horizon-stat-lbl">Tier Standing</span>
+            <span className="horizon-stat-val" style={{ fontSize: '18px', color: tierColor }}>
+              {tierRank}
+            </span>
+          </div>
+        </div>
+      )}
 
-      {/* 4. FLUID ANIMATED TAB CONTENT */}
-      <div className="panoramic-tab-content">
-        {/* TAB 1: SPACIOUS 3-COLUMN APEX STAT TRACKERS */}
-        {activeTab === 'trackers' && (
-          <div className="tab-pane-fluid-enter">
-            <div className="panoramic-trackers-grid">
-              {/* Tracker 1: Streak */}
-              <div className="panoramic-tracker-card streak">
-                <div className="tracker-card-icon streak">
-                  <Icons.Flame size={20} color="#f97316" />
-                </div>
-                <div className="tracker-card-body">
-                  <span className="tracker-tag-label font-mono">MOMENTUM CHAIN</span>
-                  <div className="tracker-number-row font-mono">
-                    <span className="tracker-bold-val">{streak}</span>
-                    <span className="tracker-unit-str">{streak === 1 ? 'DAY STREAK' : 'DAYS ACTIVE'}</span>
-                  </div>
-                  <span className="tracker-bonus-sub font-mono">x{(1 + streak * 0.1).toFixed(1)} XP Boost Active</span>
-                </div>
-              </div>
+      {/* Peer Sub-Tabs (Cleanly rendered when isSelf === false for peer inspection modal) */}
+      {!isSelf && (
+        <>
+          <div className="panoramic-tab-nav font-mono">
+            <button
+              type="button"
+              className={`panoramic-nav-pill ${activeTab === 'trackers' ? 'active' : ''}`}
+              onClick={() => setActiveTab('trackers')}
+            >
+              <Icons.Zap size={13} />
+              <span>COMBAT TRACKERS</span>
+            </button>
+            <button
+              type="button"
+              className={`panoramic-nav-pill ${activeTab === 'syllabus' ? 'active' : ''}`}
+              onClick={() => setActiveTab('syllabus')}
+            >
+              <Icons.Target size={13} />
+              <span>DUNGEON QUOTAS</span>
+            </button>
+            <button
+              type="button"
+              className={`panoramic-nav-pill ${activeTab === 'heatmap' ? 'active' : ''}`}
+              onClick={() => setActiveTab('heatmap')}
+            >
+              <Icons.Calendar size={13} />
+              <span>STUDY MATRIX</span>
+            </button>
+          </div>
 
-              {/* Tracker 2: Questions */}
-              <div className="panoramic-tracker-card questions">
-                <div className="tracker-card-icon questions">
-                  <Icons.Target size={20} color="#38bdf8" />
-                </div>
-                <div className="tracker-card-body">
-                  <span className="tracker-tag-label font-mono">QUESTIONS CONQUERED</span>
-                  <div className="tracker-number-row font-mono">
-                    <span className="tracker-bold-val">{solvedQs.toLocaleString()}</span>
-                    <span className="tracker-unit-str">QUESTIONS</span>
-                  </div>
-                  <span className="tracker-bonus-sub font-mono">QA • DILR • VARC Drills</span>
-                </div>
-              </div>
-
-              {/* Tracker 3: Mocks */}
-              <div className="panoramic-tracker-card mocks">
-                <div className="tracker-card-icon mocks">
-                  <Icons.BookOpen size={20} color="#10b981" />
-                </div>
-                <div className="tracker-card-body">
-                  <span className="tracker-tag-label font-mono">BOSS BATTLES</span>
-                  <div className="tracker-number-row font-mono">
-                    <span className="tracker-bold-val">{mocksCount}</span>
-                    <span className="tracker-unit-str">/ 30 MOCKS</span>
-                  </div>
-                  <span className="tracker-bonus-sub font-mono">Full CAT Benchmarks</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Top 3 Featured Showcase Medals Rack */}
-            <div className="panoramic-medals-rack">
-              <div className="medals-rack-top font-mono">
-                <span>PINNED ARTIFACT MEDALS</span>
-                <span className="medals-count">{unlockedBadges.length} / {badges.length} UNLOCKED</span>
-              </div>
-
-              <div className="medals-pins-row">
-                {displayBadges.map((badge) => {
-                  const IconComp = Icons[badge.iconName] || Icons.Award;
-                  const isUnlocked = badge.isUnlocked;
-
-                  return (
-                    <div 
-                      key={badge.id}
-                      className={`panoramic-pin-slot ${isUnlocked ? 'unlocked' : 'locked'}`}
-                      onClick={() => setActiveBadgeTooltip(activeBadgeTooltip === badge.id ? null : badge.id)}
-                      title={badge.name}
-                    >
-                      <div className="pin-medal-body" style={isUnlocked ? { '--medal-color': badge.color } : undefined}>
-                        <div className="pin-glyph" style={{ color: isUnlocked ? badge.color : '#475569' }}>
-                          <IconComp size={18} />
-                        </div>
-                        <span className="pin-title font-mono">{badge.name}</span>
-                        {isUnlocked ? (
-                          <span className="pin-core-dot" style={{ backgroundColor: badge.color }} />
-                        ) : (
-                          <span className="pin-lock-lbl font-mono">LOCKED</span>
-                        )}
-                      </div>
+          <div className="panoramic-tab-content">
+            {activeTab === 'trackers' && (
+              <div className="tab-pane-fluid-enter">
+                <div className="minimal-metrics-grid" style={{ marginBottom: 0 }}>
+                  <div className="minimal-metric-card">
+                    <div className="minimal-metric-header">
+                      <span className="minimal-metric-title">MOMENTUM CHAIN</span>
                     </div>
-                  );
-                })}
+                    <div className="minimal-metric-number">
+                      {streak} <span className="minimal-target">{streak === 1 ? 'DAY STREAK' : 'DAYS ACTIVE'}</span>
+                    </div>
+                    <span className="tracker-bonus-sub font-mono">x{(1 + streak * 0.1).toFixed(1)} XP Boost Active</span>
+                  </div>
+                  <div className="minimal-metric-card">
+                    <div className="minimal-metric-header">
+                      <span className="minimal-metric-title">QUESTIONS CONQUERED</span>
+                    </div>
+                    <div className="minimal-metric-number">
+                      {solvedQs.toLocaleString()} <span className="minimal-target">QUESTIONS</span>
+                    </div>
+                    <span className="tracker-bonus-sub font-mono">QA • DILR • VARC Drills</span>
+                  </div>
+                  <div className="minimal-metric-card">
+                    <div className="minimal-metric-header">
+                      <span className="minimal-metric-title">BOSS BATTLES</span>
+                    </div>
+                    <div className="minimal-metric-number">
+                      {mocksCount} <span className="minimal-target">/ 30 MOCKS</span>
+                    </div>
+                    <span className="tracker-bonus-sub font-mono">Full CAT Benchmarks</span>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {activeTab === 'syllabus' && (
+              <div className="tab-pane-fluid-enter">
+                <div className="minimal-metrics-grid" style={{ marginBottom: 0 }}>
+                  <div className="minimal-metric-card">
+                    <div className="minimal-metric-header">
+                      <span className="minimal-metric-title">QUANTITATIVE LABYRINTH</span>
+                      <span className="minimal-metric-badge">{Math.min(100, Math.round((totalQuant / grandTargets.quant) * 100))}%</span>
+                    </div>
+                    <div className="minimal-metric-number">
+                      {totalQuant.toLocaleString()} <span className="minimal-target">/ {grandTargets.quant} Qs</span>
+                    </div>
+                    <div className="minimal-progress-track">
+                      <div className="minimal-progress-fill quant-fill" style={{ width: `${Math.min(100, Math.round((totalQuant / grandTargets.quant) * 100))}%` }} />
+                    </div>
+                  </div>
+                  <div className="minimal-metric-card">
+                    <div className="minimal-metric-header">
+                      <span className="minimal-metric-title">DILR LOGIC CRYPT</span>
+                      <span className="minimal-metric-badge">{Math.min(100, Math.round((totalLrdi / grandTargets.lrdi) * 100))}%</span>
+                    </div>
+                    <div className="minimal-metric-number">
+                      {totalLrdi.toLocaleString()} <span className="minimal-target">/ {grandTargets.lrdi} Sets</span>
+                    </div>
+                    <div className="minimal-progress-track">
+                      <div className="minimal-progress-fill lrdi-fill" style={{ width: `${Math.min(100, Math.round((totalLrdi / grandTargets.lrdi) * 100))}%` }} />
+                    </div>
+                  </div>
+                  <div className="minimal-metric-card">
+                    <div className="minimal-metric-header">
+                      <span className="minimal-metric-title">VARC COMPREHENSION SPIRE</span>
+                      <span className="minimal-metric-badge">{Math.min(100, Math.round((totalVarc / grandTargets.varc) * 100))}%</span>
+                    </div>
+                    <div className="minimal-metric-number">
+                      {totalVarc.toLocaleString()} <span className="minimal-target">/ {grandTargets.varc} Articles</span>
+                    </div>
+                    <div className="minimal-progress-track">
+                      <div className="minimal-progress-fill varc-fill" style={{ width: `${Math.min(100, Math.round((totalVarc / grandTargets.varc) * 100))}%` }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'heatmap' && (
+              <div className="tab-pane-fluid-enter">
+                <div className="minimal-metric-card" style={{ padding: '14px' }}>
+                  {tracker ? (
+                    <StudyContributionHeatmap tracker={tracker?.tracker || tracker} compact={true} />
+                  ) : (
+                    <div className="empty-state" style={{ padding: '16px', fontSize: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      Study matrix telemetry synchronized with local clock.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        )}
-
-        {/* TAB 2: DUNGEON QUOTAS */}
-        {activeTab === 'syllabus' && (
-          <div className="tab-pane-fluid-enter">
-            <div className="syllabus-cards-container" style={{ margin: 0 }}>
-              <div className="syllabus-progress-card quant-theme">
-                <div className="syllabus-label-row">
-                  <div className="syllabus-sub-title">
-                    <span className="syllabus-icon-badge quant-badge"><Icons.Calculator size={13} /></span>
-                    <span className="syllabus-subject-name font-mono">QUANTITATIVE LABYRINTH</span>
-                  </div>
-                  <div className="syllabus-stats-badge font-mono">
-                    <span className="syllabus-count-val">{totalQuant.toLocaleString()} / {grandTargets.quant.toLocaleString()} Qs</span>
-                    <span className="syllabus-percent-pill quant-pill">
-                      {Math.min(100, Math.round((totalQuant / grandTargets.quant) * 100))}%
-                    </span>
-                  </div>
-                </div>
-                <div className="syllabus-track">
-                  <div 
-                    className="syllabus-fill quant" 
-                    style={{ width: `${Math.min(100, Math.round((totalQuant / grandTargets.quant) * 100))}%` }} 
-                  />
-                </div>
-              </div>
-
-              <div className="syllabus-progress-card lrdi-theme">
-                <div className="syllabus-label-row">
-                  <div className="syllabus-sub-title">
-                    <span className="syllabus-icon-badge lrdi-badge"><Icons.Puzzle size={13} /></span>
-                    <span className="syllabus-subject-name font-mono">DILR LOGIC CRYPT</span>
-                  </div>
-                  <div className="syllabus-stats-badge font-mono">
-                    <span className="syllabus-count-val">{totalLrdi.toLocaleString()} / {grandTargets.lrdi.toLocaleString()} Sets</span>
-                    <span className="syllabus-percent-pill lrdi-pill">
-                      {Math.min(100, Math.round((totalLrdi / grandTargets.lrdi) * 100))}%
-                    </span>
-                  </div>
-                </div>
-                <div className="syllabus-track">
-                  <div 
-                    className="syllabus-fill lrdi" 
-                    style={{ width: `${Math.min(100, Math.round((totalLrdi / grandTargets.lrdi) * 100))}%` }} 
-                  />
-                </div>
-              </div>
-
-              <div className="syllabus-progress-card varc-theme">
-                <div className="syllabus-label-row">
-                  <div className="syllabus-sub-title">
-                    <span className="syllabus-icon-badge varc-badge"><Icons.BookOpen size={13} /></span>
-                    <span className="syllabus-subject-name font-mono">VARC COMPREHENSION SPIRE</span>
-                  </div>
-                  <div className="syllabus-stats-badge font-mono">
-                    <span className="syllabus-count-val">{totalVarc.toLocaleString()} / {grandTargets.varc.toLocaleString()} Articles</span>
-                    <span className="syllabus-percent-pill varc-pill">
-                      {Math.min(100, Math.round((totalVarc / grandTargets.varc) * 100))}%
-                    </span>
-                  </div>
-                </div>
-                <div className="syllabus-track">
-                  <div 
-                    className="syllabus-fill varc" 
-                    style={{ width: `${Math.min(100, Math.round((totalVarc / grandTargets.varc) * 100))}%` }} 
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: STUDY MATRIX */}
-        {activeTab === 'heatmap' && (
-          <div className="tab-pane-fluid-enter">
-            <div style={{ background: 'rgba(10, 15, 26, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-              {tracker ? (
-                <StudyContributionHeatmap tracker={tracker?.tracker || tracker} compact={true} />
-              ) : (
-                <div className="empty-state" style={{ padding: '16px', fontSize: '12px', textAlign: 'center' }}>
-                  Study matrix telemetry synchronized with local clock.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* FOOTER BARCODE CHECK */}
-      <div className="panoramic-footer font-mono">
-        <span className="panoramic-barcode">||| | || ||||| | ||| || ||||</span>
-        <span>CATALYZE COMMAND HUB // PROTOCOL v3.0</span>
-      </div>
+        </>
+      )}
     </div>
   );
 }

@@ -158,7 +158,7 @@ export default function TermsAndPrivacyModal({ isOpen, onClose }) {
               })}
             </nav>
             <div className="tos-sidebar-footer">
-              <span className="tos-version-tag font-mono">CATALYZE // ARCHITECTURE • 2026</span>
+              <span className="tos-version-tag font-mono">CATALYZE • ARCHITECTURE • 2026</span>
             </div>
           </aside>
 

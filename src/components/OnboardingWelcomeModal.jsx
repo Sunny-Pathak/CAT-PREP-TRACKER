@@ -19,8 +19,10 @@ export default function OnboardingWelcomeModal({
   onComplete,
   initialExamId = DEFAULT_EXAM_ID,
   initialHorizonId = DEFAULT_TIMELINE_ID,
-  activeTheme = 'slate'
+  activeTheme,
+  theme
 }) {
+  const currentTheme = theme || activeTheme || (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : null) || 'dark';
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedExamId, setSelectedExamId] = useState(initialExamId || DEFAULT_EXAM_ID);
   const [selectedHorizonId, setSelectedHorizonId] = useState(initialHorizonId || DEFAULT_TIMELINE_ID);
@@ -181,102 +183,139 @@ export default function OnboardingWelcomeModal({
             className="onb-slider-track"
             style={{ transform: `translateX(-${((currentStep - 1) * 100) / 3}%)` }}
           >
-            {/* Slide 1: Target Exam Grid */}
+            {/* Slide 1: Target Exam */}
             <div className="onb-slider-slide">
-              <div className="onb-grid">
-                {rawExams.map((exam) => {
-                  const isSelected = selectedExamId === exam.id;
-                  const isLocked = exam.id !== 'cat';
-
-                  return (
-                    <SpotlightCard
-                      key={exam.id}
-                      className={`onb-exam-spotlight-card ${isLocked ? 'locked' : ''}`}
-                      isSelected={isSelected}
-                      onClick={() => handleExamSelect(exam.id)}
-                    >
-                      <div className="onb-card-inner">
-                        <div className="onb-card-top">
-                          <div className="onb-card-meta">
-                            <span className="onb-exam-code">{exam.shortName}</span>
-                            <span className="onb-exam-badge">{exam.badge}</span>
-                          </div>
-                          {isLocked ? (
-                            <div className="onb-lock-pill" title="Coming Soon">
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                              </svg>
-                              <span className="onb-lock-status-default">LOCKED</span>
-                              <span className="onb-lock-status-hover">COMING SOON</span>
-                            </div>
-                          ) : (
-                            <div className={`onb-radio-circle ${isSelected ? 'checked' : ''}`}>
-                              {isSelected && (
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" className="onb-check-svg">
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                              )}
-                            </div>
-                          )}
+              {/* Flagship Exam Card: CAT */}
+              {rawExams.filter(e => e.id === 'cat').map((exam) => {
+                const isSelected = selectedExamId === exam.id;
+                return (
+                  <SpotlightCard
+                    key={exam.id}
+                    className="onb-flagship-card"
+                    isSelected={isSelected}
+                    onClick={() => handleExamSelect(exam.id)}
+                  >
+                    <div className="onb-flagship-inner">
+                      <div className="onb-flagship-header">
+                        <div className="onb-flagship-meta">
+                          <span className="onb-flagship-code">{exam.shortName}</span>
+                          <span className="onb-flagship-badge">{exam.badge}</span>
+                          <span className="onb-flagship-active-tag">Active Flagship</span>
                         </div>
-
-                        <div className="onb-card-desc">
-                          {isLocked ? (
-                            <span className="onb-locked-hint">Syllabus calibration in progress</span>
-                          ) : (
-                            exam.targetAudience.split(',')[0]
+                        <div className={`onb-radio-circle ${isSelected ? 'checked' : ''}`}>
+                          {isSelected && (
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" className="onb-check-svg">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
                           )}
                         </div>
                       </div>
-                    </SpotlightCard>
-                  );
-                })}
+
+                      <div className="onb-flagship-desc">
+                        Full preparation blueprint for Quantitative Aptitude, DILR & VARC with benchmark target percentiles for top IIMs and premier management schools.
+                      </div>
+
+                      <div className="onb-flagship-pillars">
+                        <span className="onb-pillar-tag">Quantitative Aptitude</span>
+                        <span className="onb-pillar-dot">•</span>
+                        <span className="onb-pillar-tag">DILR Sets</span>
+                        <span className="onb-pillar-dot">•</span>
+                        <span className="onb-pillar-tag">Verbal (RC & VA)</span>
+                      </div>
+                    </div>
+                  </SpotlightCard>
+                );
+              })}
+
+              {/* Upcoming Examination Modules Strip */}
+              <div className="onb-upcoming-section">
+                <span className="onb-upcoming-label">Upcoming Examination Tracks</span>
+                <div className="onb-upcoming-chips">
+                  {rawExams.filter(e => e.id !== 'cat').map((exam) => (
+                    <div
+                      key={exam.id}
+                      className="onb-upcoming-chip"
+                      onClick={() => handleExamSelect(exam.id)}
+                      title={`${exam.name} - Calibration in progress`}
+                    >
+                      <span className="onb-chip-name">{exam.shortName}</span>
+                      <span className="onb-chip-badge">{exam.badge}</span>
+                      <div className="onb-lock-pill">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <span className="onb-lock-status-default">LOCKED</span>
+                        <span className="onb-lock-status-hover">COMING SOON</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Slide 2: Timeline Horizon & Pacing */}
             <div className="onb-slider-slide">
               <div className="onb-horizon-wrap">
-                <div className="onb-horizon-grid">
-                  {TIMELINE_HORIZONS.map((h) => {
-                    const isSelected = selectedHorizonId === h.id;
-                    const isLocked = h.id !== '16_weeks';
-
-                    return (
-                      <SpotlightCard
-                        key={h.id}
-                        className={`onb-horizon-spotlight-card ${isLocked ? 'locked' : ''}`}
-                        isSelected={isSelected}
-                        onClick={() => handleHorizonSelect(h.id)}
-                      >
-                        <div className="onb-card-inner">
-                          <div className="onb-hz-top">
-                            <span className="onb-hz-label">{h.label}</span>
-                            {isLocked ? (
-                              <div className="onb-lock-pill" title="Coming Soon">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                </svg>
-                                <span className="onb-lock-status-default">{h.badge}</span>
-                                <span className="onb-lock-status-hover">COMING SOON</span>
-                              </div>
-                            ) : (
-                              <span className="onb-hz-badge">{h.badge}</span>
-                            )}
+                {/* Active Recommended Horizon: 16 Weeks */}
+                {TIMELINE_HORIZONS.filter(h => h.id === '16_weeks').map((h) => {
+                  const isSelected = selectedHorizonId === h.id;
+                  return (
+                    <SpotlightCard
+                      key={h.id}
+                      className="onb-flagship-card"
+                      isSelected={isSelected}
+                      onClick={() => handleHorizonSelect(h.id)}
+                    >
+                      <div className="onb-flagship-inner">
+                        <div className="onb-flagship-header">
+                          <div className="onb-flagship-meta">
+                            <span className="onb-flagship-code">{h.label}</span>
+                            <span className="onb-flagship-badge">{h.badge}</span>
+                            <span className="onb-flagship-active-tag">Recommended Pace</span>
                           </div>
-                          <div className="onb-hz-hours">
-                            {isLocked ? (
-                              <span className="onb-locked-hint">Pace roadmap calibration in progress</span>
-                            ) : (
-                              `${h.dailyHours} hrs / day`
+                          <div className={`onb-radio-circle ${isSelected ? 'checked' : ''}`}>
+                            {isSelected && (
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" className="onb-check-svg">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
                             )}
                           </div>
                         </div>
-                      </SpotlightCard>
-                    );
-                  })}
+                        <div className="onb-flagship-desc">
+                          Balanced 4.0 hrs/day preparation regimen designed for steady syllabus mastery and regular mock retention.
+                        </div>
+                        <div className="onb-hz-hours font-mono">
+                          {h.dailyHours} hrs / day • Optimal CAT pace
+                        </div>
+                      </div>
+                    </SpotlightCard>
+                  );
+                })}
+
+                {/* Alternative Horizons Strip */}
+                <div className="onb-upcoming-section">
+                  <span className="onb-upcoming-label">Alternative Pace Profiles</span>
+                  <div className="onb-upcoming-chips">
+                    {TIMELINE_HORIZONS.filter(h => h.id !== '16_weeks').map((h) => (
+                      <div
+                        key={h.id}
+                        className="onb-upcoming-chip"
+                        onClick={() => handleHorizonSelect(h.id)}
+                        title={`${h.label} - Pace roadmap calibration in progress`}
+                      >
+                        <span className="onb-chip-name">{h.label}</span>
+                        <div className="onb-lock-pill">
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                          </svg>
+                          <span className="onb-lock-status-default">{h.badge}</span>
+                          <span className="onb-lock-status-hover">COMING SOON</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Dynamic Adjusted Quota Summary Strip */}
@@ -578,7 +617,165 @@ export default function OnboardingWelcomeModal({
           overflow-y: auto;
         }
 
-        /* Step 1: Exam Grid - 2 columns on desktop, 1 column on narrow screens */
+        /* Flagship Card & Upcoming Tracks */
+        .onb-flagship-card {
+          border-radius: 12px;
+          border: 1px solid var(--accent-border, rgba(56, 189, 248, 0.35));
+          background: var(--card-bg, rgba(15, 23, 42, 0.6));
+          box-shadow: 0 4px 20px var(--accent-glow, rgba(56, 189, 248, 0.12));
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          transform: translateZ(0);
+        }
+
+        .onb-flagship-inner {
+          padding: 16px 18px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .onb-flagship-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .onb-flagship-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .onb-flagship-code {
+          font-size: 16px;
+          font-weight: 800;
+          color: var(--text-primary, #ffffff);
+          letter-spacing: 0.02em;
+        }
+
+        .onb-flagship-badge {
+          font-size: 9px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          padding: 3px 7px;
+          border-radius: 4px;
+          background: var(--accent-bg, rgba(56, 189, 248, 0.14));
+          color: var(--accent-color, #38bdf8);
+        }
+
+        .onb-flagship-active-tag {
+          font-size: 9px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          padding: 3px 8px;
+          border-radius: 20px;
+          background: rgba(16, 185, 129, 0.15);
+          color: #34d399;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .onb-flagship-desc {
+          font-size: 12px;
+          color: var(--text-secondary, #94a3b8);
+          line-height: 1.45;
+        }
+
+        .onb-flagship-pillars {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          padding-top: 4px;
+        }
+
+        .onb-pillar-tag {
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--accent-color, #38bdf8);
+          background: var(--accent-bg, rgba(56, 189, 248, 0.08));
+          padding: 2px 8px;
+          border-radius: 6px;
+        }
+
+        .onb-pillar-dot {
+          color: var(--text-tertiary, #64748b);
+          font-size: 10px;
+        }
+
+        /* Upcoming Section & Chips */
+        .onb-upcoming-section {
+          margin-top: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .onb-upcoming-label {
+          font-size: 10.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-tertiary, #64748b);
+        }
+
+        .onb-upcoming-chips {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .onb-upcoming-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 10px;
+          background: rgba(255, 255, 255, 0.025);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 8px;
+          cursor: not-allowed;
+          transition: all 0.2s ease;
+        }
+
+        .onb-upcoming-chip:hover {
+          background: rgba(255, 255, 255, 0.05);
+          border-color: rgba(251, 191, 36, 0.3);
+        }
+
+        .onb-upcoming-chip:hover .onb-lock-status-default {
+          display: none;
+        }
+
+        .onb-upcoming-chip:hover .onb-lock-status-hover {
+          display: inline;
+        }
+
+        .onb-upcoming-chip:hover .onb-lock-pill {
+          background: rgba(251, 191, 36, 0.12);
+          border-color: rgba(251, 191, 36, 0.4);
+          color: #fbbf24;
+        }
+
+        .onb-chip-name {
+          font-size: 11.5px;
+          font-weight: 700;
+          color: var(--text-primary, #ffffff);
+        }
+
+        .onb-chip-badge {
+          font-size: 8px;
+          font-weight: 600;
+          padding: 1px 4px;
+          border-radius: 4px;
+          background: rgba(255, 255, 255, 0.05);
+          color: var(--text-tertiary, #64748b);
+        }
+
+        /* Step 1: Exam Grid - Legacy fallback */
         .onb-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
