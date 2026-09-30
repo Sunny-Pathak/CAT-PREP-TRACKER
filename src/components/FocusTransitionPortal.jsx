@@ -1,5 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+gsap.registerPlugin(useGSAP);
 
 /**
  * FocusTransitionPortal - Spylt-Inspired Cinematic Focus Overlay
@@ -17,79 +20,77 @@ export default function FocusTransitionPortal({ onComplete, activeTheme = 'dark'
     }
   };
 
-  useEffect(() => {
-    let isMounted = true;
+  useGSAP((context, contextSafe) => {
+    const prefersReducedMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)')?.matches;
+    if (prefersReducedMotion) {
+      handleFinish();
+      return;
+    }
+
+    const safeFinish = contextSafe(handleFinish);
 
     // Safety timeout: auto-finish after 2.0s
     const safetyTimer = setTimeout(() => {
-      if (isMounted) handleFinish();
+      safeFinish();
     }, 2000);
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') handleFinish();
+      if (e.key === 'Escape') safeFinish();
     };
     window.addEventListener('keydown', handleKeyDown);
 
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        onComplete: () => {
-          if (isMounted) handleFinish();
-        }
-      });
+    const tl = gsap.timeline({
+      defaults: { ease: 'power2.out' },
+      onComplete: safeFinish
+    });
 
-      // Initial state
-      gsap.set('.focus-trans-word', { y: 30, opacity: 0, scale: 0.9 });
-      gsap.set('.focus-trans-tag', { opacity: 0, y: -12 });
-      gsap.set('.focus-trans-sub-hint', { opacity: 0 });
+    // Initial state with autoAlpha (avoids click blocking)
+    gsap.set('.focus-trans-word', { y: 30, autoAlpha: 0, scale: 0.9 });
+    gsap.set('.focus-trans-tag', { autoAlpha: 0, y: -12 });
+    gsap.set('.focus-trans-sub-hint', { autoAlpha: 0 });
 
-      // 1. Kinetic Typography ("TIME TO STUDY.") sweeps in smoothly
-      tl.to('.focus-trans-tag', {
-        opacity: 1,
-        y: 0,
-        duration: 0.35,
-        ease: 'power2.out'
-      }, 0.1)
-      .to('.focus-trans-word', {
-        y: 0,
-        opacity: 1,
-        scale: 1,
-        stagger: 0.07,
-        duration: 0.5,
-        ease: 'back.out(1.6)'
-      }, 0.18)
-      .to('.focus-trans-sub-hint', {
-        opacity: 0.8,
-        duration: 0.3
-      }, 0.4)
+    // 1. Kinetic Typography ("TIME TO STUDY.") sweeps in smoothly
+    tl.to('.focus-trans-tag', {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.35
+    }, 0.1)
+    .to('.focus-trans-word', {
+      y: 0,
+      autoAlpha: 1,
+      scale: 1,
+      stagger: 0.07,
+      duration: 0.5,
+      ease: 'back.out(1.6)'
+    }, 0.18)
+    .to('.focus-trans-sub-hint', {
+      autoAlpha: 0.8,
+      duration: 0.3
+    }, 0.4)
 
-      // 2. Brief hold so the aspirant experiences the focus motivation
-      .to({}, { duration: 0.45 })
+    // 2. Brief hold so the aspirant experiences the focus motivation
+    .to({}, { duration: 0.45 })
 
-      // 3. Kinetic Typography sweeps upward and fades
-      .to(['.focus-trans-word', '.focus-trans-tag', '.focus-trans-sub-hint'], {
-        y: -24,
-        opacity: 0,
-        stagger: 0.03,
-        duration: 0.3,
-        ease: 'power2.in'
-      })
+    // 3. Kinetic Typography sweeps upward and fades
+    .to(['.focus-trans-word', '.focus-trans-tag', '.focus-trans-sub-hint'], {
+      y: -24,
+      autoAlpha: 0,
+      stagger: 0.03,
+      duration: 0.3,
+      ease: 'power2.in'
+    })
 
-      // 4. Veil dissolves seamlessly, revealing the full Timer Sanctuary
-      .to(containerRef.current, {
-        opacity: 0,
-        duration: 0.4,
-        ease: 'power2.out'
-      }, '-=0.15');
-
-    }, containerRef);
+    // 4. Veil dissolves seamlessly, revealing the full Timer Sanctuary
+    .to(containerRef.current, {
+      autoAlpha: 0,
+      duration: 0.4
+    }, '-=0.15');
 
     return () => {
-      isMounted = false;
       clearTimeout(safetyTimer);
       window.removeEventListener('keydown', handleKeyDown);
-      ctx.revert();
     };
-  }, []);
+  }, { scope: containerRef });
 
   return (
     <div 
@@ -104,7 +105,7 @@ export default function FocusTransitionPortal({ onComplete, activeTheme = 'dark'
       {/* Kinetic Typography floating above */}
       <div className="focus-trans-header-wrap">
         <span className="focus-trans-tag font-mono">
-          // PROTOCOL: DEEP FOCUS • {subject.toUpperCase()} DRILL
+          PROTOCOL: DEEP FOCUS • {subject.toUpperCase()} DRILL
         </span>
 
         <h1 className="focus-trans-title">

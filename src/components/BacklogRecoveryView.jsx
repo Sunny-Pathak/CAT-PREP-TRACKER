@@ -285,7 +285,7 @@ export default function BacklogRecoveryView({
                 {bottleneckMonth} • {bottleneckWeek} Foundation Topics
               </h2>
               <p className="recovery-section-subtitle">
-                Prerequisites for Week {Math.min(16, bottleneckGlobalIdx + 1)}+ modules • Live Interactive Logger
+                Prerequisites for upcoming modules • Log drills directly below
               </p>
             </div>
           </div>
@@ -293,7 +293,7 @@ export default function BacklogRecoveryView({
           <div className="recovery-section-actions">
             <button
               type="button"
-              className="recovery-hero-btn ghost"
+              className="recovery-hero-btn ghost clean-pill-btn"
               onClick={() => onNavigateToDaily && onNavigateToDaily(bottleneckMonth, bottleneckWeek, 'Monday')}
               title="Jump directly to this week in the daily tracker"
             >
@@ -320,7 +320,7 @@ export default function BacklogRecoveryView({
             <div className="recovery-station-body">
               <div className="station-stat-row">
                 <span>Target: <strong>{quantTarget} Qs</strong></span>
-                <span>Solved: <strong style={{ color: '#38bdf8' }}>{quantSolved}</strong></span>
+                <span>Solved: <strong>{quantSolved}</strong></span>
               </div>
 
               <div className="station-mini-track">
@@ -348,7 +348,7 @@ export default function BacklogRecoveryView({
                 </button>
                 <button
                   type="button"
-                  className="station-stepper-btn inc"
+                  className="station-stepper-btn inc primary-pill"
                   onClick={() => handleIncrementDrill('quant', 1)}
                   title="Solve 1 question"
                   aria-label="+1 Q"
@@ -392,7 +392,7 @@ export default function BacklogRecoveryView({
             <div className="recovery-station-body">
               <div className="station-stat-row">
                 <span>Target: <strong>{lrdiTarget} Sets</strong></span>
-                <span>Solved: <strong style={{ color: '#c084fc' }}>{lrdiSolved}</strong></span>
+                <span>Solved: <strong>{lrdiSolved}</strong></span>
               </div>
 
               <div className="station-mini-track">
@@ -411,7 +411,7 @@ export default function BacklogRecoveryView({
                 </button>
                 <button
                   type="button"
-                  className="station-stepper-btn inc highlight"
+                  className="station-stepper-btn inc primary-pill"
                   onClick={() => handleIncrementDrill('lrdi', 1)}
                   title="Solve 1 set"
                   aria-label="+1 Set"
@@ -446,7 +446,7 @@ export default function BacklogRecoveryView({
             <div className="recovery-station-body">
               <div className="station-stat-row">
                 <span>Target: <strong>{varcTarget} RCs</strong></span>
-                <span>Solved: <strong style={{ color: '#34d399' }}>{varcSolved}</strong></span>
+                <span>Solved: <strong>{varcSolved}</strong></span>
               </div>
 
               <div className="station-mini-track">
@@ -465,7 +465,7 @@ export default function BacklogRecoveryView({
                 </button>
                 <button
                   type="button"
-                  className="station-stepper-btn inc highlight"
+                  className="station-stepper-btn inc primary-pill"
                   onClick={() => handleIncrementDrill('varc', 1)}
                   title="Solve 1 RC"
                   aria-label="+1 RC"
@@ -504,7 +504,7 @@ export default function BacklogRecoveryView({
             </div>
 
             <p className="recovery-checklist-note">
-              Tick each foundational concept as you review the core lecture or notes (+50 EXP each):
+              Tick each foundational concept as you review the core lecture or notes:
             </p>
 
             <div className="recovery-subtopics-list">
@@ -518,10 +518,9 @@ export default function BacklogRecoveryView({
                     onClick={() => handleToggleSubtopic(subtopic)}
                   >
                     <div className={`recovery-subtopic-check ${isDone ? 'checked' : ''}`}>
-                      {isDone ? <Icons.CheckCircle size={14} color="#10b981" /> : <span className="empty-check-dot" />}
+                      {isDone ? <Icons.Check size={12} strokeWidth={2.5} /> : null}
                     </div>
                     <span className="recovery-subtopic-text">{subtopic}</span>
-                    <span className="recovery-exp-tag">+50 EXP</span>
                   </button>
                 );
               })}
@@ -552,8 +551,8 @@ export default function BacklogRecoveryView({
               <Icons.Zap size={20} />
             </div>
             <div>
-              <h3 className="recovery-section-title" style={{ fontSize: '17px' }}>Recovery Mode</h3>
-              <p className="recovery-section-subtitle">Choose your tactical catch-up protocol</p>
+              <h3 className="recovery-section-title" style={{ fontSize: '16px' }}>Recovery Mode</h3>
+              <p className="recovery-section-subtitle">Choose your catch-up protocol</p>
             </div>
           </div>
 
@@ -572,9 +571,10 @@ export default function BacklogRecoveryView({
                 <div className="strategy-top-row">
                   <span className="strategy-title">7-Day Catch-Up Micro-Blitz</span>
                   <div className="strategy-badges-cluster">
-                    <span className="strategy-chip recommended">RECOMMENDED</span>
-                    {activeStrategy === 'catch_up_blitz' && (
+                    {activeStrategy === 'catch_up_blitz' ? (
                       <span className="strategy-chip active">ACTIVE</span>
+                    ) : (
+                      <span className="strategy-chip recommended">RECOMMENDED</span>
                     )}
                   </div>
                 </div>

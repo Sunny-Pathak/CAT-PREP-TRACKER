@@ -11,206 +11,6 @@ function BrandLogo({ size = 32 }) {
   return <LiquidMetalLogo size={size} />;
 }
 
-// Minimal, Smoothly Animated Zen Scholar Mascot
-function SmoothZenMascot({ isPatted, onHeadpat }) {
-  return (
-    <div 
-      className={`auth-zen-mascot-badge ${isPatted ? 'is-happy' : ''}`}
-      onClick={onHeadpat}
-      title="Zen Study Sprite — click to pat!"
-    >
-      <div className="mascot-soft-glow" />
-
-      {/* Floating vector hearts/sparkles when patted */}
-      {isPatted && (
-        <div className="mascot-pat-burst" aria-hidden="true">
-          <svg className="burst-spark burst-s1" viewBox="0 0 24 24" width="13" height="13">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#f43f5e" />
-          </svg>
-          <svg className="burst-spark burst-s2" viewBox="0 0 24 24" width="11" height="11">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="#38bdf8" />
-          </svg>
-          <svg className="burst-spark burst-s3" viewBox="0 0 24 24" width="12" height="12">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ec4899" />
-          </svg>
-        </div>
-      )}
-      <svg 
-        viewBox="18 10 76 56" 
-        className="auth-mascot-svg" 
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <linearGradient id="zenBodyGrad" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#38bdf8" />
-            <stop offset="100%" stopColor="#818cf8" />
-          </linearGradient>
-
-          <linearGradient id="zenEarGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#f472b6" />
-            <stop offset="100%" stopColor="#38bdf8" />
-          </linearGradient>
-        </defs>
-
-        {/* Tail with fluid sway */}
-        <path 
-          d="M70 60 Q84 48 82 34 Q85 26 89 31 Q92 39 87 50 Q82 58 74 62 Z" 
-          fill="url(#zenBodyGrad)" 
-          className="mascot-tail" 
-        />
-
-        {/* Head with gentle breathing */}
-        <g className="mascot-head">
-          <path 
-            d="M 50,66 C 26,66 26,42 30,28 L 32,12 L 42,22 Q 50,19 58,22 L 68,12 L 70,28 C 74,42 74,66 50,66 Z" 
-            fill="url(#zenBodyGrad)" 
-          />
-
-          {/* Ears with micro-twitch */}
-          <polygon points="34,26 33,16 41,23" fill="url(#zenEarGrad)" opacity="0.85" className="mascot-ear-l" />
-          <polygon points="66,26 67,16 59,23" fill="url(#zenEarGrad)" opacity="0.85" className="mascot-ear-r" />
-
-          {/* Scholar Glasses */}
-          <g className="mascot-spectacles">
-            <circle cx="41" cy="42" r="7.5" fill="rgba(8, 12, 22, 0.8)" stroke="#ffffff" strokeWidth="1.3" />
-            <circle cx="59" cy="42" r="7.5" fill="rgba(8, 12, 22, 0.8)" stroke="#ffffff" strokeWidth="1.3" />
-            <path d="M48.5 42 Q50 40.5 51.5 42" stroke="#ffffff" strokeWidth="1.3" fill="none" />
-
-            {/* Smoothly Cross-fading Eyes */}
-            <g 
-              fill="#38bdf8" 
-              className="mascot-pupils" 
-              style={{ 
-                opacity: isPatted ? 0 : 1, 
-                transition: 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                pointerEvents: 'none'
-              }}
-            >
-              <circle cx="41" cy="42" r="2.5" />
-              <circle cx="59" cy="42" r="2.5" />
-              <circle cx="42.2" cy="40.8" r="0.9" fill="#ffffff" />
-              <circle cx="60.2" cy="40.8" r="0.9" fill="#ffffff" />
-            </g>
-            <g 
-              stroke="#38bdf8" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              fill="none"
-              style={{ 
-                opacity: isPatted ? 1 : 0, 
-                transition: 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                pointerEvents: 'none'
-              }}
-            >
-              <path d="M37.5 43.5 Q41 39.5 44.5 43.5" />
-              <path d="M55.5 43.5 Q59 39.5 62.5 43.5" />
-            </g>
-          </g>
-
-          {/* Nose & Whiskers */}
-          <path d="M48.5 48.5 L51.5 48.5 L50 50.5 Z" fill="#f472b6" />
-          <line x1="34" y1="49" x2="26" y2="47.5" stroke="rgba(255,255,255,0.6)" strokeWidth="0.8" strokeLinecap="round" />
-          <line x1="34" y1="51" x2="25" y2="52" stroke="rgba(255,255,255,0.6)" strokeWidth="0.8" strokeLinecap="round" />
-          <line x1="66" y1="49" x2="74" y2="47.5" stroke="rgba(255,255,255,0.6)" strokeWidth="0.8" strokeLinecap="round" />
-          <line x1="66" y1="51" x2="75" y2="52" stroke="rgba(255,255,255,0.6)" strokeWidth="0.8" strokeLinecap="round" />
-
-          {/* Smoothly Cross-fading Blushing Cheeks */}
-          <g 
-            style={{ 
-              opacity: isPatted ? 1 : 0, 
-              transition: 'opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-              pointerEvents: 'none'
-            }}
-          >
-            <ellipse cx="33" cy="46" rx="3.5" ry="2" fill="#f43f5e" opacity="0.85" />
-            <ellipse cx="67" cy="46" rx="3.5" ry="2" fill="#f43f5e" opacity="0.85" />
-          </g>
-        </g>
-
-        {/* Front paws resting */}
-        <g>
-          <ellipse cx="38" cy="62" rx="6" ry="4" fill="url(#zenBodyGrad)" stroke="rgba(255,255,255,0.25)" strokeWidth="0.8" />
-          <ellipse cx="62" cy="62" rx="6" ry="4" fill="url(#zenBodyGrad)" stroke="rgba(255,255,255,0.25)" strokeWidth="0.8" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-// Skiper103 Bouncy Accordion Feature Card Component
-function MinimalCoreFeatures() {
-  const features = [
-    {
-      id: 'quant-matrix',
-      title: 'Quantitative & Error Log Matrix',
-      desc: 'Systematically tracks Arithmetic, Algebra, and Geometry practice accuracy with isolated error logging.',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
-      )
-    },
-    {
-      id: 'study-lounge',
-      title: 'Live Aspirant Study Lounge',
-      desc: '25-minute Pomodoro focus sprints with real-time peer accountability to eliminate procrastination.',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      )
-    },
-    {
-      id: 'stamp-rally',
-      title: 'Cat Hanko Stamp Rally',
-      desc: 'Gamified Japanese ink seals for daily quota streaks, unlocking progression milestones and secret bonuses.',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="8" r="7" />
-          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
-        </svg>
-      )
-    },
-    {
-      id: 'offline-sync',
-      title: 'Offline-First Cloud Sync',
-      desc: 'Zero-latency local storage with automatic cloud background persistence across devices.',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 2v4" />
-          <path d="m16.2 7.8 2.9-2.9" />
-          <path d="M18 12h4" />
-          <path d="m16.2 16.2 2.9 2.9" />
-          <path d="M12 18v4" />
-          <path d="m4.9 19.1 2.9-2.9" />
-          <path d="M2 12h4" />
-          <path d="m4.9 4.9 2.9 2.9" />
-        </svg>
-      )
-    }
-  ];
-
-  return (
-    <div className="minimal-features-list">
-      {features.map((feat) => (
-        <div key={feat.id} className="minimal-feature-row">
-          <div className="minimal-feature-icon-box">
-            {feat.icon}
-          </div>
-          <div className="minimal-feature-text">
-            <span className="minimal-feature-title">{feat.title}</span>
-            <span className="minimal-feature-desc">{feat.desc}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 import { stripEmojis } from '../utils/textUtils';
 
 export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) {
@@ -224,9 +24,7 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) 
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [authError, setAuthError] = useState('');
-  const [isMascotHappy, setIsMascotHappy] = useState(false);
   const [transitionState, setTransitionState] = useState('idle'); // 'idle' | 'success-exit' | 'error-return'
-  const [transitionMessage, setTransitionMessage] = useState('');
 
   // Brute-force & credential stuffing defense: Progressive lockout cooldown
   const [failedAttempts, setFailedAttempts] = useState(0);
@@ -253,13 +51,6 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) 
       return false;
     }
   });
-
-  const handleHeadpat = () => {
-    setIsMascotHappy(true);
-    setTimeout(() => {
-      setIsMascotHappy(false);
-    }, 2200);
-  };
 
   const markVisited = () => {
     try {
@@ -370,7 +161,6 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) 
         msg = '5 failed attempts detected. Cooldown activated for 30 seconds.';
       }
       
-      // Cancel/Error return animation to bring form back into view smoothly
       setAuthError(msg);
       setTransitionState('error-return');
       setTimeout(() => {
@@ -399,7 +189,6 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) 
       if (onAuthSuccess) onAuthSuccess(u);
     } catch (err) {
       console.warn("Google Auth failure:", err?.code || err?.message || 'unknown');
-      // Cancel/Error return animation back to sign up screen
       setTransitionState('error-return');
       setTimeout(() => setTransitionState('idle'), 600);
 
@@ -415,25 +204,12 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) 
     }
   };
 
-  // Dynamic Title: "Welcome back!" ONLY if returning user; otherwise "Welcome to CATalyze" / "Create your account"
-  const formHeading = isSignUp
-    ? 'Create your account'
-    : hasVisitedBefore
-    ? 'Welcome back!'
-    : 'Welcome to CATalyze';
-
-  const formSubheading = isSignUp
-    ? 'Initialize your personal preparation tracker with cloud sync.'
-    : hasVisitedBefore
-    ? 'Resume your preparation drills and mock analytics.'
-    : 'The high-precision preparation operating system for CAT & OMETs aspirants.';
-
   return (
     <div 
       className={`skiper-auth-root ${transitionState === 'success-exit' ? 'is-exiting' : ''} ${transitionState === 'error-return' ? 'is-returning' : ''}`}
       data-theme={activeTheme}
     >
-      {/* ReactBits High-Performance WebGL Dither Wave Background */}
+      {/* High-Performance WebGL Dither Wave Background */}
       <div className="auth-dither-backdrop" aria-hidden="true">
         <DitherBackground 
           activeTheme={activeTheme} 
@@ -443,64 +219,34 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) 
         />
       </div>
 
-      {/* Heavy Frosted Glass & Ambient Darkening Veil for High Readability */}
+      {/* Ambient Darkening Veil */}
       <div className="auth-bg-veil" aria-hidden="true" />
 
-      {/* Main Split Layout Container with Smooth Exit & Return Transitions */}
-      <div className={`skiper-split-card ${transitionState === 'success-exit' ? 'split-card-exit' : ''} ${transitionState === 'error-return' ? 'split-card-return' : ''}`}>
+      {/* Clean Single Card Container */}
+      <div className={`skiper-split-card auth-clean-card ${transitionState === 'success-exit' ? 'split-card-exit' : ''} ${transitionState === 'error-return' ? 'split-card-return' : ''}`}>
         
-        {/* ========================================================
-            LEFT COLUMN: Minimal Form with Site Fonts & Official Logo
-            ======================================================== */}
-        <div className="skiper-form-column">
+        <div className="skiper-form-column auth-clean-column">
           
-          {/* Brand Row */}
-          <div className="skiper-brand-header">
-            <BrandLogo size={32} />
-            <div className="skiper-brand-meta">
-              <span className="skiper-brand-title">CATalyze</span>
-              <span className="skiper-version-pill">v1.08</span>
-            </div>
-          </div>
-
-          {/* Site Signature Kinetic Typography - Clean, Minimal & Grounded */}
-          <div className="auth-signature-title-group">
-            <div className="spylt-subtag auth-subtag-pill">
-              <span className="subtag-dot" />
-              <span>CAT & OMETS PREPARATION</span>
+          {/* Brand & Clean Title */}
+          <div className="auth-clean-header">
+            <div className="auth-brand-badge">
+              <BrandLogo size={28} />
+              <span className="auth-brand-label">CATalyze</span>
             </div>
 
-            <div className="spylt-title-wrapper auth-kinetic-heading">
-              {isSignUp ? (
-                <>
-                  <span className="spylt-word word-bold">START</span>
-                  <span className="spylt-word word-italic">your prep.</span>
-                </>
-              ) : hasVisitedBefore ? (
-                <>
-                  <span className="spylt-word word-bold">WELCOME</span>
-                  <span className="spylt-word word-italic">back.</span>
-                </>
-              ) : (
-                <>
-                  <span className="spylt-word word-bold">DAILY</span>
-                  <span className="spylt-word word-italic">focus.</span>
-                </>
-              )}
-            </div>
-
-            <p className="auth-minimal-subtext">
+            <h1 className="auth-clean-title">
+              {isSignUp ? 'Create your account' : hasVisitedBefore ? 'Welcome back' : 'Sign in'}
+            </h1>
+            <p className="auth-clean-subtitle">
               {isSignUp
-                ? 'Systematic practice logging, error patterns, and focused study routines.'
-                : hasVisitedBefore
-                ? 'Resume your study drills, revision queues, and practice sessions.'
-                : 'Track daily practice, log mistakes, and build consistency.'}
+                ? 'Start tracking drills, errors, and daily progress.'
+                : 'Enter your credentials to access your study workspace.'}
             </p>
           </div>
 
           {/* Error Banner */}
           {authError && (
-            <div className="skiper-error-banner">
+            <div className="skiper-error-banner" role="alert">
               <Icons.AlertCircle size={15} />
               <span>{authError}</span>
             </div>
@@ -584,13 +330,12 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) 
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* Primary Submit Button */}
             <button
               type="submit"
-              className="skiper-submit-btn"
+              className="skiper-submit-btn auth-tactile-submit"
               disabled={loading || googleLoading || lockoutSeconds > 0}
             >
-              <div className="skiper-btn-bottom-glow" />
               {loading ? (
                 <span className="skiper-loading-spinner" />
               ) : lockoutSeconds > 0 ? (
@@ -604,7 +349,7 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) 
           </form>
 
           {/* Divider */}
-          <div className="skiper-divider-row">
+          <div className="skiper-divider-row auth-clean-divider">
             <span className="skiper-divider-line" />
             <span className="skiper-divider-text">or</span>
             <span className="skiper-divider-line" />
@@ -614,7 +359,7 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) 
           <div className="skiper-social-wrap">
             <button
               type="button"
-              className="skiper-google-btn"
+              className="skiper-google-btn auth-tactile-google"
               onClick={handleGoogleSignIn}
               disabled={googleLoading || loading}
               title="Continue with Google"
@@ -633,94 +378,55 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) 
             </button>
           </div>
 
-          {/* Switch Row */}
-          <div className="skiper-switch-container">
-            {isSignUp ? (
-              <p className="skiper-switch-p">
-                Already have an account?{' '}
+          {/* Switch Row & Guest Link */}
+          <div className="auth-clean-footer">
+            <div className="skiper-switch-container">
+              {isSignUp ? (
+                <p className="skiper-switch-p">
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    className="skiper-switch-link"
+                    onClick={() => {
+                      setIsSignUp(false);
+                      setAuthError('');
+                    }}
+                  >
+                    Sign in
+                  </button>
+                </p>
+              ) : (
+                <p className="skiper-switch-p">
+                  Don't have an account?{' '}
+                  <button
+                    type="button"
+                    className="skiper-switch-link"
+                    onClick={() => {
+                      setIsSignUp(true);
+                      setAuthError('');
+                    }}
+                  >
+                    Sign up
+                  </button>
+                </p>
+              )}
+            </div>
+
+            {onContinueAsGuest && (
+              <div className="skiper-guest-wrap">
                 <button
                   type="button"
-                  className="skiper-switch-link"
-                  onClick={() => {
-                    setIsSignUp(false);
-                    setAuthError('');
-                  }}
+                  className="skiper-guest-link auth-clean-guest-link"
+                  onClick={handleContinueGuest}
                 >
-                  Sign in
+                  <span>Continue as Offline Guest</span>
+                  <Icons.ChevronRight size={13} />
                 </button>
-              </p>
-            ) : (
-              <p className="skiper-switch-p">
-                Don't have an account?{' '}
-                <button
-                  type="button"
-                  className="skiper-switch-link"
-                  onClick={() => {
-                    setIsSignUp(true);
-                    setAuthError('');
-                  }}
-                >
-                  Sign up
-                </button>
-              </p>
+              </div>
             )}
           </div>
 
-          {/* Continue as Offline Guest Link */}
-          {onContinueAsGuest && (
-            <div className="skiper-guest-wrap">
-              <button
-                type="button"
-                className="skiper-guest-link"
-                onClick={handleContinueGuest}
-              >
-                <span>Continue as Offline Guest</span>
-                <Icons.ChevronRight size={13} />
-              </button>
-            </div>
-          )}
-
         </div>
-
-        {/* ========================================================
-            RIGHT COLUMN: Skiper-UI (skiper103) Minimalist Feature Card
-            With Smooth Animated Zen Mascot
-            ======================================================== */}
-        <div className="skiper-feature-column">
-          
-          {/* Clean Mascot Header (No Quotes) */}
-          <div className="skiper-mascot-header">
-            <SmoothZenMascot 
-              isPatted={isMascotHappy} 
-              onHeadpat={handleHeadpat} 
-            />
-            <div className="skiper-mascot-text">
-              <div className="mascot-title-row">
-                <span className="mascot-name-label">Zen Study Sprite</span>
-                <span className="mascot-interactive-hint">click to pat</span>
-              </div>
-              <span className="mascot-role-desc">Personal CAT & OMETs Preparation Companion</span>
-            </div>
-          </div>
-
-          {/* Minimalist Core Features Showcase */}
-          <div className="skiper-features-container">
-            <div className="accordion-section-header">
-              <span className="accordion-label">Core Preparation Features</span>
-            </div>
-            <MinimalCoreFeatures />
-          </div>
-
-          {/* Clean Minimal Security & Sync Badge Footer (No Quotes) */}
-          <div className="skiper-feature-footer">
-            <div className="skiper-footer-badge">
-              <Icons.Shield size={13} />
-              <span>Offline-First • Local & Cloud Auto-Sync</span>
-            </div>
-          </div>
-
-        </div>
-
       </div>
     </div>
   );

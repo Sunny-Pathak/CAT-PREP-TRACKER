@@ -1,6 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import './TerminalAsciiBootLoader.css';
+
+gsap.registerPlugin(useGSAP);
 
 /**
  * TerminalAsciiBootLoader - Smooth & Fluid Terminal Transition Loader
@@ -35,147 +38,140 @@ export default function TerminalAsciiBootLoader({ onComplete, isTestEnv = false,
     }
   }, [isTestEnv]);
 
-  useEffect(() => {
+  useGSAP((context, contextSafe) => {
     if (isTestEnv) return;
 
-    let isMounted = true;
+    const prefersReducedMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)')?.matches;
+    if (prefersReducedMotion) {
+      handleFinish();
+      return;
+    }
+
+    const safeFinish = contextSafe(handleFinish);
     const isExit = mode === 'exit';
 
     // Safety fallback: guaranteed completion even if animation stalls
     const safetyTimer = setTimeout(() => {
-      if (isMounted) {
-        handleFinish();
-      }
+      safeFinish();
     }, isExit ? 650 : 2400);
 
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        onComplete: () => {
-          if (isMounted) {
-            handleFinish();
+    const tl = gsap.timeline({
+      defaults: { ease: 'power2.out' },
+      onComplete: safeFinish
+    });
+
+    if (isExit) {
+      // Exit Transition: Curtain smoothly pulls down over terminal, saving session
+      gsap.set('.boot-liquid-curtain', { yPercent: -100, autoAlpha: 1 });
+      gsap.set('.boot-spylt-word', { y: 25, autoAlpha: 0 });
+      gsap.set('.boot-spylt-subtag', { autoAlpha: 0, y: 10 });
+      gsap.set('.boot-spylt-counter-wrap', { autoAlpha: 0 });
+
+      tl.to('.boot-liquid-curtain', {
+        yPercent: 0,
+        duration: 0.32,
+        ease: 'power3.inOut'
+      })
+      .to('.boot-spylt-subtag', {
+        autoAlpha: 1,
+        y: 0,
+        duration: 0.18
+      }, '-=0.15')
+      .to('.boot-spylt-word', {
+        y: 0,
+        autoAlpha: 1,
+        stagger: 0.05,
+        duration: 0.22,
+        ease: 'power3.out'
+      }, '-=0.12')
+      .to('.boot-spylt-counter-wrap', {
+        autoAlpha: 1,
+        duration: 0.18
+      }, '-=0.1')
+      .to({}, { duration: 0.14 }); // Hold before finishing
+
+    } else {
+      // Boot Transition: Initial Pop-in and Curtain Pull-up
+      gsap.set('.boot-spylt-word', { y: 40, autoAlpha: 0, scale: 0.92 });
+      gsap.set('.boot-spylt-subtag', { autoAlpha: 0, y: 12 });
+      gsap.set('.boot-spylt-counter-wrap', { autoAlpha: 0, scale: 0.92 });
+      gsap.set('.boot-spylt-skip-btn', { autoAlpha: 0 });
+
+      tl.to('.boot-spylt-subtag', {
+        autoAlpha: 1,
+        y: 0,
+        duration: 0.35,
+        ease: 'power3.out'
+      })
+      .to('.boot-spylt-word', {
+        y: 0,
+        autoAlpha: 1,
+        scale: 1,
+        stagger: 0.08,
+        duration: 0.5,
+        ease: 'back.out(1.5)'
+      }, '-=0.15')
+      .to('.boot-spylt-counter-wrap', {
+        autoAlpha: 1,
+        scale: 1,
+        duration: 0.3
+      }, '-=0.25')
+      .to('.boot-spylt-skip-btn', {
+        autoAlpha: 0.8,
+        duration: 0.25
+      }, '-=0.2');
+
+      const counterObj = { val: 0 };
+      tl.to(counterObj, {
+        val: 100.0,
+        duration: 0.65,
+        ease: 'power2.inOut',
+        onUpdate: () => {
+          if (counterValRef.current) {
+            counterValRef.current.textContent = `${counterObj.val.toFixed(1)}%`;
           }
         }
-      });
+      }, '-=0.3');
 
-      if (isExit) {
-        // Exit Transition: Curtain smoothly pulls down over terminal, saving session
-        gsap.set('.boot-liquid-curtain', { yPercent: -100, opacity: 1 });
-        gsap.set('.boot-spylt-word', { y: 25, opacity: 0 });
-        gsap.set('.boot-spylt-subtag', { opacity: 0, y: 10 });
-        gsap.set('.boot-spylt-counter-wrap', { opacity: 0 });
+      tl.to({}, { duration: 0.2 });
 
-        tl.to('.boot-liquid-curtain', {
-          yPercent: 0,
-          duration: 0.32,
-          ease: 'power3.inOut'
-        })
-        .to('.boot-spylt-subtag', {
-          opacity: 1,
-          y: 0,
-          duration: 0.18,
-          ease: 'power2.out'
-        }, '-=0.15')
-        .to('.boot-spylt-word', {
-          y: 0,
-          opacity: 1,
-          stagger: 0.05,
-          duration: 0.22,
-          ease: 'power3.out'
-        }, '-=0.12')
-        .to('.boot-spylt-counter-wrap', {
-          opacity: 1,
-          duration: 0.18
-        }, '-=0.1')
-        .to({}, { duration: 0.14 }); // Hold before finishing
+      tl.to('.boot-spylt-word', {
+        y: -30,
+        autoAlpha: 0,
+        stagger: 0.04,
+        duration: 0.3,
+        ease: 'power3.in'
+      })
+      .to('.boot-spylt-subtag, .boot-spylt-counter-wrap, .boot-spylt-skip-btn', {
+        autoAlpha: 0,
+        y: -15,
+        duration: 0.2,
+        ease: 'power2.in'
+      }, '-=0.2');
 
-      } else {
-        // Boot Transition: Initial Pop-in and Curtain Pull-up
-        gsap.set('.boot-spylt-word', { y: 40, opacity: 0, scale: 0.92 });
-        gsap.set('.boot-spylt-subtag', { opacity: 0, y: 12 });
-        gsap.set('.boot-spylt-counter-wrap', { opacity: 0, scale: 0.92 });
-        gsap.set('.boot-spylt-skip-btn', { opacity: 0 });
-
-        tl.to('.boot-spylt-subtag', {
-          opacity: 1,
-          y: 0,
-          duration: 0.35,
-          ease: 'power3.out'
-        })
-        .to('.boot-spylt-word', {
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          stagger: 0.08,
-          duration: 0.5,
-          ease: 'back.out(1.5)'
-        }, '-=0.15')
-        .to('.boot-spylt-counter-wrap', {
-          opacity: 1,
-          scale: 1,
-          duration: 0.3,
-          ease: 'power2.out'
-        }, '-=0.25')
-        .to('.boot-spylt-skip-btn', {
-          opacity: 0.8,
-          duration: 0.25
-        }, '-=0.2');
-
-        const counterObj = { val: 0 };
-        tl.to(counterObj, {
-          val: 100.0,
-          duration: 0.65,
-          ease: 'power2.inOut',
-          onUpdate: () => {
-            if (counterValRef.current) {
-              counterValRef.current.textContent = `${counterObj.val.toFixed(1)}%`;
-            }
-          }
-        }, '-=0.3');
-
-        tl.to({}, { duration: 0.2 });
-
-        tl.to('.boot-spylt-word', {
-          y: -30,
-          opacity: 0,
-          stagger: 0.04,
-          duration: 0.3,
-          ease: 'power3.in'
-        })
-        .to('.boot-spylt-subtag, .boot-spylt-counter-wrap, .boot-spylt-skip-btn', {
-          opacity: 0,
-          y: -15,
-          duration: 0.2,
-          ease: 'power2.in'
-        }, '-=0.2');
-
-        tl.to('.boot-liquid-curtain', {
-          yPercent: -100,
-          duration: 0.5,
-          ease: 'power3.inOut'
-        }, '-=0.08')
-        .to(containerRef.current, {
-          opacity: 0,
-          duration: 0.15,
-          pointerEvents: 'none'
-        }, '-=0.12');
-      }
-
-    }, containerRef);
+      tl.to('.boot-liquid-curtain', {
+        yPercent: -100,
+        duration: 0.5,
+        ease: 'power3.inOut'
+      }, '-=0.08')
+      .to(containerRef.current, {
+        autoAlpha: 0,
+        duration: 0.15
+      }, '-=0.12');
+    }
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-        handleFinish();
+        safeFinish();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      isMounted = false;
       clearTimeout(safetyTimer);
       window.removeEventListener('keydown', handleKeyDown);
-      ctx.revert();
     };
-  }, [isTestEnv, mode]);
+  }, { scope: containerRef, dependencies: [isTestEnv, mode] });
 
   if (isTestEnv) return null;
 

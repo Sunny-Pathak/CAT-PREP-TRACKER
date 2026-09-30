@@ -1,5 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+gsap.registerPlugin(useGSAP);
 
 /**
  * LiquidIntroLoader - Cinematic Pop-in & Liquid Transition Screen
@@ -23,131 +26,125 @@ export default function LiquidIntroLoader({ onComplete, activeTheme = 'dark' }) 
     }
   };
 
-  useEffect(() => {
-    let isMounted = true;
+  useGSAP((context, contextSafe) => {
+    const prefersReducedMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)')?.matches;
+    if (prefersReducedMotion) {
+      handleFinish();
+      return;
+    }
+
+    const safeFinish = contextSafe(handleFinish);
 
     // Safety fallback: guaranteed exit after 3.2s
     const safetyTimer = setTimeout(() => {
-      if (isMounted) {
-        handleFinish();
-      }
+      safeFinish();
     }, 3200);
 
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        onComplete: () => {
-          if (isMounted) {
-            handleFinish();
-          }
+    const tl = gsap.timeline({
+      defaults: { ease: 'power2.out' },
+      onComplete: safeFinish
+    });
+
+    // 1. Initial State (use autoAlpha to avoid phantom click blocks)
+    gsap.set('.spylt-word', { y: 50, autoAlpha: 0, scale: 0.9, rotateX: 20 });
+    gsap.set('.spylt-subtag', { autoAlpha: 0, y: 15 });
+    gsap.set('.spylt-counter-wrap', { autoAlpha: 0, scale: 0.9 });
+    gsap.set('.spylt-skip-btn', { autoAlpha: 0 });
+
+    // 2. Kinetic Pop-in (Spylt style)
+    tl.to('.spylt-subtag', {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.4,
+      ease: 'power3.out'
+    })
+    .to('.spylt-word', {
+      y: 0,
+      autoAlpha: 1,
+      scale: 1,
+      rotateX: 0,
+      stagger: 0.1,
+      duration: 0.6,
+      ease: 'back.out(1.7)'
+    }, '-=0.15')
+    .to('.spylt-counter-wrap', {
+      autoAlpha: 1,
+      scale: 1,
+      duration: 0.35
+    }, '-=0.3')
+    .to('.spylt-skip-btn', {
+      autoAlpha: 0.7,
+      duration: 0.3
+    }, '-=0.2');
+
+    // 3. Counter Rollup directly via DOM ref (0 React re-renders)
+    const counterObj = { val: 0 };
+    tl.to(counterObj, {
+      val: 99.8,
+      duration: 0.7,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        if (counterValRef.current) {
+          counterValRef.current.textContent = `${counterObj.val.toFixed(1)}%`;
         }
-      });
-
-      // 1. Initial State
-      gsap.set('.spylt-word', { y: 50, opacity: 0, scale: 0.9, rotateX: 20 });
-      gsap.set('.spylt-subtag', { opacity: 0, y: 15 });
-      gsap.set('.spylt-counter-wrap', { opacity: 0, scale: 0.9 });
-      gsap.set('.spylt-skip-btn', { opacity: 0 });
-
-      // 2. Kinetic Pop-in (Spylt style)
-      tl.to('.spylt-subtag', {
-        opacity: 1,
-        y: 0,
-        duration: 0.4,
-        ease: 'power3.out'
-      })
-      .to('.spylt-word', {
-        y: 0,
-        opacity: 1,
-        scale: 1,
-        rotateX: 0,
-        stagger: 0.1,
-        duration: 0.6,
-        ease: 'back.out(1.7)'
-      }, '-=0.15')
-      .to('.spylt-counter-wrap', {
-        opacity: 1,
-        scale: 1,
-        duration: 0.35,
-        ease: 'power2.out'
-      }, '-=0.3')
-      .to('.spylt-skip-btn', {
-        opacity: 0.7,
-        duration: 0.3
-      }, '-=0.2');
-
-      // 3. Counter Rollup directly via DOM ref (0 React re-renders)
-      const counterObj = { val: 0 };
-      tl.to(counterObj, {
-        val: 99.8,
-        duration: 0.7,
-        ease: 'power2.inOut',
-        onUpdate: () => {
-          if (counterValRef.current) {
-            counterValRef.current.textContent = `${counterObj.val.toFixed(1)}%`;
-          }
-        }
-      }, '-=0.35');
-
-      // 4. Brief Hold for Impact
-      tl.to({}, { duration: 0.25 });
-
-      // 5. Kinetic Text Exit (Dissolves upward)
-      tl.to('.spylt-word', {
-        y: -40,
-        opacity: 0,
-        stagger: 0.05,
-        duration: 0.35,
-        ease: 'power3.in'
-      })
-      .to('.spylt-subtag, .spylt-counter-wrap, .spylt-skip-btn', {
-        opacity: 0,
-        y: -20,
-        duration: 0.25,
-        ease: 'power2.in'
-      }, '-=0.25');
-
-      // 6. Liquid Curtain Morph & Pull-up (SVG Bezier curve wipe)
-      const path = svgPathRef.current;
-      if (path) {
-        const liquidCurve = "M 0 0 L 100 0 L 100 0 Q 50 80 0 0 Z";
-        const flatTop = "M 0 0 L 100 0 L 100 0 Q 50 0 0 0 Z";
-
-        tl.to(path, {
-          attr: { d: liquidCurve },
-          duration: 0.6,
-          ease: 'power4.inOut'
-        })
-        .to(path, {
-          attr: { d: flatTop },
-          duration: 0.3,
-          ease: 'power2.out'
-        });
       }
+    }, '-=0.35')
 
-      // Container fade out
-      tl.to(containerRef.current, {
-        opacity: 0,
-        duration: 0.2,
-        pointerEvents: 'none'
-      }, '-=0.2');
+    // 4. Brief Hold for Impact
+    .to({}, { duration: 0.25 })
 
-    }, containerRef);
+    // 5. Kinetic Text Exit (Dissolves upward)
+    .to('.spylt-word', {
+      y: -40,
+      autoAlpha: 0,
+      stagger: 0.05,
+      duration: 0.35,
+      ease: 'power3.in'
+    })
+    .to('.spylt-subtag, .spylt-counter-wrap, .spylt-skip-btn', {
+      autoAlpha: 0,
+      y: -20,
+      duration: 0.25,
+      ease: 'power2.in'
+    }, '-=0.25');
+
+    // 6. Liquid Curtain Morph & Pull-up (SVG Bezier curve wipe)
+    const path = svgPathRef.current;
+    if (path) {
+      const liquidCurve = "M 0 0 L 100 0 L 100 0 Q 50 80 0 0 Z";
+      const flatTop = "M 0 0 L 100 0 L 100 0 Q 50 0 0 0 Z";
+
+      tl.to(path, {
+        attr: { d: liquidCurve },
+        duration: 0.6,
+        ease: 'power4.inOut'
+      })
+      .to(path, {
+        attr: { d: flatTop },
+        duration: 0.3,
+        ease: 'power2.out'
+      });
+    }
+
+    // Container fade out
+    tl.to(containerRef.current, {
+      autoAlpha: 0,
+      duration: 0.2
+    }, '-=0.2');
 
     // Allow Esc key to skip immediately
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        handleFinish();
+        safeFinish();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      isMounted = false;
       clearTimeout(safetyTimer);
       window.removeEventListener('keydown', handleKeyDown);
-      ctx.revert();
     };
-  }, []); // Run exactly ONCE on mount
+  }, { scope: containerRef });
 
   return (
     <div 

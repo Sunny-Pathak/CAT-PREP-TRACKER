@@ -46,6 +46,7 @@ graph.json
 
 # Agent Instructions & Workspace Customizations (Local-Only)
 .agents/
+.superpowers/
 .gemini/
 GEMINI.md
 AGENTS.md
