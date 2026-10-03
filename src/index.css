@@ -8980,53 +8980,37 @@ html, body {
   align-items: center;
 }
 
-.monumental-brand-link {
+.human-back-link {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0;
-  color: #ffffff;
-  user-select: none;
-  transition: opacity 0.2s ease;
-}
-
-.monumental-brand-link:hover {
-  opacity: 0.85;
-}
-
-.monumental-brand-link .brand-square {
-  width: 7px;
-  height: 7px;
-  background: #a78bfa;
-  flex-shrink: 0;
-  box-shadow: 0 0 10px rgba(167, 139, 250, 0.7);
-}
-
-.monumental-brand-link .brand-wordmark {
-  font-family: var(--font-syne, 'Syne', sans-serif);
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: #ffffff;
-}
-
-.monumental-brand-link .brand-sep {
+  padding: 4px 8px;
+  margin-left: -8px;
+  color: #94a3b8;
   font-family: var(--font-mono, monospace);
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.2);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  transition: color 0.2s ease, transform 0.2s ease;
+  user-select: none;
 }
 
-.monumental-brand-link .brand-sub {
-  font-family: var(--font-mono, monospace);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  color: #94a3b8;
-  text-transform: uppercase;
+.human-back-link:hover {
+  color: #ffffff;
+  transform: translateX(-2px);
+}
+
+.human-back-link .back-arrow {
+  color: #a78bfa;
+  font-size: 13px;
+  transition: transform 0.2s ease;
+}
+
+.human-back-link:hover .back-arrow {
+  transform: translateX(-2px);
 }
 
 .monumental-header-right {
@@ -9096,7 +9080,7 @@ html, body {
   width: 100%;
   margin: auto 0;
   padding: 24px 0 16px;
-  gap: 20px;
+  gap: 46px; /* Generously decoupled: timer ring stands alone, zero button crowding */
   background: transparent;
 }
 
@@ -9520,23 +9504,12 @@ html, body {
   margin-top: auto;
 }
 
-.footer-axiom {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.footer-keyboard-hint {
   font-family: var(--font-mono, monospace);
-  font-size: 10px;
-  letter-spacing: 0.22em;
+  font-size: 11px;
+  letter-spacing: 0.08em;
   color: #64748b;
-  text-transform: uppercase;
-}
-
-.footer-axiom .axiom-square {
-  width: 5px;
-  height: 5px;
-  background: #8b5cf6;
-  flex-shrink: 0;
-  box-shadow: 0 0 6px #8b5cf6;
+  user-select: none;
 }
 
 .telemetry-log-toggle {

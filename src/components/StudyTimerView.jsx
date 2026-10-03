@@ -267,30 +267,29 @@ export default function StudyTimerView({
       )}
 
       {/* 1. Monumental Header Bar (Identical to Landing Page Hero Header) */}
+      {/* 1. Clean Minimal Header (No Duplicate Brand Logo) */}
       {!isZenFullscreen && (
         <header className="monumental-timer-header">
           <div className="monumental-header-left">
             <button 
               type="button" 
-              className="monumental-brand-link"
+              className="human-back-link"
               onClick={() => {
                 if (isRunning) setShowGuiltTrip(true);
                 else if (onLeaveTimer) onLeaveTimer();
               }}
               title="Return to Dashboard"
             >
-              <span className="brand-square" />
-              <span className="brand-wordmark font-[family-name:var(--font-syne)]">CATALYZE</span>
-              <span className="brand-sep">//</span>
-              <span className="brand-sub">FOCUS PROTOCOL</span>
+              <span className="back-arrow">←</span>
+              <span className="back-text">Dashboard</span>
             </button>
           </div>
 
           <div className="monumental-header-right">
-            {/* Live Telemetry Pulse */}
+            {/* Direct State Indicator */}
             <div className="monumental-status-chip">
               <span className={`status-pulse-dot ${isRunning ? 'active' : ''}`} />
-              <span className="status-text">{isRunning ? 'SESSION ACTIVE' : isPaused ? 'PAUSED' : 'READY'}</span>
+              <span className="status-text">{isRunning ? 'Focusing' : isPaused ? 'Paused' : 'Ready'}</span>
             </div>
 
             {/* Sound Toggle */}
@@ -301,25 +300,25 @@ export default function StudyTimerView({
                 setIsMuted(!isMuted);
                 if (isMuted) playSoftZenChime(0.2);
               }}
-              title={isMuted ? "Enable soft completion chime" : "Mute chime"}
+              title={isMuted ? "Unmute completion chime" : "Mute completion chime"}
             >
-              <span>{isMuted ? 'CHIME: MUTED' : 'CHIME: ON'}</span>
+              <span>{isMuted ? 'Muted' : 'Sound On'}</span>
             </button>
 
-            {/* Deep Focus Fullscreen */}
+            {/* Fullscreen */}
             <button
               type="button"
               className="monumental-ghost-btn"
               onClick={toggleZenFullscreen}
               title="Toggle Fullscreen Sanctuary (Shortcut: F)"
             >
-              <span>FULLSCREEN ↗</span>
+              <span>Fullscreen [F]</span>
             </button>
           </div>
         </header>
       )}
 
-      {/* 2. Main Stage: The Monumental Chrono Sanctuary */}
+      {/* 2. Main Stage: Decoupled Chronograph Sanctuary with Ample Negative Space */}
       <main className={`monumental-focus-stage ${isRunning ? 'is-running' : ''} ${isZenFullscreen ? 'fullscreen-stage' : ''}`}>
         
         {/* The Chronograph Ring & Tabular Digits */}
@@ -343,19 +342,19 @@ export default function StudyTimerView({
               
               <div className="monumental-readout-sub">
                 <span className="monumental-subject-label">
-                  {currentSubject === 'Quant' ? 'QUANTITATIVE' : currentSubject === 'LRDI' ? 'LOGICAL REASONING' : currentSubject === 'VARC' ? 'VERBAL ABILITY' : 'GENERAL DRILL'} FOCUS
+                  {currentSubject} Focus
                 </span>
-                {timerMode === 'stopwatch' && <span className="monumental-stopwatch-label">// STOPWATCH</span>}
+                {timerMode === 'stopwatch' && <span className="monumental-stopwatch-label">(Stopwatch)</span>}
               </div>
             </div>
           </ChronoTimerHUD>
         </div>
 
-        {/* Quiet Typographic Controls: Cadence & Discipline */}
+        {/* Decoupled Controls Console (Spaced 44px down from the timer) */}
         {!isZenFullscreen && (
           <div className="monumental-controls-console">
             
-            {/* Cadence Selection: Quiet Monospace Text */}
+            {/* Row 1: Duration Cadence */}
             <div className="monumental-cadence-rack">
               {[15, 25, 45, 60].map(m => (
                 <button
@@ -369,12 +368,9 @@ export default function StudyTimerView({
                   }}
                   disabled={isRunning || isPaused}
                 >
-                  <span className="cadence-num">{m}</span>
-                  <span className="cadence-unit">M</span>
+                  {m}m
                 </button>
               ))}
-
-              <span className="cadence-sep">/</span>
 
               <button
                 type="button"
@@ -382,10 +378,8 @@ export default function StudyTimerView({
                 onClick={() => { playSoftClick(); setTimerMode('custom'); }}
                 disabled={isRunning || isPaused}
               >
-                CUSTOM
+                Custom
               </button>
-
-              <span className="cadence-sep">/</span>
 
               <button
                 type="button"
@@ -393,14 +387,14 @@ export default function StudyTimerView({
                 onClick={() => { playSoftClick(); setTimerMode('stopwatch'); }}
                 disabled={isRunning || isPaused}
               >
-                STOPWATCH
+                Stopwatch
               </button>
             </div>
 
             {/* Custom Minutes Input (Inline when active) */}
             {timerMode === 'custom' && (
               <div className="monumental-custom-line">
-                <span className="custom-prompt">TARGET DURATION:</span>
+                <span className="custom-prompt">Duration:</span>
                 <input
                   type="number"
                   className="custom-duration-input"
@@ -410,34 +404,26 @@ export default function StudyTimerView({
                   onChange={(e) => setCustomMinutes(Math.max(1, parseInt(e.target.value) || 1))}
                   disabled={isRunning || isPaused}
                 />
-                <span className="custom-mins-suffix">MINUTES</span>
+                <span className="custom-mins-suffix">mins</span>
               </div>
             )}
 
-            {/* Discipline Selector: Pure Hairline Brackets */}
+            {/* Row 2: Clean Subject Selector (No Redundant Abbreviations) */}
             <div className="monumental-disciplines-rack">
-              {[
-                { id: 'Quant', code: 'QA', label: 'QUANT' },
-                { id: 'LRDI', code: 'LR', label: 'LRDI' },
-                { id: 'VARC', code: 'VA', label: 'VARC' },
-                { id: 'General', code: 'GEN', label: 'GENERAL' }
-              ].map(s => (
+              {['Quant', 'LRDI', 'VARC', 'General'].map(s => (
                 <button
-                  key={s.id}
+                  key={s}
                   type="button"
-                  className={`discipline-text-btn ${currentSubject === s.id ? 'active' : ''}`}
-                  onClick={() => { playSoftClick(); setCurrentSubject(s.id); }}
+                  className={`discipline-text-btn ${currentSubject === s ? 'active' : ''}`}
+                  onClick={() => { playSoftClick(); setCurrentSubject(s); }}
                   disabled={isRunning || isPaused}
                 >
-                  <span className="bracket">[</span>
-                  <span className="code">{s.code}</span>
-                  <span className="bracket">]</span>
-                  <span className="name">{s.label}</span>
+                  <span className="name">{s}</span>
                 </button>
               ))}
             </div>
 
-            {/* Primary Actuation Trigger (Start / Pause / Log) */}
+            {/* Row 3: Direct Action Trigger (No video game jargon) */}
             <div className="monumental-actuation-rack">
               {!isRunning && !isPaused ? (
                 <button 
@@ -446,8 +432,8 @@ export default function StudyTimerView({
                   onClick={handleStart}
                 >
                   <span className="engage-icon">▶</span>
-                  <span className="engage-text">ENGAGE SESSION</span>
-                  <span className="engage-shortcut">[SPACE]</span>
+                  <span className="engage-text">Start</span>
+                  <span className="engage-shortcut">[Space]</span>
                 </button>
               ) : isRunning ? (
                 <div className="monumental-running-controls">
@@ -456,21 +442,21 @@ export default function StudyTimerView({
                     className="monumental-running-btn pause-btn" 
                     onClick={() => { playSoftClick(); onPauseTimer(); }}
                   >
-                    <span>PAUSE [SPACE]</span>
+                    <span>Pause [Space]</span>
                   </button>
                   <button 
                     type="button"
                     className="monumental-running-btn log-btn" 
                     onClick={handleFinish}
                   >
-                    <span>LOG SESSION</span>
+                    <span>Log Session</span>
                   </button>
                   <button 
                     type="button"
                     className="monumental-running-btn reset-btn" 
                     onClick={() => { playSoftClick(); onResetTimer(); }}
                   >
-                    <span>RESET</span>
+                    <span>Reset</span>
                   </button>
                 </div>
               ) : (
@@ -480,33 +466,32 @@ export default function StudyTimerView({
                     className="monumental-running-btn resume-btn" 
                     onClick={() => { playSoftClick(); onResumeTimer(); }}
                   >
-                    <span>RESUME [SPACE]</span>
+                    <span>Resume [Space]</span>
                   </button>
                   <button 
                     type="button"
                     className="monumental-running-btn log-btn" 
                     onClick={handleFinish}
                   >
-                    <span>LOG SESSION</span>
+                    <span>Log Session</span>
                   </button>
                   <button 
                     type="button"
                     className="monumental-running-btn reset-btn" 
                     onClick={() => { playSoftClick(); onResetTimer(); }}
                   >
-                    <span>RESET</span>
+                    <span>Reset</span>
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Whisper-Quiet Intention Line */}
+            {/* Row 4: Clean Session Note (Zero Em-Dash, Zero "Objective" Jargon) */}
             <div className="monumental-intention-row">
-              <span className="intention-dash">—</span>
               <SmoothCaretInput
                 type="text"
                 className="monumental-intention-input"
-                placeholder="Session objective (e.g. Practicing Time & Work Level-2 sets)..."
+                placeholder="Session note (optional)..."
                 value={notes}
                 onChange={(e) => {
                   const clean = stripEmojis(e.target.value);
@@ -519,9 +504,9 @@ export default function StudyTimerView({
                   type="button"
                   className="monumental-vault-trigger"
                   onClick={onOpenNotes}
-                  title="Open Error Log & Notes Vault"
+                  title="Open Notes Vault"
                 >
-                  <span>VAULT ↗</span>
+                  <span>Vault ↗</span>
                 </button>
               )}
             </div>
@@ -531,14 +516,9 @@ export default function StudyTimerView({
 
       </main>
 
-      {/* 3. Monumental Footer Bar (Identical to Landing Page Hero Footer) */}
+      {/* 3. Clean Footer: Grounded Telemetry & Keyboard Reference */}
       {!isZenFullscreen && (
         <footer className="monumental-timer-footer">
-          <div className="footer-axiom">
-            <span className="axiom-square" />
-            <span className="axiom-text font-mono">OBSERVATION DEFINES OUTCOME</span>
-          </div>
-
           <div className="footer-telemetry">
             <button
               type="button"
@@ -546,12 +526,15 @@ export default function StudyTimerView({
               onClick={() => setIsHistoryExpanded(prev => !prev)}
               title="Toggle Today's Session Log"
             >
-              <span className="telemetry-label">TODAY:</span>
-              <span className="telemetry-value">{todayTotalHours.toFixed(1)} HRS</span>
-              <span className="telemetry-sep">//</span>
-              <span className="telemetry-count">{todaySessions.length} SESSIONS</span>
+              <span className="telemetry-value">Today: {todayTotalHours.toFixed(1)} hrs</span>
+              <span className="telemetry-sep">·</span>
+              <span className="telemetry-count">{todaySessions.length} sessions</span>
               <span className={`telemetry-arrow ${isHistoryExpanded ? 'open' : ''}`}>▾</span>
             </button>
+          </div>
+
+          <div className="footer-keyboard-hint font-mono">
+            <span>Space: Start/Pause · F: Fullscreen</span>
           </div>
         </footer>
       )}
@@ -561,7 +544,7 @@ export default function StudyTimerView({
         <div className="monumental-journal-drawer">
           {todaySessions.length === 0 ? (
             <div className="journal-empty">
-              <span>NO SESSIONS RECORDED TODAY. ENGAGE CHRONO ABOVE TO LOG SPRINT.</span>
+              <span>No sessions recorded today. Start a session above to begin.</span>
             </div>
           ) : (
             <div className="journal-stream">
@@ -571,10 +554,10 @@ export default function StudyTimerView({
                     <span className="time-range">{s.startTime || '—'} → {s.endTime || '—'}</span>
                   </div>
                   <div className="journal-col-subject">
-                    <span className="subject-tag">[{s.subject || 'GENERAL'}]</span>
+                    <span className="subject-tag">{s.subject || 'General'}</span>
                   </div>
                   <div className="journal-col-duration">
-                    <span className="duration-tag">{s.durationMinutes}M</span>
+                    <span className="duration-tag">{s.durationMinutes}m</span>
                     <span className="hours-fraction">({(s.durationMinutes / 60).toFixed(1)}h)</span>
                   </div>
                   <div className="journal-col-notes">
@@ -587,7 +570,7 @@ export default function StudyTimerView({
                         className="journal-action-link edit"
                         onClick={() => setEditingSession(s)}
                       >
-                        EDIT
+                        Edit
                       </button>
                     )}
                     {onDeleteSession && (
@@ -596,7 +579,7 @@ export default function StudyTimerView({
                         className="journal-action-link delete"
                         onClick={() => onDeleteSession(s.id)}
                       >
-                        DEL
+                        Delete
                       </button>
                     )}
                   </div>
