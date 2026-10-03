@@ -84,16 +84,16 @@ export default function Stepper({
         .rb-stepper-track-wrap {
           position: relative;
           width: 100%;
-          padding: 4px 16px 6px 16px;
+          padding: 4px 20px 8px 20px;
           box-sizing: border-box;
         }
 
         .rb-stepper-line-bg {
           position: absolute;
           top: 18px;
-          left: 40px;
-          right: 40px;
-          height: 1.5px;
+          left: 48px;
+          right: 48px;
+          height: 1px;
           background: rgba(255, 255, 255, 0.08);
           z-index: 1;
         }
@@ -101,28 +101,31 @@ export default function Stepper({
         .rb-stepper-line-fill {
           position: absolute;
           top: 18px;
-          left: 40px;
-          height: 1.5px;
-          max-width: calc(100% - 80px);
-          background: linear-gradient(90deg, var(--accent-color, #38bdf8), var(--accent-secondary, #818cf8));
+          left: 48px;
+          height: 1px;
+          max-width: calc(100% - 96px);
+          background: linear-gradient(90deg, var(--accent-color, #8b5cf6), var(--accent-secondary, #a855f7));
           z-index: 2;
           transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-          box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+          box-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
         }
 
         .rb-stepper-nodes {
           position: relative;
           display: flex;
           justify-content: space-between;
-          align-items: center;
+          align-items: flex-start;
           z-index: 3;
         }
 
         .rb-stepper-node {
           display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 6px;
+          gap: 7px;
           cursor: pointer;
+          min-width: 80px;
+          text-align: center;
         }
 
         .rb-stepper-circle {
@@ -130,33 +133,35 @@ export default function Stepper({
           width: 28px;
           height: 28px;
           border-radius: 50%;
-          background: var(--card-bg, #0b0f19);
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          background: var(--card-bg, #08070d);
+          border: 1px solid rgba(255, 255, 255, 0.16);
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
           padding: 0;
           color: var(--text-tertiary, #64748b);
+          z-index: 4;
         }
 
         .rb-stepper-circle:hover {
-          border-color: var(--accent-color, #38bdf8);
+          border-color: var(--accent-color, #8b5cf6);
           color: var(--text-primary, #ffffff);
+          transform: scale(1.05);
         }
 
         .rb-stepper-node.active .rb-stepper-circle {
-          background: var(--bg-primary, #0b0f19);
-          border-color: var(--accent-color, #38bdf8);
-          color: var(--accent-color, #38bdf8);
-          box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15), 0 0 10px rgba(56, 189, 248, 0.3);
+          background: #0f0d1a;
+          border-color: var(--accent-color, #8b5cf6);
+          color: var(--accent-color, #a855f7);
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2), 0 0 14px rgba(139, 92, 246, 0.4);
         }
 
         .rb-stepper-node.completed .rb-stepper-circle {
-          background: var(--accent-color, #38bdf8);
-          border-color: var(--accent-color, #38bdf8);
-          color: #0b0f19;
+          background: var(--accent-color, #8b5cf6);
+          border-color: var(--accent-color, #8b5cf6);
+          color: #08070d;
         }
 
         .rb-stepper-num {
@@ -169,8 +174,8 @@ export default function Stepper({
           position: absolute;
           inset: -3px;
           border-radius: 50%;
-          border: 1px dashed var(--accent-color, #38bdf8);
-          opacity: 0.5;
+          border: 1px dashed var(--accent-color, #8b5cf6);
+          opacity: 0.6;
           animation: rbSpin 10s linear infinite;
         }
 
@@ -180,11 +185,14 @@ export default function Stepper({
         }
 
         .rb-stepper-title {
+          font-family: 'Syne', sans-serif;
           font-size: 11px;
-          font-weight: 600;
+          font-weight: 700;
           color: var(--text-tertiary, #64748b);
           transition: color 0.2s ease;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.01em;
+          white-space: nowrap;
+          padding: 0 4px;
         }
 
         .rb-stepper-node.active .rb-stepper-title {
@@ -198,16 +206,15 @@ export default function Stepper({
 
         @media (max-width: 500px) {
           .rb-stepper-title {
-            font-size: 9.5px;
-            white-space: nowrap;
+            font-size: 10px;
           }
           .rb-stepper-track-wrap {
-            padding: 2px 8px 4px 8px;
+            padding: 2px 10px 4px 10px;
           }
           .rb-stepper-line-bg, .rb-stepper-line-fill {
-            left: 28px;
-            right: 28px;
-            max-width: calc(100% - 56px);
+            left: 36px;
+            right: 36px;
+            max-width: calc(100% - 72px);
           }
         }
       `}} />

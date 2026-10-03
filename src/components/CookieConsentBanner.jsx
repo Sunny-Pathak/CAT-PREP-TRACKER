@@ -37,7 +37,7 @@ export default function CookieConsentBanner({ onOpenTerms }) {
     <div className="cookie-consent-banner" data-theme={typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') || undefined : undefined}>
       <div className="cookie-banner-content">
         <div className="cookie-icon-wrap">
-          <Icons.Shield size={20} color="var(--accent-color, #38bdf8)" />
+          <Icons.Shield size={18} color="#c084fc" />
         </div>
         <div className="cookie-text-wrap">
           <p className="cookie-title">

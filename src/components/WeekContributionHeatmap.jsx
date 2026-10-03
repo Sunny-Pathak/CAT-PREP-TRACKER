@@ -149,7 +149,7 @@ function WeekContributionHeatmap({
           </span>
         ) : (
           <span>
-            {activeWeek} current sprint matrix • Click any day square to open its daily drills
+            {totalWeekClearedQuotas > 0 ? `${totalWeekClearedQuotas} of 21 quotas completed this week` : 'No study drills completed yet this week'}
           </span>
         )}
       </div>

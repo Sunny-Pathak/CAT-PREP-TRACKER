@@ -15,8 +15,8 @@ import gsap from 'gsap';
  * - Immediately unlocks on tab changes.
  */
 function CustomCursor({ activeTheme, activeTab }) {
-  // Suppress reticle inside arena or lounge tabs (visible in terminal and dashboard)
-  const isSuppressed = activeTab === 'arena' || activeTab === 'lounge';
+  // Only enable custom cursor reticle in Bloomberg Terminal mode; suppress everywhere else
+  const isSuppressed = activeTab !== 'terminal';
 
   const coreRef = useRef(null);
   const reticleRef = useRef(null);
@@ -27,6 +27,8 @@ function CustomCursor({ activeTheme, activeTab }) {
   activeTabRef.current = activeTab;
 
   useEffect(() => {
+    if (isSuppressed) return;
+
     // Disable on touch devices or fine pointer absent
     const hasTouch = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || 'ontouchstart' in window;
     const canHover = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)').matches : true;

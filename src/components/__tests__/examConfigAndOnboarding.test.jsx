@@ -103,28 +103,22 @@ describe('Multi-Exam Config Registry, Timelines & Minimal Welcome Modal', () => 
         />
       );
 
-      // Title & Minimal header
-      expect(screen.getByText('WORKSPACE CALIBRATION')).toBeDefined();
-      expect(screen.getByText('Target Examination & Timeline')).toBeDefined();
+      // Title & Monolithic header
+      expect(screen.getByText(/CATALYZE · CALIBRATION PROTOCOL/i)).toBeDefined();
+      expect(screen.getByText('Target Velocity')).toBeDefined();
 
-      // Check exam items
-      expect(screen.getByText('CAT')).toBeDefined();
-      expect(screen.getByText('JEE')).toBeDefined();
-      expect(screen.getByText('NEET')).toBeDefined();
-      expect(screen.getByText('GATE')).toBeDefined();
-
-      // Check timeline horizon buttons
-      expect(screen.getByText('3 Months Crash')).toBeDefined();
-      expect(screen.getByText('16 Weeks Standard')).toBeDefined();
-      expect(screen.getByText('6 Months Intensive')).toBeDefined();
-      expect(screen.getByText('1 Year Comprehensive')).toBeDefined();
+      // Check velocity tiles
+      expect(screen.getByText('3 Months')).toBeDefined();
+      expect(screen.getByText('16 Weeks')).toBeDefined();
+      expect(screen.getByText('6 Months')).toBeDefined();
+      expect(screen.getByText('1 Year')).toBeDefined();
 
       // Check footer metadata
-      expect(screen.getByText('Selected Target:')).toBeDefined();
-      expect(screen.getByText('CAT (Common Admission Test)')).toBeDefined();
+      expect(screen.getByText(/Curriculum matrix calibrated/i)).toBeDefined();
+      expect(screen.getByRole('button', { name: /Enter Cockpit/i })).toBeDefined();
     });
 
-    it('allows selecting an alternative exam & timeline and finishes with Get Started', () => {
+    it('allows selecting an alternative velocity and finishes with Enter Cockpit', () => {
       const onComplete = vi.fn();
       const onClose = vi.fn();
 
@@ -136,39 +130,22 @@ describe('Multi-Exam Config Registry, Timelines & Minimal Welcome Modal', () => 
         />
       );
 
-      // Non-CAT exams are locked for live release
-      expect(screen.getAllByText('LOCKED').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('COMING SOON').length).toBeGreaterThan(0);
+      // Select 6 Months timeline
+      const sixMonthsTile = screen.getByText('6 Months');
+      fireEvent.click(sixMonthsTile);
 
-      // Attempting to select locked JEE should keep CAT active
-      const jeeItem = screen.getByText('JEE');
-      fireEvent.click(jeeItem);
-
-      // Advance to Step 2 (Prep Horizon)
-      const continueToStep2 = screen.getByRole('button', { name: /Continue/i });
-      fireEvent.click(continueToStep2);
-
-      // Attempting to select locked 3 Months Crash timeline on Step 2 should keep 16_weeks active
-      const crashBtn = screen.getByText('3 Months Crash');
-      fireEvent.click(crashBtn);
-
-      // Advance to Step 3 (Blueprint)
-      const continueToStep3 = screen.getByRole('button', { name: /Continue/i });
-      fireEvent.click(continueToStep3);
-
-      // Click Get Started on Step 3
-      const startBtn = screen.getByRole('button', { name: /Get Started/i });
+      // Click Enter Cockpit
+      const startBtn = screen.getByRole('button', { name: /Enter Cockpit/i });
       fireEvent.click(startBtn);
 
       expect(onComplete).toHaveBeenCalledTimes(1);
       const callArg = onComplete.mock.calls[0][0];
       expect(callArg.targetExam).toBe('cat');
-      expect(callArg.timelineHorizon).toBe('16_weeks');
-      expect(callArg.dailyHoursGoal).toBe(4.0);
-      expect(callArg.dailyQuotas.quant).toBe(18); // CAT 16-weeks standard is 18 QA
+      expect(callArg.timelineHorizon).toBe('6_months');
+      expect(callArg.dailyHoursGoal).toBe(3.5);
       expect(localStorage.getItem('catalyze_onboarding_completed')).toBe('true');
       expect(localStorage.getItem('catalyze_target_exam')).toBe('cat');
-      expect(localStorage.getItem('catalyze_timeline_horizon')).toBe('16_weeks');
+      expect(localStorage.getItem('catalyze_timeline_horizon')).toBe('6_months');
     }, 15000);
 
     it('allows closing modal via close button with CAT default', () => {
@@ -192,7 +169,7 @@ describe('Multi-Exam Config Registry, Timelines & Minimal Welcome Modal', () => 
       expect(localStorage.getItem('catalyze_onboarding_completed')).toBe('true');
     });
 
-    it('guides user through ReactBits Stepper with animated mascot companion dialogue', () => {
+    it('calibrates user target velocity and initializes protocol in monolithic console', () => {
       const onComplete = vi.fn();
       render(
         <OnboardingWelcomeModal
@@ -202,37 +179,24 @@ describe('Multi-Exam Config Registry, Timelines & Minimal Welcome Modal', () => 
         />
       );
 
-      // Step 1 check
-      expect(screen.getByText(/COMPANION GUIDE/i)).toBeDefined();
-      expect(screen.getByText(/Select your target examination/i)).toBeDefined();
-      expect(screen.getByRole('button', { name: /Step 1: Target Exam/i })).toBeDefined();
+      // Verify monolithic console headers and velocity track
+      expect(screen.getByText(/CALIBRATION PROTOCOL/i)).toBeDefined();
+      expect(screen.getByText(/Target Velocity/i)).toBeDefined();
+      expect(screen.getByText(/Calibrate your daily commitment/i)).toBeDefined();
 
-      // Click "Continue" to Step 2
-      const nextBtn1 = screen.getByRole('button', { name: /Continue/i });
-      fireEvent.click(nextBtn1);
+      // Select Sprint velocity
+      const sprintTile = screen.getByText('3 Months');
+      fireEvent.click(sprintTile);
 
-      // Step 2 check
-      expect(screen.getByText(/Choose your preparation horizon/i)).toBeDefined();
+      // Click Enter Cockpit
+      const confirmBtn = screen.getByRole('button', { name: /Enter Cockpit/i });
+      fireEvent.click(confirmBtn);
 
-      // Click "Continue" to Step 3
-      const nextBtn2 = screen.getByRole('button', { name: /Continue/i });
-      fireEvent.click(nextBtn2);
-
-      // Step 3 check
-      expect(screen.getByText(/Workspace calibration complete!/i)).toBeDefined();
-      expect(screen.getByText(/SYSTEM CALIBRATED • READY FOR CONQUEST/i)).toBeDefined();
-
-      // Click Back button
-      const backBtn = screen.getByRole('button', { name: /Back/i });
-      fireEvent.click(backBtn);
-
-      // Should be back to Step 2
-      expect(screen.getByText(/Choose your preparation horizon/i)).toBeDefined();
-
-      // Click Stepper circle 03 to jump to Blueprint
-      const step3Circle = screen.getByRole('button', { name: /Step 3: Blueprint/i });
-      fireEvent.click(step3Circle);
-      expect(screen.getByText(/Workspace calibration complete!/i)).toBeDefined();
+      expect(onComplete).toHaveBeenCalledTimes(1);
+      const callArg = onComplete.mock.calls[0][0];
+      expect(callArg.targetExam).toBe('cat');
+      expect(callArg.timelineHorizon).toBe('3_months');
+      expect(localStorage.getItem('catalyze_onboarding_completed')).toBe('true');
     }, 15000);
   });
 });

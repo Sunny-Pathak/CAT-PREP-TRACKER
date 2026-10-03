@@ -1,13 +1,18 @@
-import React from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import { Icons } from './AspirantIcons';
 import { CAT_MILESTONES, WEEKLY_SYLLABUS_DETAILS } from '../data/catSyllabusRoadmap';
 
 export default function RoadmapTimelineGraph({
   studyPlan = [],
+  selectedPhase = 'ALL',
+  searchQuery = '',
   onSelectWeek,
   selectedWeekIndex,
   onWeekClick
 }) {
+  const containerRef = useRef(null);
+
   // Extract week number (1-16) from "Month X: Week Y"
   const getWeekNumber = (weekStr, idx) => {
     const match = weekStr?.match(/Week\s*(\d+)/i);
@@ -17,22 +22,24 @@ export default function RoadmapTimelineGraph({
   const getWeekStatus = (week) => week?.status || 'Not Started';
 
   // Group weeks by Phase
-  const phase1Weeks = studyPlan.slice(0, 8);
-  const phase2Weeks = studyPlan.slice(8, 12);
-  const phase3Weeks = studyPlan.slice(12, 16);
+  const phase1Weeks = useMemo(() => studyPlan.slice(0, 8), [studyPlan]);
+  const phase2Weeks = useMemo(() => studyPlan.slice(8, 12), [studyPlan]);
+  const phase3Weeks = useMemo(() => studyPlan.slice(12, 16), [studyPlan]);
 
-  const phases = [
+  const phases = useMemo(() => [
     {
       id: 'p1',
+      phaseId: 'PHASE 1',
       name: 'Phase 1: Foundation & Core Concepts',
       weeks: phase1Weeks,
-      color: '#38bdf8',
+      color: '#8b5cf6',
       milestoneIndex: 8,
       milestone: CAT_MILESTONES[8],
       subtitle: 'Arithmetic Mastery • Seating Arrangements • Core Reading Habits'
     },
     {
       id: 'p2',
+      phaseId: 'PHASE 2',
       name: 'Phase 2: Syllabus Completion & Sectionals',
       weeks: phase2Weeks,
       color: '#a855f7',
@@ -42,17 +49,82 @@ export default function RoadmapTimelineGraph({
     },
     {
       id: 'p3',
+      phaseId: 'PHASE 3',
       name: 'Phase 3: The Mock Marathon',
       weeks: phase3Weeks,
-      color: '#f59e0b',
+      color: '#d946ef',
       milestoneIndex: 16,
       milestone: CAT_MILESTONES[16],
       subtitle: '30 Full Mocks • Rigorous Error Diagnostics • 99%ile Peak Readiness'
     }
-  ];
+  ], [phase1Weeks, phase2Weeks, phase3Weeks]);
+
+  // Dynamically filter phases based on active tab and search query
+  const filteredPhases = useMemo(() => {
+    let pList = phases;
+    if (selectedPhase === 'PHASE 1') {
+      pList = [phases[0]];
+    } else if (selectedPhase === 'PHASE 2') {
+      pList = [phases[1]];
+    } else if (selectedPhase === 'PHASE 3') {
+      pList = [phases[2]];
+    }
+
+    if (searchQuery && searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      pList = pList
+        .map((p) => ({
+          ...p,
+          weeks: p.weeks.filter((w) => {
+            const globalIdx = studyPlan.findIndex((sw) => sw.week === w.week);
+            const weekNum = globalIdx + 1;
+            const syllabus = WEEKLY_SYLLABUS_DETAILS[weekNum];
+            const text = [
+              w.week,
+              w.phase,
+              w.quantFocus,
+              w.lrdiFocus,
+              w.varcFocus,
+              ...(syllabus?.quantSubtopics || []),
+              ...(syllabus?.lrdiSubtopics || []),
+              ...(syllabus?.varcSubtopics || []),
+              syllabus?.strategyTip || ''
+            ]
+              .join(' ')
+              .toLowerCase();
+            return text.includes(q);
+          })
+        }))
+        .filter((p) => p.weeks.length > 0);
+    }
+
+    return pList;
+  }, [phases, selectedPhase, searchQuery, studyPlan]);
+
+  // Silky GSAP reveal whenever the user switches phase filters or searches
+  useEffect(() => {
+    if (containerRef.current) {
+      const clusters = containerRef.current.querySelectorAll('.roadmap-phase-cluster');
+      if (clusters.length > 0) {
+        gsap.fromTo(
+          clusters,
+          { opacity: 0, y: 16, scale: 0.99 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.28,
+            stagger: 0.05,
+            ease: 'power2.out',
+            clearProps: 'transform,opacity'
+          }
+        );
+      }
+    }
+  }, [selectedPhase, searchQuery]);
 
   return (
-    <div className="roadmap-canvas-container">
+    <div ref={containerRef} className="roadmap-canvas-container">
       <div className="roadmap-header-legend">
         <div className="roadmap-legend-items">
           <span className="roadmap-legend-tag completed">
@@ -75,7 +147,14 @@ export default function RoadmapTimelineGraph({
       </div>
 
       <div className="roadmap-track-phases">
-        {phases.map((phase) => {
+        {filteredPhases.length === 0 ? (
+          <div className="blueprint-empty-card" style={{ padding: '36px', textAlign: 'center' }}>
+            <Icons.Search size={28} className="empty-search-icon" />
+            <h3>No Matching Roadmap Nodes</h3>
+            <p>Try clearing your search query or selecting a different phase filter.</p>
+          </div>
+        ) : (
+          filteredPhases.map((phase) => {
           const completedCount = phase.weeks.filter((w) => w.status === 'Completed').length;
           const phasePercent = Math.round((completedCount / (phase.weeks.length || 1)) * 100);
 
@@ -161,15 +240,18 @@ export default function RoadmapTimelineGraph({
                       <div className="roadmap-node-preview">
                         <span className="node-preview-week">{week.week}</span>
                         <div className="node-focus-tags">
-                          <span className="focus-pill q" title={week.quantFocus}>
-                            <strong>Q:</strong> {week.quantFocus?.split(',')[0]}
-                          </span>
-                          <span className="focus-pill lr" title={week.lrdiFocus}>
-                            <strong>LR:</strong> {week.lrdiFocus?.split('&')[0]}
-                          </span>
-                          <span className="focus-pill v" title={week.varcFocus}>
-                            <strong>V:</strong> {week.varcFocus?.split('/')[0]}
-                          </span>
+                          <div className="node-subject-row" title={`Quant: ${week.quantFocus}`}>
+                            <span className="node-subject-badge qa">QA</span>
+                            <span className="node-subject-text">{week.quantFocus?.split(',')[0]}</span>
+                          </div>
+                          <div className="node-subject-row" title={`LRDI: ${week.lrdiFocus}`}>
+                            <span className="node-subject-badge lr">LR</span>
+                            <span className="node-subject-text">{week.lrdiFocus?.split('&')[0]}</span>
+                          </div>
+                          <div className="node-subject-row" title={`VARC: ${week.varcFocus}`}>
+                            <span className="node-subject-badge va">VA</span>
+                            <span className="node-subject-text">{week.varcFocus?.split('/')[0]}</span>
+                          </div>
                         </div>
                         <div className="node-action-links">
                           <button
@@ -213,7 +295,8 @@ export default function RoadmapTimelineGraph({
               )}
             </div>
           );
-        })}
+        })
+      )}
       </div>
     </div>
   );

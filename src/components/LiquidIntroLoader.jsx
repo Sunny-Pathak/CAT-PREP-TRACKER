@@ -26,14 +26,14 @@ export default function LiquidIntroLoader({ onComplete, activeTheme = 'dark' }) 
     }
   };
 
-  useGSAP((context, contextSafe) => {
+  useGSAP(() => {
     const prefersReducedMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)')?.matches;
     if (prefersReducedMotion) {
       handleFinish();
       return;
     }
 
-    const safeFinish = contextSafe(handleFinish);
+    const safeFinish = handleFinish;
 
     // Safety fallback: guaranteed exit after 3.2s
     const safetyTimer = setTimeout(() => {

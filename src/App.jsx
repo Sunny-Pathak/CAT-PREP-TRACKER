@@ -82,10 +82,10 @@ import { recordBehaviorTelemetry } from './utils/studyBehaviorEngine';
 import DitherBackground from './components/DitherBackground';
 import ClickSpark from './components/ClickSpark';
 import AnimatedStreakBadge from './components/AnimatedStreakBadge';
-import ComicPeekingCatBuddy from './components/ComicPeekingCatBuddy';
 import FocusTransitionPortal from './components/FocusTransitionPortal';
 import { Dock, DockItem } from './components/animations/Dock';
 import { initSmoothScroll, scrollToTop } from './utils/smoothScroll';
+import gsap from 'gsap';
 import { animatePageEntrance, makeMagnetic, triggerThemeWave } from './utils/gsapAnimations';
 
 const Icons = {
@@ -364,11 +364,8 @@ export default function App() {
 
   const handleCompleteOnboarding = useCallback((data) => {
     setIsOnboardingOpen(false);
-    if (!timerState?.isRunning) {
-      setTimeout(() => {
-        setShouldPromptCatTimer(true);
-      }, 500);
-    }
+    // Keep mascot peaceful; user can click sprite at will without interrupting dashboard view
+    setShouldPromptCatTimer(false);
     if (data?.targetExam) {
       setState(prev => {
         const nextSettings = {
@@ -818,12 +815,28 @@ export default function App() {
     };
   }, []);
 
-  // Animate Clean Bottom Fade-In & Reset Scroll Position when activeTab changes
+  // Animate Silky Page Transition & Reset Scroll Position when activeTab changes
   useEffect(() => {
     scrollToTop({ immediate: true });
+    if (typeof window !== 'undefined') {
+      const mainEl = document.querySelector('.main-content');
+      if (mainEl) {
+        gsap.fromTo(
+          mainEl,
+          { opacity: 0, y: 10 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.28,
+            ease: 'power2.out',
+            clearProps: 'transform,opacity'
+          }
+        );
+      }
+    }
     const timer = setTimeout(() => {
       animatePageEntrance('.main-content');
-    }, 20);
+    }, 30);
     return () => clearTimeout(timer);
   }, [activeTab]);
 
@@ -2567,8 +2580,8 @@ export default function App() {
 
 
 
-      {/* ReactBits Dither Background WebGL Shader (Dynamic continuous retro pixel wave, paused in terminal to free GPU) */}
-      <DitherBackground activeTheme={theme} opacity={0.16} ditherSize={2.2} disabled={activeTab === 'terminal'} />
+      {/* ReactBits Dither Background WebGL Shader (Fine silk grain ambient texture matching landing page depth) */}
+      <DitherBackground activeTheme={theme} opacity={0.32} ditherSize={1.2} waveSpeed={0.25} disabled={activeTab === 'terminal'} />
 
       {/* ReactBits ClickSpark Particle Burst Animation */}
       <ClickSpark activeTheme={theme} />
@@ -2763,18 +2776,12 @@ export default function App() {
           <div className="header-brand-title">
             <button 
               type="button" 
-              className="brand-emblem-badge header-logo-badge cyber-logo-pill" 
+              className="brand-emblem-badge header-logo-badge landing-brand-logo" 
               onClick={() => setShowIntro(true)} 
-              title="CATalyze - Replay Cinematic Intro"
+              title="CATalyze — Replay Cinematic Intro"
             >
-              <span className="brand-logo-emblem">
-                <Icons.Logo size={20} />
-              </span>
-              <span className="brand-logo-text-lockup">
-                <span className="brand-logo-title">
-                  <span className="brand-title-accent">CAT</span><span className="brand-title-light">alyze</span>
-                </span>
-              </span>
+              <div className="brand-square-glyph" />
+              <span className="brand-logo-text">CATALYZE</span>
             </button>
 
             <div className="cyber-header-divider desktop-only" aria-hidden="true" />
@@ -2837,20 +2844,6 @@ export default function App() {
           <div className="cyber-header-border-beam" aria-hidden="true" />
         </header>
 
-        {/* Comic Peeking Cat Study Buddy on Right Edge */}
-        {activeTab !== 'timer' && activeTab !== 'terminal' && (
-          <ComicPeekingCatBuddy 
-            onOpenTimer={() => {
-              setActiveTab('timer');
-              setIsFocusTransitioning(true);
-              setShouldPromptCatTimer(false);
-            }}
-            timerState={timerState}
-            activeTheme={theme}
-            autoPromptTimer={shouldPromptCatTimer}
-            onDismissPrompt={() => setShouldPromptCatTimer(false)}
-          />
-        )}
 
         {/* Kinetic Study Desk Transition Screen (Cat Glides into Desk Position) */}
         {isFocusTransitioning && activeTab === 'timer' && (

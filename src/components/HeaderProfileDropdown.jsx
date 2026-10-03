@@ -33,7 +33,7 @@ export default function HeaderProfileDropdown({
     return userProfile?.avatar || 'rocket';
   }, [userProfile?.avatar, userProfile?.photoURL, user?.photoURL]);
 
-  const userAvatarBg = userProfile?.avatarBg || '#3b82f6';
+  const userAvatarBg = userProfile?.avatarBg || '#8b5cf6';
 
   // Close dropdown on click outside or escape key
   useEffect(() => {

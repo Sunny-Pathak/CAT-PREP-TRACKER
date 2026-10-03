@@ -10,7 +10,7 @@ export const CAT_PHASES = [
     shortName: 'Full Blueprint',
     badge: '16 WEEKS',
     weeksRange: [1, 16],
-    color: '#38bdf8'
+    color: '#8b5cf6'
   },
   {
     id: 'PHASE 1',
@@ -18,13 +18,13 @@ export const CAT_PHASES = [
     shortName: 'Foundation (W1–8)',
     badge: 'WEEKS 1–8',
     weeksRange: [1, 8],
-    color: '#38bdf8',
+    color: '#8b5cf6',
     summary: 'Master arithmetic essentials, algebra fundamentals, core LR arrangement types, and fundamental reading comprehension habits.'
   },
   {
     id: 'PHASE 2',
     name: 'Phase 2: Syllabus Completion & Sectionals',
-    shortName: 'Advanced & Sectionals (W9–12)',
+    shortName: 'Sectionals (W9–12)',
     badge: 'WEEKS 9–12',
     color: '#a855f7',
     summary: 'Coordinate geometry, modern math, complex games/tournaments, missing data sets, and high-difficulty sectional test simulations.'
@@ -34,7 +34,7 @@ export const CAT_PHASES = [
     name: 'Phase 3: The Mock Marathon',
     shortName: 'Mock Marathon (W13–16)',
     badge: 'WEEKS 13–16',
-    color: '#f59e0b',
+    color: '#d946ef',
     summary: '30 Full-Length Mocks, intense error log diagnostics, set-selection discipline, and mental composure conditioning.'
   }
 ];
@@ -45,7 +45,7 @@ export const CAT_MILESTONES = {
     desc: 'You have cleared Percentages, P&L, TSD, Time & Work, and SI/CI. Arithmetic accounts for 35-40% of CAT Quant!',
     icon: 'target',
     phase: 'Phase 1',
-    badgeColor: '#38bdf8'
+    badgeColor: '#8b5cf6'
   },
   8: {
     title: 'Foundation Complete',
@@ -66,7 +66,7 @@ export const CAT_MILESTONES = {
     desc: '30 Mocks analyzed, Error Log resolved. You are in the 99th percentile strike zone. Trust your prep!',
     icon: 'sparkles',
     phase: 'Phase 3',
-    badgeColor: '#f59e0b'
+    badgeColor: '#d946ef'
   }
 };
 

@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import { Icons } from './AspirantIcons';
 import RoadmapTimelineGraph from './RoadmapTimelineGraph';
 import { 
@@ -30,11 +31,122 @@ export default function TimelineView({
   // Inspect drawer/modal for a specific week
   const [inspectedWeekIdx, setInspectedWeekIdx] = useState(null);
 
+  // Animation Refs
+  const phaseSegmentedRef = useRef(null);
+  const phaseSliderRef = useRef(null);
+  const viewSegmentedRef = useRef(null);
+  const viewSliderRef = useRef(null);
+  const cardsGridRef = useRef(null);
+  const viewBodyRef = useRef(null);
+
   // Save view preference
   useEffect(() => {
     try {
       localStorage.setItem('catalyze_study_plan_view', viewMode);
     } catch (e) {}
+  }, [viewMode]);
+
+  // Smooth sliding pill on phase tabs
+  useEffect(() => {
+    const updatePhasePill = () => {
+      if (!phaseSegmentedRef.current || !phaseSliderRef.current) return;
+      const activeBtn = phaseSegmentedRef.current.querySelector('.expedition-phase-btn.active');
+      if (activeBtn) {
+        gsap.to(phaseSliderRef.current, {
+          x: activeBtn.offsetLeft,
+          width: activeBtn.offsetWidth,
+          opacity: 1,
+          duration: 0.28,
+          ease: 'power3.out'
+        });
+      }
+    };
+
+    const raf = requestAnimationFrame(updatePhasePill);
+    window.addEventListener('resize', updatePhasePill);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', updatePhasePill);
+    };
+  }, [selectedPhase]);
+
+  // Smooth sliding pill on view mode tabs
+  useEffect(() => {
+    const updateViewPill = () => {
+      if (!viewSegmentedRef.current || !viewSliderRef.current) return;
+      const activeBtn = viewSegmentedRef.current.querySelector('.expedition-view-btn.active');
+      if (activeBtn) {
+        gsap.to(viewSliderRef.current, {
+          x: activeBtn.offsetLeft,
+          width: activeBtn.offsetWidth,
+          opacity: 1,
+          duration: 0.28,
+          ease: 'power3.out'
+        });
+      }
+    };
+
+    const raf = requestAnimationFrame(updateViewPill);
+    window.addEventListener('resize', updateViewPill);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', updateViewPill);
+    };
+  }, [viewMode]);
+
+  // Staggered card & table row entrance when phase filter changes or search changes
+  useEffect(() => {
+    if (cardsGridRef.current && viewMode === 'cards') {
+      const cards = cardsGridRef.current.querySelectorAll('.dossier-card');
+      if (cards.length > 0) {
+        gsap.fromTo(
+          cards,
+          { opacity: 0, y: 12, scale: 0.985 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.28,
+            stagger: 0.025,
+            ease: 'power2.out',
+            clearProps: 'transform,opacity'
+          }
+        );
+      }
+    } else if (viewBodyRef.current && viewMode === 'table') {
+      const rows = viewBodyRef.current.querySelectorAll('.blueprint-table-row');
+      if (rows.length > 0) {
+        gsap.fromTo(
+          rows,
+          { opacity: 0, y: 8 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.22,
+            stagger: 0.02,
+            ease: 'power2.out',
+            clearProps: 'transform,opacity'
+          }
+        );
+      }
+    }
+  }, [selectedPhase, searchQuery, viewMode]);
+
+  // Smooth transition on view mode switch (cards <-> roadmap <-> table)
+  useEffect(() => {
+    if (viewBodyRef.current) {
+      gsap.fromTo(
+        viewBodyRef.current,
+        { opacity: 0, y: 8 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.24,
+          ease: 'power2.out',
+          clearProps: 'transform,opacity'
+        }
+      );
+    }
   }, [viewMode]);
 
   // Overall metrics
@@ -172,11 +284,10 @@ export default function TimelineView({
             <span>STRATEGIC BLUEPRINT • 16-WEEK CURRICULUM</span>
           </div>
           <h1 className="expedition-headline">
-            THE 16-WEEK <span className="expedition-headline-serif">Roadmap.</span>
+            THE 16-WEEK ROADMAP
           </h1>
           <p className="expedition-lead-manifesto">
-            Tactical syllabus progression from core foundation to sectional peak. 
-            Target: <strong>2,000+ Quant</strong> • <strong>400+ LRDI Sets</strong> • <strong>400+ RCs</strong>.
+            Curriculum progression from core foundation to exam peak: <strong>2,000+ Quant</strong> • <strong>400+ LRDI Sets</strong> • <strong>400+ RCs</strong>.
           </p>
         </div>
 
@@ -188,7 +299,7 @@ export default function TimelineView({
               <span className="hud-metric-badge">WEEK {activeWeekNum}</span>
             </div>
             <div className="hud-main-val">
-              {completedWeeks} <span className="hud-sub">/ {totalWeeks} Weeks Conquered</span>
+              {completedWeeks} <span className="hud-sub">/ {totalWeeks} Weeks Completed</span>
             </div>
             <div className="hud-track-bar">
               <div 
@@ -197,7 +308,7 @@ export default function TimelineView({
               />
             </div>
             <div className="hud-footer-meta">
-              <span>{progressPercent}% Mastered</span>
+              <span>{progressPercent}% Completed</span>
               <span>{catCountdownDays} Days to CAT</span>
             </div>
           </div>
@@ -206,7 +317,8 @@ export default function TimelineView({
 
       {/* 2. Tactical Navigation Bar (Phase Filter Chips + Search + View Switcher) */}
       <div className="expedition-nav-bar">
-        <div className="expedition-phase-segmented">
+        <div ref={phaseSegmentedRef} className="expedition-phase-segmented">
+          <div ref={phaseSliderRef} className="phase-indicator-pill" />
           {CAT_PHASES.map((p) => {
             const isActive = selectedPhase === p.id;
             return (
@@ -243,15 +355,16 @@ export default function TimelineView({
             )}
           </div>
 
-          <div className="expedition-view-segmented">
+          <div ref={viewSegmentedRef} className="expedition-view-segmented">
+            <div ref={viewSliderRef} className="view-indicator-pill" />
             <button
               type="button"
               className={`expedition-view-btn ${viewMode === 'cards' ? 'active' : ''}`}
               onClick={() => setViewMode('cards')}
-              title="Cards Dossier View"
+              title="Cards Grid View"
             >
               <Icons.Grid size={13} />
-              <span>Dossier</span>
+              <span>Cards</span>
             </button>
             <button
               type="button"
@@ -276,19 +389,19 @@ export default function TimelineView({
       </div>
 
       {/* 3. Main Body */}
-      {viewMode === 'roadmap' ? (
-        /* Visual Roadmap View */
-        <div className="timeline-view-body">
+      <div ref={viewBodyRef} className="timeline-view-body">
+        {viewMode === 'roadmap' ? (
+          /* Visual Roadmap View */
           <RoadmapTimelineGraph
             studyPlan={studyPlan}
+            selectedPhase={selectedPhase}
+            searchQuery={searchQuery}
             onSelectWeek={(weekIdx) => setInspectedWeekIdx(weekIdx)}
             selectedWeekIndex={inspectedWeekIdx}
             onWeekClick={onWeekClick}
           />
-        </div>
-      ) : viewMode === 'table' ? (
-        /* Minimal Table View */
-        <div className="timeline-view-body">
+        ) : viewMode === 'table' ? (
+          /* Minimal Table View */
           <div className="blueprint-table-container">
             <table className="blueprint-table">
               <thead>
@@ -377,28 +490,24 @@ export default function TimelineView({
               </tbody>
             </table>
           </div>
-        </div>
-      ) : (
-        /* Tactical Dossier Cards Grid */
-        <div className="timeline-view-body">
-          {filteredWeeks.length === 0 ? (
-            <div className="blueprint-empty-card">
-              <Icons.Search size={28} className="empty-search-icon" />
-              <h3>No Blueprint Weeks Found</h3>
-              <p>Try clearing your search query or switching phase filters.</p>
-              <button
-                type="button"
-                className="expedition-phase-btn active"
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedPhase('ALL');
-                }}
-              >
-                Reset Filter
-              </button>
-            </div>
-          ) : (
-            <div className="expedition-dossier-grid">
+        ) : filteredWeeks.length === 0 ? (
+          <div className="blueprint-empty-card">
+            <Icons.Search size={28} className="empty-search-icon" />
+            <h3>No Blueprint Weeks Found</h3>
+            <p>Try clearing your search query or switching phase filters.</p>
+            <button
+              type="button"
+              className="expedition-phase-btn active"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedPhase('ALL');
+              }}
+            >
+              Reset Filter
+            </button>
+          </div>
+        ) : (
+          <div ref={cardsGridRef} className="expedition-dossier-grid">
               {filteredWeeks.map((week) => {
                 const globalIdx = studyPlan.findIndex((w) => w.week === week.week);
                 const weekNum = globalIdx + 1;
@@ -423,95 +532,88 @@ export default function TimelineView({
                     {/* Top Phase Accent Border Pip */}
                     <div className={`dossier-phase-accent phase-${phaseNum}`} />
 
-                    {/* Card Top Row: Week, Month & Status */}
+                    {/* Card Top Row: Week & Status */}
                     <div className="dossier-header-row">
                       <div className="dossier-id-block">
-                        <span className="dossier-week-tag">W{weekNum < 10 ? `0${weekNum}` : weekNum}</span>
-                        <span className="dossier-month-tag">{week.week.split(':')[0]}</span>
+                        <span className="dossier-week-tag">WEEK {weekNum < 10 ? `0${weekNum}` : weekNum}</span>
                       </div>
 
-                      <div className="dossier-status-block">
-                        {milestone && (
-                          <span className="dossier-milestone-flag" title={milestone.title}>
-                            <Icons.Award size={11} />
-                            <span>Milestone</span>
-                          </span>
-                        )}
-                        {week.isExtended && (
-                          <span className="dossier-milestone-flag" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', borderColor: 'rgba(168, 85, 247, 0.3)' }} title="Extended Buffer Week Active">
-                            <Icons.Clock size={11} />
-                            <span>Buffer Week</span>
-                          </span>
-                        )}
-                        {week.catchUpActive && (
-                          <span className="dossier-milestone-flag" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.3)' }} title="Catch-Up Blitz Active">
-                            <Icons.Zap size={11} />
-                            <span>Catch-Up</span>
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          className={`dossier-status-pill ${
-                            isCompleted ? 'completed' : isInProgress ? 'in-progress' : 'not-started'
-                          }`}
-                          onClick={(e) => handleStatusToggle(week.week, week.status, e)}
-                          title="Toggle week status"
-                        >
-                          <span className="dossier-status-pip" />
-                          <span>{week.status}</span>
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        className={`dossier-status-pill ${
+                          isCompleted ? 'completed' : isInProgress ? 'in-progress' : 'not-started'
+                        }`}
+                        onClick={(e) => handleStatusToggle(week.week, week.status, e)}
+                        title="Toggle week status"
+                      >
+                        <span className="dossier-status-pip" />
+                        <span>{week.status}</span>
+                      </button>
                     </div>
 
-                    {/* Phase Banner */}
-                    <div className="dossier-phase-label">
-                      Phase {phaseNum} • {weekNum <= 8 ? 'Foundation' : weekNum <= 12 ? 'Syllabus Completion' : 'Mock Marathon'}
+                    {/* Phase & Milestone Badges Row */}
+                    <div className="dossier-meta-badges-row">
+                      <span className={`dossier-phase-tag phase-${phaseNum}`}>
+                        {weekNum <= 8 ? 'Foundation' : weekNum <= 12 ? 'Sectionals' : 'Mock Marathon'}
+                      </span>
+                      {milestone && (
+                        <span className="dossier-milestone-flag" title={milestone.title}>
+                          <Icons.Award size={10} className="milestone-badge-icon" />
+                          <span>Milestone {Math.round(weekNum / 4)}</span>
+                        </span>
+                      )}
+                      {week.isExtended && (
+                        <span className="dossier-milestone-flag buffer" title="Extended Buffer Week Active">
+                          <Icons.Clock size={10} />
+                          <span>Buffer</span>
+                        </span>
+                      )}
+                      {week.catchUpActive && (
+                        <span className="dossier-milestone-flag catchup" title="Catch-Up Blitz Active">
+                          <Icons.Zap size={10} />
+                          <span>Catch-Up</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Subject Roadmap Items */}
                     <div className="dossier-subjects-stack">
                       <div className="dossier-subject-item quant">
-                        <span className="dossier-sub-dot quant" />
-                        <span className="dossier-sub-code">QA</span>
+                        <span className="dossier-sub-code qa">QA</span>
                         <span className="dossier-sub-topic">{week.quantFocus}</span>
                       </div>
                       <div className="dossier-subject-item lrdi">
-                        <span className="dossier-sub-dot lrdi" />
-                        <span className="dossier-sub-code">LR</span>
+                        <span className="dossier-sub-code lr">LR</span>
                         <span className="dossier-sub-topic">{week.lrdiFocus}</span>
                       </div>
                       <div className="dossier-subject-item varc">
-                        <span className="dossier-sub-dot varc" />
-                        <span className="dossier-sub-code">VA</span>
+                        <span className="dossier-sub-code va">VA</span>
                         <span className="dossier-sub-topic">{week.varcFocus}</span>
                       </div>
                     </div>
 
-                    {/* Card Footer: Checklist trigger & jump link */}
+                    {/* Card Footer: Concepts count & action */}
                     <div className="dossier-card-footer">
                       <span className="dossier-checklist-hint">
                         {completedSubtopics.length > 0 ? (
-                          <strong className="dossier-active-topics">{completedSubtopics.length}/{allSubtopicsCount} done</strong>
+                          <strong className="dossier-active-topics">{completedSubtopics.length}/{allSubtopicsCount} concepts done</strong>
                         ) : (
                           `${allSubtopicsCount} concepts`
                         )}
                       </span>
 
-                      <div className="dossier-footer-links">
-                        <span className="dossier-checklist-btn">Checklist</span>
-                        <button
-                          type="button"
-                          className="dossier-drills-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onWeekClick(week.week);
-                          }}
-                          title={`Go to Daily Drills for ${week.week}`}
-                        >
-                          <span>{week.isExtended || week.catchUpActive ? 'Start Drills' : 'Drills'}</span>
-                          <span className="dossier-arrow">↗</span>
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        className="dossier-drills-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onWeekClick(week.week);
+                        }}
+                        title={`Go to Daily Drills for ${week.week}`}
+                      >
+                        <span>{week.isExtended || week.catchUpActive ? 'Start Drills' : 'Drills'}</span>
+                        <span className="dossier-arrow">↗</span>
+                      </button>
                     </div>
                   </div>
                 );
@@ -519,7 +621,6 @@ export default function TimelineView({
             </div>
           )}
         </div>
-      )}
 
       {/* 4. Detailed Syllabus Inspector Drawer */}
       {inspectedWeekData && (
@@ -714,9 +815,9 @@ export default function TimelineView({
                   type="button"
                   className="drawer-secondary-btn"
                   style={{
-                    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-                    borderColor: 'rgba(56, 189, 248, 0.35)',
-                    color: '#38bdf8'
+                    backgroundColor: 'rgba(139, 92, 246, 0.14)',
+                    borderColor: 'rgba(168, 85, 247, 0.38)',
+                    color: '#c084fc'
                   }}
                   onClick={() => {
                     const match = inspectedWeekData.week.match(/Month (\d+):\s+Week (\d+)/i);
@@ -725,7 +826,7 @@ export default function TimelineView({
                     onOpenCheckpoint(monthKey, relativeWeek, inspectedWeekIdx + 1);
                   }}
                 >
-                  <Icons.Target size={13} color="#38bdf8" />
+                  <Icons.Target size={13} color="#c084fc" />
                   <span>Adaptive Checkpoint</span>
                 </button>
               )}

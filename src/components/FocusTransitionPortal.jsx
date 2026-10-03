@@ -20,14 +20,14 @@ export default function FocusTransitionPortal({ onComplete, activeTheme = 'dark'
     }
   };
 
-  useGSAP((context, contextSafe) => {
+  useGSAP(() => {
     const prefersReducedMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)')?.matches;
     if (prefersReducedMotion) {
       handleFinish();
       return;
     }
 
-    const safeFinish = contextSafe(handleFinish);
+    const safeFinish = handleFinish;
 
     // Safety timeout: auto-finish after 2.0s
     const safetyTimer = setTimeout(() => {

@@ -35,7 +35,7 @@ const THEME_PALETTES = {
   'dark-olive': { bg: [0.04, 0.05, 0.03], wave: [0.15, 0.20, 0.10] },
   'plum-velvet': { bg: [0.05, 0.02, 0.05], wave: [0.22, 0.08, 0.18] },
   'slate-terracotta': { bg: [0.03, 0.04, 0.05], wave: [0.24, 0.14, 0.12] },
-  'dark': { bg: [0.03, 0.03, 0.04], wave: [0.09, 0.14, 0.22] }
+  'dark': { bg: [0.025, 0.022, 0.04], wave: [0.28, 0.14, 0.52] }
 };
 
 function getThemePalette(themeId) {
@@ -223,7 +223,7 @@ function DitherBackground({
         float dither = step(bayer, lum);
         
         vec3 col = mix(u_color_bg, u_color_wave, dither);
-        gl_FragColor = vec4(col, u_opacity);
+        gl_FragColor = vec4(col, 1.0);
       }
     `;
 
@@ -441,7 +441,7 @@ function DitherBackground({
         height: '100vh',
         pointerEvents: 'none',
         zIndex: 0,
-        opacity: disabled ? 0 : 1,
+        opacity: disabled ? 0 : opacity,
         transition: 'opacity 0.3s ease',
         imageRendering: 'pixelated'
       }}

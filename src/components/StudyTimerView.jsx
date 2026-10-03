@@ -59,6 +59,7 @@ export default function StudyTimerView({
   const [isZenFullscreen, setIsZenFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const prevSecondsLeftRef = useRef(secondsLeft);
 
   useEffect(() => {
@@ -250,7 +251,7 @@ export default function StudyTimerView({
   }, [timerState, totalSeconds, secondsLeft, timerMode, currentSubject, notes]);
 
   return (
-    <div className={`study-timer-minimal-container ${isZenFullscreen ? 'zen-fullscreen-mode' : ''}`}>
+    <div className={`study-timer-minimal-container monumental-sanctuary-root ${isZenFullscreen ? 'zen-fullscreen-mode' : ''}`}>
       
       {/* Floating Exit Button for Pure Deep Focus Fullscreen */}
       {isZenFullscreen && (
@@ -260,244 +261,107 @@ export default function StudyTimerView({
           onClick={toggleZenFullscreen}
           title="Exit Fullscreen (Esc or F)"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-          <span>Exit Fullscreen</span>
+          <span className="w-1.5 h-1.5 bg-violet-400" />
+          <span>EXIT FULLSCREEN [ESC]</span>
         </button>
       )}
 
-      {/* Header bar inside tab (Hidden completely in Deep Focus Fullscreen) */}
+      {/* 1. Monumental Header Bar (Identical to Landing Page Hero Header) */}
       {!isZenFullscreen && (
-        <div className="minimal-timer-header">
-          <div className="header-left">
-            {/* Leave Sanctuary Button */}
+        <header className="monumental-timer-header">
+          <div className="monumental-header-left">
             <button 
               type="button" 
-              className="zen-leave-sanctuary-btn"
+              className="monumental-brand-link"
               onClick={() => {
-                // If a study session is running, prompt confirmation / guilt-trip
-                if (isRunning) {
-                  setShowGuiltTrip(true);
-                } else {
-                  if (onLeaveTimer) onLeaveTimer();
-                }
+                if (isRunning) setShowGuiltTrip(true);
+                else if (onLeaveTimer) onLeaveTimer();
               }}
               title="Return to Dashboard"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-              </svg>
-              <span>Back to Dashboard</span>
+              <span className="brand-square" />
+              <span className="brand-wordmark font-[family-name:var(--font-syne)]">CATALYZE</span>
+              <span className="brand-sep">//</span>
+              <span className="brand-sub">FOCUS PROTOCOL</span>
             </button>
-
-            <span className="live-timer-badge">
-              <span className={`timer-pulse-dot ${isRunning ? 'active' : ''}`}></span>
-              {isRunning ? 'Session Active' : isPaused ? 'Paused' : 'Ready'}
-            </span>
           </div>
 
-          <div className="header-right">
-            {/* Audio Chime Mute/Unmute Toggle */}
+          <div className="monumental-header-right">
+            {/* Live Telemetry Pulse */}
+            <div className="monumental-status-chip">
+              <span className={`status-pulse-dot ${isRunning ? 'active' : ''}`} />
+              <span className="status-text">{isRunning ? 'SESSION ACTIVE' : isPaused ? 'PAUSED' : 'READY'}</span>
+            </div>
+
+            {/* Sound Toggle */}
             <button 
               type="button" 
-              className={`zen-icon-btn ${isMuted ? 'muted' : ''}`}
+              className={`monumental-ghost-btn ${isMuted ? 'muted' : ''}`}
               onClick={() => {
                 setIsMuted(!isMuted);
                 if (isMuted) playSoftZenChime(0.2);
               }}
-              title={isMuted ? "Sound Muted (Click to enable soft completion chime)" : "Sound Enabled (Click to mute)"}
+              title={isMuted ? "Enable soft completion chime" : "Mute chime"}
             >
-              {isMuted ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="1" y1="1" x2="23" y2="23"></line>
-                  <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
-                  <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
-                  <line x1="12" y1="19" x2="12" y2="23"></line>
-                  <line x1="8" y1="23" x2="16" y2="23"></line>
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-              )}
-              <span className="desktop-inline">{isMuted ? "Chime Muted" : "Zen Chime"}</span>
+              <span>{isMuted ? 'CHIME: MUTED' : 'CHIME: ON'}</span>
             </button>
 
-            {/* Deep Focus Fullscreen Toggle */}
+            {/* Deep Focus Fullscreen */}
             <button
               type="button"
-              className={`zen-fullscreen-trigger-btn ${isZenFullscreen ? 'active' : ''}`}
+              className="monumental-ghost-btn"
               onClick={toggleZenFullscreen}
-              title="Toggle Deep Focus Fullscreen Sanctuary (Shortcut: F)"
+              title="Toggle Fullscreen Sanctuary (Shortcut: F)"
             >
-              {isZenFullscreen ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="4 14 10 14 10 20"></polyline>
-                  <polyline points="20 10 14 10 14 4"></polyline>
-                  <line x1="14" y1="10" x2="21" y2="3"></line>
-                  <line x1="3" y1="21" x2="10" y2="14"></line>
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <polyline points="9 21 3 21 3 15"></polyline>
-                  <line x1="21" y1="3" x2="14" y2="10"></line>
-                  <line x1="3" y1="21" x2="10" y2="14"></line>
-                </svg>
-              )}
-              <span>{isZenFullscreen ? 'Exit Focus' : 'Deep Focus Mode'}</span>
+              <span>FULLSCREEN ↗</span>
             </button>
-
-            {/* Today's Focus Hours summary badge */}
-            <div className="minimal-hours-badge">
-              <span className="hours-label">Today's Focus:</span>
-              <span className="hours-val">{todayTotalHours.toFixed(1)} hrs</span>
-            </div>
           </div>
-        </div>
+        </header>
       )}
 
-      {/* Main Stage: Timer + Study Companion Layout */}
-      <div className={`minimal-timer-stage ${isRunning ? 'is-running' : ''} ${isZenFullscreen ? 'fullscreen-stage' : ''}`}>
+      {/* 2. Main Stage: The Monumental Chrono Sanctuary */}
+      <main className={`monumental-focus-stage ${isRunning ? 'is-running' : ''} ${isZenFullscreen ? 'fullscreen-stage' : ''}`}>
         
-        {/* Companion Display: Animated ASCII Bot in Phosphor CRT theme, Standard Mascot in all other themes */}
-        <div 
-          ref={companionRef} 
-          className={`stage-companion-container ${isFocusTransitioning ? 'transitioning-in' : ''}`}
-        >
-          {theme === 'phosphor-crt' ? (
-            <AsciiMascot 
-              isRunning={isRunning}
-              subject={currentSubject}
-              size={isZenFullscreen ? 230 : (typeof window !== 'undefined' && window.innerWidth < 768 ? 140 : 175)}
-            />
-          ) : (
-            <StudyCompanionEntity 
-              isRunning={isRunning}
-              isPaused={isPaused}
-              isCompleted={secondsLeft === 0 && !isRunning && !isPaused}
-              subject={currentSubject}
-              size={isZenFullscreen ? 230 : (typeof window !== 'undefined' && window.innerWidth < 768 ? 140 : 175)}
-            />
-          )}
-        </div>
-
-        {/* Center Stage: Futuristic Chronograph HUD Telemetry Bezel */}
-        <div className="dynamic-timer-ring-container enlarged-ring">
+        {/* The Chronograph Ring & Tabular Digits */}
+        <div className="monumental-chrono-centerpiece">
           <ChronoTimerHUD
             timerMode={timerMode}
             secondsLeft={secondsLeft}
             totalSeconds={totalSeconds}
             isRunning={isRunning}
           >
-            {/* Time Readout in Center */}
-            <div className="minimal-timer-center-info">
-              <span className="minimal-time-readout font-display">
+            <div 
+              className="monumental-digits-anchor"
+              onClick={!isRunning && !isPaused ? handleStart : isRunning ? onPauseTimer : onResumeTimer}
+              role="button"
+              tabIndex={0}
+              title="Click to Start / Pause (Shortcut: Space)"
+            >
+              <span className="monumental-clock-readout font-display">
                 <SkiperAnimatedTimer seconds={secondsLeft} />
               </span>
-              <div className="minimal-sub-readout">
-                <span className="subject-focus-badge">{currentSubject} FOCUS</span>
-                {timerMode === 'stopwatch' && <span className="stopwatch-tag">• STOPWATCH</span>}
-              </div>
-              {isRunning && (
-                <span className="live-sprint-indicator">
-                  <span className="pulse-sprint-dot"></span>
-                  <span>DEEP FOCUS ACTIVE</span>
+              
+              <div className="monumental-readout-sub">
+                <span className="monumental-subject-label">
+                  {currentSubject === 'Quant' ? 'QUANTITATIVE' : currentSubject === 'LRDI' ? 'LOGICAL REASONING' : currentSubject === 'VARC' ? 'VERBAL ABILITY' : 'GENERAL DRILL'} FOCUS
                 </span>
-              )}
+                {timerMode === 'stopwatch' && <span className="monumental-stopwatch-label">// STOPWATCH</span>}
+              </div>
             </div>
           </ChronoTimerHUD>
         </div>
 
-        {/* Primary Controls Bar */}
-        <div className="minimal-controls-bar">
-          {!isRunning && !isPaused ? (
-            <button 
-              type="button" 
-              className="btn-primary minimal-start-btn" 
-              onClick={handleStart}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-              </svg>
-              <span>Start Study Session</span>
-            </button>
-          ) : isRunning ? (
-            <>
-              <button 
-                className="btn-secondary control-btn pause-control-btn" 
-                onClick={() => { playSoftClick(); onPauseTimer(); }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="6" y="4" width="4" height="16"></rect>
-                  <rect x="14" y="4" width="4" height="16"></rect>
-                </svg>
-                <span>Pause</span>
-              </button>
-              <button 
-                className="btn-secondary control-btn reset-control-btn" 
-                onClick={() => { playSoftClick(); onResetTimer(); }}
-                title="Reset Session"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                  <path d="M3 3v5h5"></path>
-                </svg>
-                <span>Reset</span>
-              </button>
-              <button className="btn-primary finish-btn control-btn" onClick={handleFinish}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                <span>Log Time</span>
-              </button>
-            </>
-          ) : (
-            <>
-              <button 
-                className="btn-primary control-btn resume-control-btn" 
-                onClick={() => { playSoftClick(); onResumeTimer(); }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                <span>Resume</span>
-              </button>
-              <button 
-                className="btn-secondary control-btn reset-control-btn" 
-                onClick={() => { playSoftClick(); onResetTimer(); }}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                  <path d="M3 3v5h5"></path>
-                </svg>
-                <span>Reset</span>
-              </button>
-              <button className="btn-primary finish-btn control-btn" onClick={handleFinish}>
-                <span>Log Time</span>
-              </button>
-            </>
-          )}
-        </div>
-
-      </div>
-
-      {/* Sleek Minimal Options Bar below stage (Hidden in Fullscreen for zero distraction) */}
-      {!isZenFullscreen && (
-        <div className="minimal-settings-grid">
-          
-          {/* Duration / Mode Selector */}
-          <div className="minimal-box">
-            <span className="minimal-box-label">Duration Preset</span>
-            <div className="minimal-pills-group">
-              {[15, 25, 45, 50, 60].map(m => (
+        {/* Quiet Typographic Controls: Cadence & Discipline */}
+        {!isZenFullscreen && (
+          <div className="monumental-controls-console">
+            
+            {/* Cadence Selection: Quiet Monospace Text */}
+            <div className="monumental-cadence-rack">
+              {[15, 25, 45, 60].map(m => (
                 <button
                   key={m}
-                  className={`minimal-pill ${timerMode === 'pomodoro' && selectedDuration === m ? 'active' : ''}`}
+                  type="button"
+                  className={`cadence-text-btn ${timerMode === 'pomodoro' && selectedDuration === m ? 'active' : ''}`}
                   onClick={() => {
                     playSoftClick();
                     setTimerMode('pomodoro');
@@ -505,156 +369,236 @@ export default function StudyTimerView({
                   }}
                   disabled={isRunning || isPaused}
                 >
-                  {m}m
+                  <span className="cadence-num">{m}</span>
+                  <span className="cadence-unit">M</span>
                 </button>
               ))}
+
+              <span className="cadence-sep">/</span>
+
               <button
-                className={`minimal-pill ${timerMode === 'custom' ? 'active' : ''}`}
+                type="button"
+                className={`cadence-text-btn ${timerMode === 'custom' ? 'active' : ''}`}
                 onClick={() => { playSoftClick(); setTimerMode('custom'); }}
                 disabled={isRunning || isPaused}
               >
-                Custom
+                CUSTOM
               </button>
+
+              <span className="cadence-sep">/</span>
+
               <button
-                className={`minimal-pill ${timerMode === 'stopwatch' ? 'active' : ''}`}
+                type="button"
+                className={`cadence-text-btn ${timerMode === 'stopwatch' ? 'active' : ''}`}
                 onClick={() => { playSoftClick(); setTimerMode('stopwatch'); }}
                 disabled={isRunning || isPaused}
               >
-                Stopwatch
+                STOPWATCH
               </button>
             </div>
+
+            {/* Custom Minutes Input (Inline when active) */}
             {timerMode === 'custom' && (
-              <div className="custom-mins-inline">
-                <span>Target Mins:</span>
+              <div className="monumental-custom-line">
+                <span className="custom-prompt">TARGET DURATION:</span>
                 <input
                   type="number"
-                  className="drill-input custom-mins-input"
+                  className="custom-duration-input"
                   min="1"
                   max="480"
                   value={customMinutes}
                   onChange={(e) => setCustomMinutes(Math.max(1, parseInt(e.target.value) || 1))}
                   disabled={isRunning || isPaused}
                 />
+                <span className="custom-mins-suffix">MINUTES</span>
               </div>
             )}
-          </div>
 
-          {/* Prep Subject Pill Selector */}
-          <div className="minimal-box">
-            <span className="minimal-box-label">Prep Subject</span>
-            <div className="minimal-pills-group">
-              {['Quant', 'LRDI', 'VARC', 'General'].map(s => (
+            {/* Discipline Selector: Pure Hairline Brackets */}
+            <div className="monumental-disciplines-rack">
+              {[
+                { id: 'Quant', code: 'QA', label: 'QUANT' },
+                { id: 'LRDI', code: 'LR', label: 'LRDI' },
+                { id: 'VARC', code: 'VA', label: 'VARC' },
+                { id: 'General', code: 'GEN', label: 'GENERAL' }
+              ].map(s => (
                 <button
-                  key={s}
-                  className={`minimal-pill ${currentSubject === s ? 'active' : ''}`}
-                  onClick={() => { playSoftClick(); setCurrentSubject(s); }}
+                  key={s.id}
+                  type="button"
+                  className={`discipline-text-btn ${currentSubject === s.id ? 'active' : ''}`}
+                  onClick={() => { playSoftClick(); setCurrentSubject(s.id); }}
                   disabled={isRunning || isPaused}
                 >
-                  {s}
+                  <span className="bracket">[</span>
+                  <span className="code">{s.code}</span>
+                  <span className="bracket">]</span>
+                  <span className="name">{s.label}</span>
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* Session Notes */}
-          <div className="minimal-box wide-box">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span className="minimal-box-label" style={{ margin: 0 }}>Session Focus Notes</span>
+            {/* Primary Actuation Trigger (Start / Pause / Log) */}
+            <div className="monumental-actuation-rack">
+              {!isRunning && !isPaused ? (
+                <button 
+                  type="button" 
+                  className="monumental-engage-cta" 
+                  onClick={handleStart}
+                >
+                  <span className="engage-icon">▶</span>
+                  <span className="engage-text">ENGAGE SESSION</span>
+                  <span className="engage-shortcut">[SPACE]</span>
+                </button>
+              ) : isRunning ? (
+                <div className="monumental-running-controls">
+                  <button 
+                    type="button"
+                    className="monumental-running-btn pause-btn" 
+                    onClick={() => { playSoftClick(); onPauseTimer(); }}
+                  >
+                    <span>PAUSE [SPACE]</span>
+                  </button>
+                  <button 
+                    type="button"
+                    className="monumental-running-btn log-btn" 
+                    onClick={handleFinish}
+                  >
+                    <span>LOG SESSION</span>
+                  </button>
+                  <button 
+                    type="button"
+                    className="monumental-running-btn reset-btn" 
+                    onClick={() => { playSoftClick(); onResetTimer(); }}
+                  >
+                    <span>RESET</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="monumental-running-controls">
+                  <button 
+                    type="button"
+                    className="monumental-running-btn resume-btn" 
+                    onClick={() => { playSoftClick(); onResumeTimer(); }}
+                  >
+                    <span>RESUME [SPACE]</span>
+                  </button>
+                  <button 
+                    type="button"
+                    className="monumental-running-btn log-btn" 
+                    onClick={handleFinish}
+                  >
+                    <span>LOG SESSION</span>
+                  </button>
+                  <button 
+                    type="button"
+                    className="monumental-running-btn reset-btn" 
+                    onClick={() => { playSoftClick(); onResetTimer(); }}
+                  >
+                    <span>RESET</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Whisper-Quiet Intention Line */}
+            <div className="monumental-intention-row">
+              <span className="intention-dash">—</span>
+              <SmoothCaretInput
+                type="text"
+                className="monumental-intention-input"
+                placeholder="Session objective (e.g. Practicing Time & Work Level-2 sets)..."
+                value={notes}
+                onChange={(e) => {
+                  const clean = stripEmojis(e.target.value);
+                  setNotes(clean);
+                  if (onUpdateNotes) onUpdateNotes(clean);
+                }}
+              />
               {onOpenNotes && (
                 <button
                   type="button"
-                  className="quick-notes-redirect-btn font-mono"
+                  className="monumental-vault-trigger"
                   onClick={onOpenNotes}
-                  title="Open Error Log & Quick Notes Vault"
+                  title="Open Error Log & Notes Vault"
                 >
-                  <Icons.Edit3 size={11} />
-                  <span>Quick Notes &amp; Vault ↗</span>
+                  <span>VAULT ↗</span>
                 </button>
               )}
             </div>
-            <SmoothCaretInput
-              type="text"
-              className="day-textarea minimal-notes-input"
-              placeholder="e.g. Practicing Time & Work Level-2 sets..."
-              value={notes}
-              onChange={(e) => {
-                const clean = stripEmojis(e.target.value);
-                setNotes(clean);
-                if (onUpdateNotes) onUpdateNotes(clean);
-              }}
-            />
+
+          </div>
+        )}
+
+      </main>
+
+      {/* 3. Monumental Footer Bar (Identical to Landing Page Hero Footer) */}
+      {!isZenFullscreen && (
+        <footer className="monumental-timer-footer">
+          <div className="footer-axiom">
+            <span className="axiom-square" />
+            <span className="axiom-text font-mono">OBSERVATION DEFINES OUTCOME</span>
           </div>
 
-        </div>
+          <div className="footer-telemetry">
+            <button
+              type="button"
+              className="telemetry-log-toggle"
+              onClick={() => setIsHistoryExpanded(prev => !prev)}
+              title="Toggle Today's Session Log"
+            >
+              <span className="telemetry-label">TODAY:</span>
+              <span className="telemetry-value">{todayTotalHours.toFixed(1)} HRS</span>
+              <span className="telemetry-sep">//</span>
+              <span className="telemetry-count">{todaySessions.length} SESSIONS</span>
+              <span className={`telemetry-arrow ${isHistoryExpanded ? 'open' : ''}`}>▾</span>
+            </button>
+          </div>
+        </footer>
       )}
 
-      {/* Today's Logged Sessions Timeline (Hidden in Fullscreen) */}
-      {!isZenFullscreen && (
-        <div className="sessions-history-section">
-          <div className="history-header-row">
-            <div>
-              <h3 className="section-title">Today's Recorded Sessions</h3>
-              <p className="section-subtitle">
-                Time intervals automatically logged directly from your system clock.
-              </p>
-            </div>
-            <div className="today-badge-chip">
-              {todaySessions.length} Sessions Logged Today
-            </div>
-          </div>
-
+      {/* 4. Quiet Monospace Flight Journal (Only when expanded by user) */}
+      {!isZenFullscreen && isHistoryExpanded && (
+        <div className="monumental-journal-drawer">
           {todaySessions.length === 0 ? (
-            <div className="empty-sessions-box">
-              <p>No study sessions logged yet for today. Hit start above to begin!</p>
+            <div className="journal-empty">
+              <span>NO SESSIONS RECORDED TODAY. ENGAGE CHRONO ABOVE TO LOG SPRINT.</span>
             </div>
           ) : (
-            <div className="sessions-timeline-grid">
+            <div className="journal-stream">
               {todaySessions.map((s, idx) => (
-                <div key={s.id || idx} className="session-card">
-                  <div className="session-card-header">
-                    <span className={`subject-badge badge-${s.subject?.toLowerCase()}`}>
-                      {s.subject || 'General'}
-                    </span>
-                    <span className="session-duration-tag">
-                      {s.durationMinutes} mins ({ (s.durationMinutes / 60).toFixed(1) } hrs)
-                    </span>
+                <div key={s.id || idx} className="journal-entry">
+                  <div className="journal-col-time">
+                    <span className="time-range">{s.startTime || '—'} → {s.endTime || '—'}</span>
                   </div>
-                  <div className="session-time-range">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    <span>{s.startTime} - {s.endTime}</span>
+                  <div className="journal-col-subject">
+                    <span className="subject-tag">[{s.subject || 'GENERAL'}]</span>
                   </div>
-                  {s.notes && <div className="session-notes-text">"{s.notes}"</div>}
-                  <div className="session-card-footer">
-                    <span className="session-mode-badge">{s.mode || 'Pomodoro'}</span>
-                    <div className="session-card-actions">
-                      {onEditSession && (
-                        <button
-                          type="button"
-                          className="edit-session-btn"
-                          onClick={() => setEditingSession(s)}
-                          title="Edit session duration or notes"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
-                          <span>Edit</span>
-                        </button>
-                      )}
-                      {onDeleteSession && (
-                        <button
-                          type="button"
-                          className="delete-session-btn"
-                          onClick={() => onDeleteSession(s.id)}
-                          title="Remove session log"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
+                  <div className="journal-col-duration">
+                    <span className="duration-tag">{s.durationMinutes}M</span>
+                    <span className="hours-fraction">({(s.durationMinutes / 60).toFixed(1)}h)</span>
+                  </div>
+                  <div className="journal-col-notes">
+                    <span className="notes-text">{s.notes ? `"${s.notes}"` : '—'}</span>
+                  </div>
+                  <div className="journal-col-actions">
+                    {onEditSession && (
+                      <button
+                        type="button"
+                        className="journal-action-link edit"
+                        onClick={() => setEditingSession(s)}
+                      >
+                        EDIT
+                      </button>
+                    )}
+                    {onDeleteSession && (
+                      <button
+                        type="button"
+                        className="journal-action-link delete"
+                        onClick={() => onDeleteSession(s.id)}
+                      >
+                        DEL
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

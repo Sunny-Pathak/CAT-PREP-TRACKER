@@ -1,17 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  getAllExams, 
-  getActiveExamConfig, 
   DEFAULT_EXAM_ID, 
   TIMELINE_HORIZONS, 
   DEFAULT_TIMELINE_ID, 
   getAdjustedDailyQuotas,
+  getActiveExamConfig,
   getTimelineHorizon
 } from '../config/examConfig';
 import { playSoftZenChime, playObjectiveCompleteGameSound } from '../utils/audioUtils';
-import Stepper from './animations/Stepper';
-import SpotlightCard from './animations/SpotlightCard';
-import OnboardingMascotGuide from './OnboardingMascotGuide';
 
 export default function OnboardingWelcomeModal({
   isOpen,
@@ -23,44 +19,18 @@ export default function OnboardingWelcomeModal({
   theme
 }) {
   const currentTheme = theme || activeTheme || (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : null) || 'dark';
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedExamId, setSelectedExamId] = useState(initialExamId || DEFAULT_EXAM_ID);
+  const [selectedExamId] = useState(initialExamId || DEFAULT_EXAM_ID);
   const [selectedHorizonId, setSelectedHorizonId] = useState(initialHorizonId || DEFAULT_TIMELINE_ID);
   const [isMinimizing, setIsMinimizing] = useState(false);
-  
-  const rawExams = getAllExams();
+
   const selectedConfig = getActiveExamConfig(selectedExamId);
   const selectedHorizon = getTimelineHorizon(selectedHorizonId);
   const adjustedQuotas = getAdjustedDailyQuotas(selectedExamId, selectedHorizonId);
 
-  const steps = [
-    { id: 'exam', title: 'Target Exam' },
-    { id: 'horizon', title: 'Prep Horizon' },
-    { id: 'blueprint', title: 'Blueprint' }
-  ];
-
-  if (!isOpen) return null;
-
-  const handleExamSelect = (examId) => {
-    if (examId !== 'cat') return; // Locked for live release
-    setSelectedExamId(examId);
-    try {
-      playSoftZenChime(0.12);
-    } catch (e) {}
-  };
-
   const handleHorizonSelect = (horizonId) => {
-    if (horizonId !== '16_weeks') return; // Locked for current pace release
     setSelectedHorizonId(horizonId);
     try {
-      playSoftZenChime(0.15);
-    } catch (e) {}
-  };
-
-  const handleStepChange = (stepNum) => {
-    setCurrentStep(stepNum);
-    try {
-      playSoftZenChime(0.1);
+      playSoftZenChime(0.14);
     } catch (e) {}
   };
 
@@ -96,7 +66,7 @@ export default function OnboardingWelcomeModal({
     }
   };
 
-  const handleGetStartedClick = () => {
+  const handleLaunch = () => {
     try {
       playObjectiveCompleteGameSound();
     } catch (e) {}
@@ -107,338 +77,167 @@ export default function OnboardingWelcomeModal({
     } else {
       setTimeout(() => {
         executeFinish(selectedExamId, selectedHorizonId);
-      }, 520);
+      }, 480);
     }
+  };
+
+  // Keyboard shortcut: Press Enter to launch, Escape to dismiss
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleLaunch();
+      } else if (e.key === 'Escape') {
+        executeFinish(DEFAULT_EXAM_ID, DEFAULT_TIMELINE_ID);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, selectedExamId, selectedHorizonId]);
+
+  if (!isOpen) return null;
+
+  // Refined, high-yield copy that fits with zero ellipsis truncations
+  const CONCISE_DESCRIPTIONS = {
+    '3_months': 'High-yield sprint prioritizing high-weightage chapters and intensive PYQs.',
+    '16_weeks': 'Balanced foundation, advanced drills, and mock marathon retention.',
+    '6_months': 'Methodical pacing with dedicated multiple-revision cycles.',
+    '1_year': 'Exhaustive foundation building with complete revision cycles.'
   };
 
   return (
     <div className={`onb-overlay ${isMinimizing ? 'minimizing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="onb-title">
-      {/* Flying Mascot Morph Animation towards Bottom-Right */}
-      {isMinimizing && (
-        <div className="flying-mascot-projectile" aria-hidden="true">
-          <div className="flying-mascot-glow" />
-          <svg viewBox="0 0 100 80" className="flying-cat-svg">
-            <defs>
-              <linearGradient id="flyGrad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="var(--accent-color, #38bdf8)" />
-                <stop offset="100%" stopColor="var(--accent-secondary, #818cf8)" />
-              </linearGradient>
-            </defs>
-            <polygon points="18,50 24,14 40,38" fill="url(#flyGrad)" />
-            <polygon points="82,50 76,14 60,38" fill="url(#flyGrad)" />
-            <circle cx="50" cy="46" r="26" fill="url(#flyGrad)" />
-            <ellipse cx="32" cy="62" rx="10" ry="6" fill="url(#flyGrad)" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" />
-            <ellipse cx="68" cy="62" rx="10" ry="6" fill="url(#flyGrad)" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" />
-          </svg>
-        </div>
-      )}
+      <div className={`onb-monolith-card ${isMinimizing ? 'card-shrinking' : ''}`} data-theme={currentTheme}>
+        {/* Subtle Top Accent Beam */}
+        <div className="onb-accent-beam" aria-hidden="true" />
 
-      <div className={`onb-card ${isMinimizing ? 'card-shrinking' : ''}`} data-theme={activeTheme}>
-        {/* Sleek Top Header */}
-        <div className="onb-header">
-          <div className="onb-top-row">
-            <span className="onb-tag">WORKSPACE CALIBRATION</span>
-            <button 
-              type="button" 
-              className="onb-close-btn"
-              onClick={() => executeFinish(DEFAULT_EXAM_ID, DEFAULT_TIMELINE_ID)}
-              aria-label="Close"
-              title="Close"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+        {/* Clean Header Bar */}
+        <header className="onb-header">
+          <div className="onb-brand-badge">
+            <span className="onb-brand-square" />
+            <span className="onb-brand-text">CATALYZE · CALIBRATION PROTOCOL</span>
           </div>
 
-          <div className="onb-title-row">
-            <h2 id="onb-title" className="onb-main-title">Target Examination & Timeline</h2>
-            <p className="onb-subtext">Calibrate your syllabus, daily pacing, and drill quotas.</p>
-          </div>
-        </div>
-
-        {/* Minimal Stepper Bar */}
-        <div className="onb-stepper-wrap">
-          <Stepper 
-            steps={steps}
-            currentStep={currentStep}
-            onStepChange={handleStepChange}
-          />
-        </div>
-
-        {/* Mascot Companion Guide with Dynamic Dialogue */}
-        <div className="onb-mascot-container">
-          <OnboardingMascotGuide 
-            currentStep={currentStep}
-            selectedExamConfig={selectedConfig}
-            selectedHorizon={selectedHorizon}
-            adjustedQuotas={adjustedQuotas}
-          />
-        </div>
-
-        {/* Smooth Horizontal Slide Carousel for Steps */}
-        <div className="onb-slider-viewport">
-          <div 
-            className="onb-slider-track"
-            style={{ transform: `translateX(-${((currentStep - 1) * 100) / 3}%)` }}
+          <button 
+            type="button" 
+            className="onb-close-action"
+            onClick={() => executeFinish(DEFAULT_EXAM_ID, DEFAULT_TIMELINE_ID)}
+            aria-label="Close Calibration"
           >
-            {/* Slide 1: Target Exam */}
-            <div className="onb-slider-slide">
-              {/* Flagship Exam Card: CAT */}
-              {rawExams.filter(e => e.id === 'cat').map((exam) => {
-                const isSelected = selectedExamId === exam.id;
-                return (
-                  <SpotlightCard
-                    key={exam.id}
-                    className="onb-flagship-card"
-                    isSelected={isSelected}
-                    onClick={() => handleExamSelect(exam.id)}
-                  >
-                    <div className="onb-flagship-inner">
-                      <div className="onb-flagship-header">
-                        <div className="onb-flagship-meta">
-                          <span className="onb-flagship-code">{exam.shortName}</span>
-                          <span className="onb-flagship-badge">{exam.badge}</span>
-                          <span className="onb-flagship-active-tag">Active Flagship</span>
-                        </div>
-                        <div className={`onb-radio-circle ${isSelected ? 'checked' : ''}`}>
-                          {isSelected && (
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" className="onb-check-svg">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          )}
-                        </div>
-                      </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </header>
 
-                      <div className="onb-flagship-desc">
-                        Full preparation blueprint for Quantitative Aptitude, DILR & VARC with benchmark target percentiles for top IIMs and premier management schools.
-                      </div>
+        {/* Hero Section Headline */}
+        <div className="onb-headline-block">
+          <h1 id="onb-title" className="onb-title">Target Velocity</h1>
+          <p className="onb-description">
+            Calibrate your daily commitment. Syllabus volume and drill cadences adapt in real time.
+          </p>
+        </div>
 
-                      <div className="onb-flagship-pillars">
-                        <span className="onb-pillar-tag">Quantitative Aptitude</span>
-                        <span className="onb-pillar-dot">•</span>
-                        <span className="onb-pillar-tag">DILR Sets</span>
-                        <span className="onb-pillar-dot">•</span>
-                        <span className="onb-pillar-tag">Verbal (RC & VA)</span>
-                      </div>
-                    </div>
-                  </SpotlightCard>
-                );
-              })}
-
-              {/* Upcoming Examination Modules Strip */}
-              <div className="onb-upcoming-section">
-                <span className="onb-upcoming-label">Upcoming Examination Tracks</span>
-                <div className="onb-upcoming-chips">
-                  {rawExams.filter(e => e.id !== 'cat').map((exam) => (
-                    <div
-                      key={exam.id}
-                      className="onb-upcoming-chip"
-                      onClick={() => handleExamSelect(exam.id)}
-                      title={`${exam.name} - Calibration in progress`}
-                    >
-                      <span className="onb-chip-name">{exam.shortName}</span>
-                      <span className="onb-chip-badge">{exam.badge}</span>
-                      <div className="onb-lock-pill">
-                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg>
-                        <span className="onb-lock-status-default">LOCKED</span>
-                        <span className="onb-lock-status-hover">COMING SOON</span>
-                      </div>
-                    </div>
-                  ))}
+        {/* Monolithic 4-Column Horizon Selector */}
+        <div className="onb-velocity-track" role="radiogroup" aria-label="Select preparation velocity">
+          {TIMELINE_HORIZONS.map((h, idx) => {
+            const isSelected = selectedHorizonId === h.id;
+            const indexStr = String(idx + 1).padStart(2, '0');
+            const desc = CONCISE_DESCRIPTIONS[h.id] || h.description;
+            return (
+              <button
+                key={h.id}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                className={`onb-velocity-tile ${isSelected ? 'active' : ''}`}
+                onClick={() => handleHorizonSelect(h.id)}
+              >
+                <div className="onb-vt-index-row">
+                  <div className="onb-vt-meta-left">
+                    <span className="onb-vt-num">{indexStr}</span>
+                    <span className="onb-vt-badge">{h.badge}</span>
+                  </div>
+                  <span className="onb-vt-weeks">{h.durationWeeks}W</span>
                 </div>
-              </div>
+
+                <div className="onb-vt-hours-block">
+                  <span className="onb-vt-hours">{h.dailyHours.toFixed(1)}</span>
+                  <span className="onb-vt-hours-unit">H / DAY</span>
+                </div>
+
+                <div className="onb-vt-title">
+                  {h.name}
+                </div>
+
+                <p className="onb-vt-desc">{desc}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Precision Telemetry Readout (No nested boxes) */}
+        <div className="onb-telemetry-strip">
+          <div className="onb-telemetry-meta">
+            <span className="onb-telemetry-tag">DAILY PRACTICE TARGETS</span>
+            <span className="onb-telemetry-duration">· {selectedHorizon.dailyHours} HOURS / DAY</span>
+          </div>
+
+          <div className="onb-telemetry-metrics">
+            <div className="onb-tm-item">
+              <span className="onb-tm-code">QUANT</span>
+              <span className="onb-tm-val">{adjustedQuotas.quant} <span className="onb-tm-unit">Qs</span></span>
             </div>
+            <span className="onb-tm-sep">/</span>
 
-            {/* Slide 2: Timeline Horizon & Pacing */}
-            <div className="onb-slider-slide">
-              <div className="onb-horizon-wrap">
-                {/* Active Recommended Horizon: 16 Weeks */}
-                {TIMELINE_HORIZONS.filter(h => h.id === '16_weeks').map((h) => {
-                  const isSelected = selectedHorizonId === h.id;
-                  return (
-                    <SpotlightCard
-                      key={h.id}
-                      className="onb-flagship-card"
-                      isSelected={isSelected}
-                      onClick={() => handleHorizonSelect(h.id)}
-                    >
-                      <div className="onb-flagship-inner">
-                        <div className="onb-flagship-header">
-                          <div className="onb-flagship-meta">
-                            <span className="onb-flagship-code">{h.label}</span>
-                            <span className="onb-flagship-badge">{h.badge}</span>
-                            <span className="onb-flagship-active-tag">Recommended Pace</span>
-                          </div>
-                          <div className={`onb-radio-circle ${isSelected ? 'checked' : ''}`}>
-                            {isSelected && (
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" className="onb-check-svg">
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                        <div className="onb-flagship-desc">
-                          Balanced 4.0 hrs/day preparation regimen designed for steady syllabus mastery and regular mock retention.
-                        </div>
-                        <div className="onb-hz-hours font-mono">
-                          {h.dailyHours} hrs / day • Optimal CAT pace
-                        </div>
-                      </div>
-                    </SpotlightCard>
-                  );
-                })}
-
-                {/* Alternative Horizons Strip */}
-                <div className="onb-upcoming-section">
-                  <span className="onb-upcoming-label">Alternative Pace Profiles</span>
-                  <div className="onb-upcoming-chips">
-                    {TIMELINE_HORIZONS.filter(h => h.id !== '16_weeks').map((h) => (
-                      <div
-                        key={h.id}
-                        className="onb-upcoming-chip"
-                        onClick={() => handleHorizonSelect(h.id)}
-                        title={`${h.label} - Pace roadmap calibration in progress`}
-                      >
-                        <span className="onb-chip-name">{h.label}</span>
-                        <div className="onb-lock-pill">
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                          </svg>
-                          <span className="onb-lock-status-default">{h.badge}</span>
-                          <span className="onb-lock-status-hover">COMING SOON</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Dynamic Adjusted Quota Summary Strip */}
-                <div className="onb-quota-strip">
-                  <div className="onb-quota-pill">
-                    <span className="onb-q-lbl">{selectedConfig.sections[0]?.shortName}:</span>
-                    <span className="onb-q-val">{adjustedQuotas.quant} {selectedConfig.sections[0]?.unit}</span>
-                  </div>
-                  <div className="onb-quota-pill">
-                    <span className="onb-q-lbl">{selectedConfig.sections[1]?.shortName}:</span>
-                    <span className="onb-q-val">{adjustedQuotas.lrdi} {selectedConfig.sections[1]?.unit}</span>
-                  </div>
-                  <div className="onb-quota-pill">
-                    <span className="onb-q-lbl">{selectedConfig.sections[2]?.shortName}:</span>
-                    <span className="onb-q-val">{adjustedQuotas.varc} {selectedConfig.sections[2]?.unit}</span>
-                  </div>
-                </div>
-              </div>
+            <div className="onb-tm-item">
+              <span className="onb-tm-code">DILR</span>
+              <span className="onb-tm-val">{String(adjustedQuotas.lrdi).padStart(2, '0')} <span className="onb-tm-unit">Sets</span></span>
             </div>
+            <span className="onb-tm-sep">/</span>
 
-            {/* Slide 3: Clean, Airy & Inspiring Completion Launchpad */}
-            <div className="onb-slider-slide">
-              <div className="onb-ready-layout">
-                {/* Tactical Status Pill */}
-                <div className="onb-ready-badge">
-                  <span className="onb-ready-dot" />
-                  <span className="onb-ready-text">SYSTEM CALIBRATED • READY FOR CONQUEST</span>
-                </div>
-
-                {/* Hero Target Statement */}
-                <div className="onb-ready-hero">
-                  <h3 className="onb-ready-title">{selectedConfig.shortName} Blueprint Primed</h3>
-                  <div className="onb-ready-meta">
-                    <span className="onb-ready-meta-pill">{selectedHorizon.name} Horizon</span>
-                    <span className="onb-ready-meta-bullet">•</span>
-                    <span className="onb-ready-meta-hours">{selectedHorizon.dailyHours} hrs / day</span>
-                  </div>
-                </div>
-
-                {/* Clean, Open Quota Counters (Zero Nested Boxes) */}
-                <div className="onb-ready-stats-row">
-                  {selectedConfig.sections.map((section, idx) => {
-                    const quotaVal = idx === 0 ? adjustedQuotas.quant : idx === 1 ? adjustedQuotas.lrdi : adjustedQuotas.varc;
-                    return (
-                      <div key={section.id} className="onb-ready-stat-item">
-                        <span className="onb-ready-stat-code">{section.shortName}</span>
-                        <span className="onb-ready-stat-num">{quotaVal}</span>
-                        <span className="onb-ready-stat-unit">{section.unit}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Motivational Kickoff Message */}
-                <p className="onb-ready-quote">
-                  Workspace calibrated for peak retention. 25 minutes of pure focus awaits.
-                </p>
-              </div>
+            <div className="onb-tm-item">
+              <span className="onb-tm-code">VARC</span>
+              <span className="onb-tm-val">{String(adjustedQuotas.varc).padStart(2, '0')} <span className="onb-tm-unit">RCs & VA</span></span>
             </div>
           </div>
         </div>
 
-        {/* Clean, Focused Footer */}
-        <div className="onb-footer">
-          <div className="onb-footer-left">
-            {currentStep > 1 ? (
-              <button
-                type="button"
-                className="onb-nav-back"
-                onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-                <span>Back</span>
-              </button>
-            ) : (
-              <div className="onb-target-info">
-                <span className="onb-meta-label">Selected Target:</span>
-                <span className="onb-meta-val">{selectedConfig.name}</span>
-              </div>
-            )}
+        {/* Stoic Footer & Launch Action */}
+        <footer className="onb-footer">
+          <div className="onb-footer-meta">
+            <span className="onb-footer-dot" />
+            <span className="onb-footer-copy">Curriculum matrix calibrated for CAT 2025.</span>
           </div>
 
-          <div className="onb-footer-right">
-            {currentStep < 3 ? (
-              <button
-                type="button"
-                className="onb-btn-primary"
-                onClick={() => setCurrentStep(prev => Math.min(3, prev + 1))}
-              >
-                <span>Continue</span>
-                <span className="onb-btn-arrow">→</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="onb-btn-primary onb-btn-launch"
-                onClick={handleGetStartedClick}
-                aria-label="Get Started"
-              >
-                <span>Start Studying Now (Get Started)</span>
-                <span className="onb-btn-arrow">↗</span>
-              </button>
-            )}
-          </div>
-        </div>
+          <button
+            type="button"
+            className="onb-launch-btn"
+            onClick={handleLaunch}
+            aria-label="Enter Cockpit"
+          >
+            <span>Enter Cockpit</span>
+            <span className="onb-kbd-hint">↵</span>
+            <span className="onb-launch-arrow">→</span>
+          </button>
+        </footer>
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
         .onb-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.84);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
+          background: radial-gradient(circle 900px at 50% 48%, rgba(139, 92, 246, 0.10) 0%, rgba(6, 5, 10, 0.94) 80%);
+          backdrop-filter: blur(28px);
+          -webkit-backdrop-filter: blur(28px);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 10000;
-          padding: 16px;
-          animation: onbFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-          transition: background 0.5s ease, backdrop-filter 0.5s ease;
+          padding: 24px;
+          animation: onbFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .onb-overlay.minimizing {
@@ -446,869 +245,425 @@ export default function OnboardingWelcomeModal({
           backdrop-filter: blur(0px);
           -webkit-backdrop-filter: blur(0px);
           pointer-events: none;
+          transition: background 0.45s ease, backdrop-filter 0.45s ease;
         }
 
-        @keyframes onbFade {
+        @keyframes onbFadeIn {
           from { opacity: 0; transform: scale(0.98); }
           to { opacity: 1; transform: scale(1); }
         }
 
-        .onb-card {
-          background: var(--card-bg, #0b0f19);
-          border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-          border-radius: 16px;
+        .onb-monolith-card {
+          position: relative;
+          background: #08070d;
+          border: 1px solid rgba(139, 92, 246, 0.18);
+          border-radius: 20px;
           width: 100%;
-          max-width: 720px;
-          max-height: 90vh;
+          max-width: 800px;
+          box-shadow: 
+            0 36px 90px -20px rgba(0, 0, 0, 0.95),
+            0 0 45px -10px rgba(139, 92, 246, 0.14);
+          overflow: hidden;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          color: #ffffff;
+          padding: 28px 32px;
           display: flex;
           flex-direction: column;
-          box-shadow: 0 28px 70px -15px rgba(0, 0, 0, 0.75);
-          overflow: hidden;
-          font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, sans-serif);
-          transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-                      opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+          gap: 22px;
+          transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                      opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .onb-card.card-shrinking {
-          transform: scale(0.92);
+        .onb-monolith-card.card-shrinking {
+          transform: scale(0.94) translateY(10px);
           opacity: 0;
         }
 
-        /* Flying Mascot Morph Animation towards Bottom-Right */
-        .flying-mascot-projectile {
-          position: fixed;
-          top: 36%;
-          left: 50%;
-          width: 80px;
-          height: 64px;
-          z-index: 10005;
-          pointer-events: none;
-          animation: mascotFlyToBottomRight 0.52s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        .flying-mascot-glow {
+        .onb-accent-beam {
           position: absolute;
-          inset: -10px;
-          border-radius: 50%;
-          background: radial-gradient(circle, var(--accent-color, #38bdf8) 0%, transparent 70%);
-          opacity: 0.6;
-          animation: flyGlowPulse 0.5s ease-in-out infinite;
+          top: 0;
+          left: 15%;
+          right: 15%;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.75), transparent);
+          pointer-events: none;
         }
 
-        @keyframes flyGlowPulse {
-          0%, 100% { transform: scale(1); opacity: 0.6; }
-          50% { transform: scale(1.3); opacity: 0.9; }
-        }
-
-        .flying-cat-svg {
-          width: 100%;
-          height: 100%;
-          filter: drop-shadow(0 0 16px var(--accent-color, #38bdf8));
-        }
-
-        @keyframes mascotFlyToBottomRight {
-          0% {
-            top: 36%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(1) rotate(0deg);
-            opacity: 1;
-          }
-          40% {
-            transform: translate(-30%, -80px) scale(1.15) rotate(-6deg);
-            opacity: 1;
-          }
-          100% {
-            top: calc(100vh - 46px);
-            left: calc(100vw - 84px);
-            transform: translate(0, 0) scale(0.48) rotate(0deg);
-            opacity: 0.9;
-          }
-        }
-
+        /* Header */
         .onb-header {
-          padding: 16px 22px 6px 22px;
-          flex-shrink: 0;
-        }
-
-        .onb-top-row {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 4px;
+          width: 100%;
         }
 
-        .onb-tag {
+        .onb-brand-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .onb-brand-square {
+          width: 7px;
+          height: 7px;
+          background: #8b5cf6;
+          box-shadow: 0 0 8px #8b5cf6;
+        }
+
+        .onb-brand-text {
           font-family: 'JetBrains Mono', monospace;
           font-size: 10px;
           font-weight: 700;
-          letter-spacing: 0.1em;
-          color: var(--accent-color, #38bdf8);
+          letter-spacing: 0.16em;
+          color: #a855f7;
+          text-transform: uppercase;
         }
 
-        .onb-close-btn {
+        .onb-close-action {
           background: none;
           border: none;
-          color: var(--text-tertiary, #64748b);
+          color: #64748b;
           cursor: pointer;
           padding: 4px;
           display: flex;
           align-items: center;
           justify-content: center;
           border-radius: 4px;
-          transition: color 0.15s ease;
+          transition: color 0.18s ease;
         }
 
-        .onb-close-btn:hover {
-          color: var(--text-primary, #ffffff);
+        .onb-close-action:hover {
+          color: #ffffff;
         }
 
-        .onb-title-row {
+        /* Headline */
+        .onb-headline-block {
           display: flex;
           flex-direction: column;
-          gap: 2px;
-        }
-
-        .onb-main-title {
-          font-size: 17px;
-          font-weight: 700;
-          color: var(--text-primary, #ffffff);
-          margin: 0;
-          letter-spacing: -0.01em;
-        }
-
-        .onb-subtext {
-          font-size: 11.5px;
-          color: var(--text-secondary, #94a3b8);
-          margin: 0;
-        }
-
-        .onb-stepper-wrap {
-          padding: 4px 14px 6px 14px;
-          flex-shrink: 0;
-        }
-
-        .onb-mascot-container {
-          padding: 0 20px;
-          flex-shrink: 0;
-        }
-
-        /* Slide Viewport & Track */
-        .onb-slider-viewport {
-          overflow: hidden;
-          width: 100%;
-          position: relative;
-          flex: 1;
-          min-height: 0;
-        }
-
-        .onb-slider-track {
-          display: flex;
-          width: 300%;
-          transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
-          will-change: transform;
-        }
-
-        .onb-slider-slide {
-          width: 33.333333%;
-          flex-shrink: 0;
-          box-sizing: border-box;
-          padding: 4px 20px 14px 20px;
-          max-height: calc(90vh - 210px);
-          overflow-y: auto;
-        }
-
-        /* Flagship Card & Upcoming Tracks */
-        .onb-flagship-card {
-          border-radius: 12px;
-          border: 1px solid var(--accent-border, rgba(56, 189, 248, 0.35));
-          background: var(--card-bg, rgba(15, 23, 42, 0.6));
-          box-shadow: 0 4px 20px var(--accent-glow, rgba(56, 189, 248, 0.12));
-          cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-          transform: translateZ(0);
-        }
-
-        .onb-flagship-inner {
-          padding: 16px 18px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .onb-flagship-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-        }
-
-        .onb-flagship-meta {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        .onb-flagship-code {
-          font-size: 16px;
-          font-weight: 800;
-          color: var(--text-primary, #ffffff);
-          letter-spacing: 0.02em;
-        }
-
-        .onb-flagship-badge {
-          font-size: 9px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          padding: 3px 7px;
-          border-radius: 4px;
-          background: var(--accent-bg, rgba(56, 189, 248, 0.14));
-          color: var(--accent-color, #38bdf8);
-        }
-
-        .onb-flagship-active-tag {
-          font-size: 9px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          padding: 3px 8px;
-          border-radius: 20px;
-          background: rgba(16, 185, 129, 0.15);
-          color: #34d399;
-          border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-
-        .onb-flagship-desc {
-          font-size: 12px;
-          color: var(--text-secondary, #94a3b8);
-          line-height: 1.45;
-        }
-
-        .onb-flagship-pillars {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-wrap: wrap;
-          padding-top: 4px;
-        }
-
-        .onb-pillar-tag {
-          font-size: 11px;
-          font-weight: 600;
-          color: var(--accent-color, #38bdf8);
-          background: var(--accent-bg, rgba(56, 189, 248, 0.08));
-          padding: 2px 8px;
-          border-radius: 6px;
-        }
-
-        .onb-pillar-dot {
-          color: var(--text-tertiary, #64748b);
-          font-size: 10px;
-        }
-
-        /* Upcoming Section & Chips */
-        .onb-upcoming-section {
-          margin-top: 14px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .onb-upcoming-label {
-          font-size: 10.5px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: var(--text-tertiary, #64748b);
-        }
-
-        .onb-upcoming-chips {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        .onb-upcoming-chip {
-          display: inline-flex;
-          align-items: center;
           gap: 6px;
-          padding: 6px 10px;
-          background: rgba(255, 255, 255, 0.025);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          border-radius: 8px;
-          cursor: not-allowed;
-          transition: all 0.2s ease;
         }
 
-        .onb-upcoming-chip:hover {
-          background: rgba(255, 255, 255, 0.05);
-          border-color: rgba(251, 191, 36, 0.3);
+        .onb-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 26px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: #ffffff;
+          margin: 0;
+          line-height: 1.15;
         }
 
-        .onb-upcoming-chip:hover .onb-lock-status-default {
-          display: none;
+        .onb-description {
+          font-size: 13px;
+          color: #94a3b8;
+          line-height: 1.5;
+          margin: 0;
+          max-width: 580px;
         }
 
-        .onb-upcoming-chip:hover .onb-lock-status-hover {
-          display: inline;
-        }
-
-        .onb-upcoming-chip:hover .onb-lock-pill {
-          background: rgba(251, 191, 36, 0.12);
-          border-color: rgba(251, 191, 36, 0.4);
-          color: #fbbf24;
-        }
-
-        .onb-chip-name {
-          font-size: 11.5px;
-          font-weight: 700;
-          color: var(--text-primary, #ffffff);
-        }
-
-        .onb-chip-badge {
-          font-size: 8px;
-          font-weight: 600;
-          padding: 1px 4px;
-          border-radius: 4px;
-          background: rgba(255, 255, 255, 0.05);
-          color: var(--text-tertiary, #64748b);
-        }
-
-        /* Step 1: Exam Grid - Legacy fallback */
-        .onb-grid {
+        /* Monolithic 4-Column Track */
+        .onb-velocity-track {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 10px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          width: 100%;
         }
 
-        @media (max-width: 620px) {
-          .onb-grid {
-            grid-template-columns: 1fr;
+        @media (max-width: 680px) {
+          .onb-velocity-track {
+            grid-template-columns: repeat(2, 1fr);
           }
         }
 
-        .onb-exam-spotlight-card {
-          border-radius: 10px;
+        .onb-velocity-tile {
+          background: rgba(14, 12, 22, 0.65);
+          border: 1px solid rgba(255, 255, 255, 0.07);
+          border-radius: 12px;
+          padding: 16px 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          text-align: left;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          color: inherit;
         }
 
-        .onb-exam-spotlight-card.locked,
-        .onb-horizon-spotlight-card.locked {
-          cursor: not-allowed !important;
-          opacity: 0.6;
-          transition: all 0.22s ease;
-          border-color: rgba(255, 255, 255, 0.05);
+        .onb-velocity-tile:hover {
+          background: rgba(20, 16, 34, 0.8);
+          border-color: rgba(168, 85, 247, 0.4);
+          transform: translateY(-2px);
         }
 
-        .onb-exam-spotlight-card.locked:hover,
-        .onb-horizon-spotlight-card.locked:hover {
-          opacity: 0.95;
-          border-color: rgba(251, 191, 36, 0.35);
-          background: rgba(251, 191, 36, 0.03);
+        .onb-velocity-tile.active {
+          background: rgba(28, 20, 52, 0.85);
+          border-color: #8b5cf6;
+          box-shadow: 
+            0 0 24px -4px rgba(139, 92, 246, 0.28),
+            inset 0 0 16px -4px rgba(139, 92, 246, 0.12);
         }
 
-        .onb-lock-pill {
-          display: inline-flex;
+        .onb-vt-index-row {
+          display: flex;
           align-items: center;
-          gap: 4px;
-          padding: 2px 7px;
-          border-radius: 6px;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          justify-content: space-between;
           font-family: 'JetBrains Mono', monospace;
-          font-size: 8.5px;
-          font-weight: 700;
-          letter-spacing: 0.04em;
-          color: var(--text-tertiary, #94a3b8);
-          transition: all 0.2s ease;
-          flex-shrink: 0;
-          white-space: nowrap;
-          margin-left: auto;
-        }
-
-        .onb-lock-status-default {
-          display: inline;
-        }
-
-        .onb-lock-status-hover {
-          display: none;
-          color: #fbbf24;
-          font-weight: 800;
-        }
-
-        .onb-exam-spotlight-card.locked:hover .onb-lock-pill,
-        .onb-horizon-spotlight-card.locked:hover .onb-lock-pill {
-          background: rgba(251, 191, 36, 0.12);
-          border-color: rgba(251, 191, 36, 0.4);
-          color: #fbbf24;
-          box-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
-        }
-
-        .onb-exam-spotlight-card.locked:hover .onb-lock-status-default,
-        .onb-horizon-spotlight-card.locked:hover .onb-lock-status-default {
-          display: none;
-        }
-
-        .onb-exam-spotlight-card.locked:hover .onb-lock-status-hover,
-        .onb-horizon-spotlight-card.locked:hover .onb-lock-status-hover {
-          display: inline;
-        }
-
-        .onb-locked-hint {
           font-size: 10px;
-          color: #64748b;
-          font-style: italic;
-          letter-spacing: 0.01em;
         }
 
-        .onb-card-inner {
-          padding: 11px 13px;
-          display: flex;
-          flex-direction: column;
-          gap: 3px;
-        }
-
-        .onb-card-top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          min-width: 0;
-          width: 100%;
-        }
-
-        .onb-card-meta {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          min-width: 0;
-          flex: 1 1 auto;
-          overflow: hidden;
-        }
-
-        .onb-exam-code {
-          font-size: 13.5px;
-          font-weight: 700;
-          color: var(--text-primary, #ffffff);
-          letter-spacing: 0.02em;
-          flex-shrink: 0;
-        }
-
-        .onb-exam-badge {
-          font-size: 8px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          padding: 2px 5px;
-          border-radius: 4px;
-          background: rgba(255, 255, 255, 0.06);
-          color: var(--text-tertiary, #64748b);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 105px;
-        }
-
-        .spotlight-card-root.selected .onb-exam-badge {
-          background: rgba(56, 189, 248, 0.14);
-          color: var(--accent-color, #38bdf8);
-        }
-
-        .onb-radio-circle {
-          width: 17px;
-          height: 17px;
-          border-radius: 50%;
-          border: 1.5px solid rgba(255, 255, 255, 0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #0b0f19;
-          transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .onb-radio-circle.checked {
-          background: var(--accent-color, #38bdf8);
-          border-color: var(--accent-color, #38bdf8);
-          box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
-        }
-
-        .onb-check-svg {
-          animation: onbCheckPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes onbCheckPop {
-          0% { transform: scale(0.5); }
-          100% { transform: scale(1); }
-        }
-
-        .onb-card-desc {
-          font-size: 11px;
-          color: var(--text-secondary, #94a3b8);
-          font-weight: 500;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        /* Step 2: Horizon Grid */
-        .onb-horizon-wrap {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .onb-horizon-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 10px;
-        }
-
-        .onb-hz-top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .onb-hz-label {
-          font-size: 12.5px;
-          font-weight: 700;
-          color: var(--text-primary, #ffffff);
-        }
-
-        .onb-hz-badge {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 8.5px;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          padding: 2px 5px;
-          border-radius: 4px;
-          background: rgba(255, 255, 255, 0.06);
-          color: var(--text-tertiary, #64748b);
-        }
-
-        .spotlight-card-root.selected .onb-hz-badge {
-          background: rgba(56, 189, 248, 0.14);
-          color: var(--accent-color, #38bdf8);
-        }
-
-        .onb-hz-hours {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 11px;
-          color: var(--text-secondary, #94a3b8);
-          margin-top: 1px;
-        }
-
-        .spotlight-card-root.selected .onb-hz-hours {
-          color: var(--accent-color, #38bdf8);
-          font-weight: 600;
-        }
-
-        /* Quota Summary Strip */
-        .onb-quota-strip {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
-          border-radius: 8px;
-        }
-
-        .onb-quota-pill {
+        .onb-vt-meta-left {
           display: flex;
           align-items: center;
           gap: 5px;
-          font-size: 11px;
-          flex: 1;
-          justify-content: center;
         }
 
-        .onb-q-lbl {
-          color: var(--text-secondary, #94a3b8);
-          font-weight: 500;
+        .onb-vt-num {
+          color: #64748b;
         }
 
-        .onb-q-val {
-          color: var(--text-primary, #ffffff);
-          font-family: 'JetBrains Mono', monospace;
+        .onb-velocity-tile.active .onb-vt-num {
+          color: #a855f7;
           font-weight: 700;
         }
 
-        /* Step 3: Clean, Airy & Inviting Completion Layout */
-        .onb-ready-layout {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          padding: 10px 14px 14px 14px;
-          gap: 14px;
+        .onb-vt-badge {
+          font-size: 8px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          padding: 1px 4px;
+          border-radius: 3px;
+          background: rgba(255, 255, 255, 0.06);
+          color: #94a3b8;
         }
 
-        .onb-ready-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 4px 12px;
-          background: rgba(16, 185, 129, 0.08);
-          border: 1px solid rgba(16, 185, 129, 0.22);
-          border-radius: 9999px;
+        .onb-velocity-tile.active .onb-vt-badge {
+          background: rgba(139, 92, 246, 0.22);
+          color: #c084fc;
         }
 
-        .onb-ready-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #10b981;
-          box-shadow: 0 0 6px #10b981;
-        }
-
-        .onb-ready-text {
-          font-family: 'JetBrains Mono', monospace;
+        .onb-vt-weeks {
+          color: #64748b;
           font-size: 9.5px;
-          font-weight: 700;
-          color: #10b981;
-          letter-spacing: 0.06em;
-        }
-
-        .onb-ready-hero {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .onb-ready-title {
-          font-size: 19px;
-          font-weight: 800;
-          color: var(--text-primary, #ffffff);
-          margin: 0;
-          letter-spacing: -0.01em;
-        }
-
-        .onb-ready-meta {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 12px;
-          color: var(--text-secondary, #94a3b8);
-        }
-
-        .onb-ready-meta-pill {
-          color: var(--accent-color, #38bdf8);
           font-weight: 600;
         }
 
-        .onb-ready-meta-bullet {
-          color: var(--text-tertiary, #64748b);
-        }
-
-        .onb-ready-meta-hours {
-          font-family: 'JetBrains Mono', monospace;
-          font-weight: 700;
-          color: var(--text-primary, #ffffff);
-        }
-
-        /* Borderless, Airy Stats Row */
-        .onb-ready-stats-row {
+        .onb-vt-hours-block {
           display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 20px;
-          width: 100%;
-          padding: 12px 0;
-          border-top: 1px solid rgba(255, 255, 255, 0.06);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .onb-ready-stat-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1px;
-          min-width: 75px;
-        }
-
-        .onb-ready-stat-code {
+          align-items: baseline;
+          gap: 5px;
           font-family: 'JetBrains Mono', monospace;
+          margin-top: 2px;
+        }
+
+        .onb-vt-hours {
+          font-size: 28px;
+          font-weight: 800;
+          color: #ffffff;
+          line-height: 1;
+          transition: color 0.18s ease;
+        }
+
+        .onb-velocity-tile.active .onb-vt-hours {
+          color: #c084fc;
+          text-shadow: 0 0 18px rgba(192, 132, 252, 0.35);
+        }
+
+        .onb-vt-hours-unit {
           font-size: 10px;
-          font-weight: 700;
-          color: var(--accent-color, #38bdf8);
+          color: #94a3b8;
+          font-weight: 600;
           letter-spacing: 0.05em;
         }
 
-        .onb-ready-stat-num {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 24px;
-          font-weight: 800;
-          color: var(--text-primary, #ffffff);
-          line-height: 1.1;
+        .onb-vt-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 13.5px;
+          font-weight: 700;
+          color: #ffffff;
+          letter-spacing: -0.01em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
-        .onb-ready-stat-unit {
-          font-size: 10px;
-          color: var(--text-secondary, #94a3b8);
-        }
-
-        .onb-ready-quote {
-          font-size: 11.5px;
-          color: var(--text-secondary, #94a3b8);
+        .onb-vt-desc {
+          font-size: 11px;
+          color: #94a3b8;
+          line-height: 1.45;
           margin: 0;
-          max-width: 440px;
-          line-height: 1.4;
+          min-height: 32px;
+        }
+
+        /* Precision Telemetry Readout */
+        .onb-telemetry-strip {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 20px;
+          background: rgba(139, 92, 246, 0.04);
+          border: 1px solid rgba(139, 92, 246, 0.16);
+          border-radius: 12px;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .onb-telemetry-meta {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          color: #a855f7;
+        }
+
+        .onb-telemetry-duration {
+          color: #94a3b8;
+        }
+
+        .onb-telemetry-metrics {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .onb-tm-item {
+          display: flex;
+          align-items: baseline;
+          gap: 6px;
+        }
+
+        .onb-tm-code {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 10px;
+          font-weight: 800;
+          color: #c084fc;
+        }
+
+        .onb-tm-val {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 15px;
+          font-weight: 800;
+          color: #ffffff;
+        }
+
+        .onb-tm-unit {
+          font-size: 10.5px;
+          color: #94a3b8;
+          font-weight: 500;
+        }
+
+        .onb-tm-sep {
+          color: #334155;
+          font-size: 11px;
         }
 
         /* Footer */
         .onb-footer {
-          padding: 10px 20px;
-          background: rgba(255, 255, 255, 0.015);
-          border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 10px;
-          flex-shrink: 0;
+          padding-top: 6px;
+          gap: 16px;
         }
 
-        .onb-footer-left {
+        .onb-footer-meta {
           display: flex;
           align-items: center;
           gap: 8px;
         }
 
-        .onb-nav-back {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 6px;
-          color: var(--text-secondary, #94a3b8);
-          font-size: 11px;
-          font-weight: 600;
-          padding: 5px 9px;
-          cursor: pointer;
-          transition: all 0.15s ease;
+        .onb-footer-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #8b5cf6;
+          box-shadow: 0 0 6px #8b5cf6;
         }
 
-        .onb-nav-back:hover {
-          color: var(--text-primary, #ffffff);
-          border-color: rgba(255, 255, 255, 0.22);
-        }
-
-        .onb-target-info {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 11px;
-        }
-
-        .onb-meta-label {
-          color: var(--text-tertiary, #64748b);
-        }
-
-        .onb-meta-val {
-          color: var(--accent-color, #38bdf8);
-          font-weight: 700;
-        }
-
-        .onb-footer-right {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .onb-btn-primary {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 7px 18px;
-          background: var(--text-primary, #ffffff);
-          color: var(--bg-primary, #0b0f19);
-          border: 1px solid var(--text-primary, #ffffff);
-          border-radius: 6px;
-          font-size: 11.5px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.15s ease;
-        }
-
-        .onb-btn-primary:hover {
-          background: transparent;
-          color: var(--text-primary, #ffffff);
-        }
-
-        .onb-btn-launch {
-          box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
-          background: var(--accent-color, #38bdf8);
-          color: #0b0f19;
-          border-color: var(--accent-color, #38bdf8);
-        }
-
-        .onb-btn-launch:hover {
-          background: transparent;
-          color: var(--accent-color, #38bdf8);
-        }
-
-        .onb-btn-arrow {
+        .onb-footer-copy {
           font-size: 12px;
-          font-weight: 900;
+          color: #94a3b8;
+          letter-spacing: 0.01em;
         }
 
-        /* Mobile specific responsiveness */
-        @media (max-width: 540px) {
+        .onb-launch-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 22px;
+          background: linear-gradient(135deg, #8b5cf6 0%, #7042f8 100%);
+          color: #ffffff;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          border-radius: 8px;
+          font-family: 'Syne', sans-serif;
+          font-size: 13px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .onb-launch-btn:hover {
+          background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+          box-shadow: 0 6px 28px rgba(139, 92, 246, 0.6);
+          transform: translateY(-1px);
+        }
+
+        .onb-kbd-hint {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 10px;
+          font-weight: 700;
+          color: rgba(255, 255, 255, 0.65);
+          background: rgba(0, 0, 0, 0.25);
+          padding: 1px 5px;
+          border-radius: 4px;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .onb-launch-arrow {
+          font-size: 14px;
+          font-weight: 800;
+          transition: transform 0.15s ease;
+        }
+
+        .onb-launch-btn:hover .onb-launch-arrow {
+          transform: translateX(3px);
+        }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 680px) {
           .onb-overlay {
-            padding: 8px;
+            padding: 12px;
           }
 
-          .onb-card {
-            max-height: 94vh;
-            border-radius: 12px;
+          .onb-monolith-card {
+            padding: 20px 18px;
+            gap: 16px;
+            border-radius: 16px;
           }
 
-          .onb-header {
-            padding: 12px 14px 4px 14px;
+          .onb-title {
+            font-size: 22px;
           }
 
-          .onb-main-title {
-            font-size: 15px;
-          }
-
-          .onb-subtext {
-            font-size: 11px;
-          }
-
-          .onb-stepper-wrap {
-            padding: 2px 10px 4px 10px;
-          }
-
-          .onb-mascot-container {
-            padding: 0 14px;
-          }
-
-          .onb-slider-slide {
-            padding: 4px 14px 10px 14px;
-            max-height: calc(94vh - 190px);
-          }
-
-          .onb-grid, .onb-horizon-grid {
-            gap: 8px;
-          }
-
-          .onb-card-inner {
-            padding: 8px 10px;
-          }
-
-          .onb-card-desc {
-            font-size: 10px;
+          .onb-telemetry-strip {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
           }
 
           .onb-footer {
-            padding: 8px 14px;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
           }
 
-          .onb-btn-primary {
-            padding: 6px 14px;
-            font-size: 11px;
+          .onb-launch-btn {
+            justify-content: center;
+            width: 100%;
           }
         }
       `}} />

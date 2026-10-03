@@ -109,7 +109,7 @@ function DashboardView({
       {/* Minimalist Editorial Hero Header */}
       <div className="minimal-hero-section">
         <div className="minimal-hero-tag">
-          <span>PREPARATION PROTOCOL • {todayPos.activeMonth?.toUpperCase()} ({todayPos.activeWeek?.toUpperCase()})</span>
+          <span>{todayPos.activeMonth} • {todayPos.activeWeek}</span>
         </div>
 
         <div className="minimal-hero-main">
@@ -118,7 +118,7 @@ function DashboardView({
               DISCIPLINE <span className="minimal-headline-italic">is Real.</span>
             </h1>
             <p className="minimal-subtext">
-              Observation defines outcome. Structured daily quotas and continuous percentile mastery.
+              Observation defines outcome. Built for aspirants who study in silence.
             </p>
           </div>
 
@@ -129,24 +129,7 @@ function DashboardView({
               onClick={() => setActiveTab('daily')}
             >
               <span>Start Daily Practice</span>
-              <span className="btn-arrow">↗</span>
-            </button>
-            <button 
-              type="button" 
-              className="minimal-btn-secondary" 
-              onClick={() => setActiveTab('timer')}
-            >
-              <Icons.Clock size={14} />
-              <span>Focus Timer</span>
-            </button>
-            <button 
-              type="button" 
-              className="minimal-btn-secondary" 
-              onClick={() => setActiveTab('terminal')}
-              title="Launch Bloomberg Quantitative Prep Terminal"
-            >
-              <Icons.Terminal size={14} />
-              <span>CAT Terminal</span>
+              <span className="btn-arrow">→</span>
             </button>
           </div>
         </div>
@@ -155,18 +138,22 @@ function DashboardView({
         <div className="minimal-horizon-strip">
           <div className="horizon-stat-item">
             <span className="horizon-stat-lbl">Time Studied Today</span>
-            <span className="horizon-stat-val">{todayStudyHours.toFixed(1)} <span className="horizon-unit">hrs</span></span>
+            <span className="horizon-stat-val">
+              <span className="font-mono-val">{todayStudyHours.toFixed(1)}</span> <span className="horizon-unit">hrs</span>
+            </span>
           </div>
           <div className="horizon-divider"></div>
           <div className="horizon-stat-item">
             <span className="horizon-stat-lbl">Daily Drills</span>
-            <span className="horizon-stat-val"><Counter value={todayDoneTasks} /> <span className="horizon-unit">/ 3 Done</span></span>
+            <span className="horizon-stat-val">
+              <span className="font-mono-val"><Counter value={todayDoneTasks} /></span> <span className="horizon-unit">/ 3 Done</span>
+            </span>
           </div>
           <div className="horizon-divider"></div>
           <div className="horizon-stat-item">
             <span className="horizon-stat-lbl">Active Streak</span>
             <span className="horizon-stat-val" style={{ color: activeStreak > 0 ? '#ff3344' : 'inherit' }}>
-              <Counter value={activeStreak} /> <span className="horizon-unit">{activeStreak === 1 ? 'Day' : 'Days'}</span>
+              <span className="font-mono-val"><Counter value={activeStreak} /></span> <span className="horizon-unit">{activeStreak === 1 ? 'Day' : 'Days'}</span>
             </span>
           </div>
         </div>
@@ -195,13 +182,13 @@ function DashboardView({
       {/* 4 Core Subject Metrics Grid */}
       <div className="minimal-metrics-grid">
         {/* Slot 1: Quant / Physics / Core */}
-        <div className="minimal-metric-card">
+        <div className="minimal-metric-card" data-subject="quant">
           <div className="minimal-metric-header">
             <span className="minimal-metric-title">{secQuant.cardTitle || `${secQuant.shortName} ${secQuant.unit}`}</span>
-            <span className="minimal-metric-badge">{quantPercent}%</span>
+            <span className={`minimal-metric-badge ${quantPercent > 0 ? 'active' : 'zero'}`}>{quantPercent}%</span>
           </div>
           <div className="minimal-metric-number">
-            <Counter value={totalQuantSolved} /> <span className="minimal-target">/ {grandTargets.quant}</span>
+            <span className="metric-val-num"><Counter value={totalQuantSolved} /></span> <span className="minimal-target">/ {grandTargets.quant}</span>
           </div>
           <div className="minimal-progress-track">
             <div className="minimal-progress-fill quant-fill" style={{ width: `${quantPercent}%` }}></div>
@@ -209,13 +196,13 @@ function DashboardView({
         </div>
 
         {/* Slot 2: LRDI / Chemistry / Math */}
-        <div className="minimal-metric-card">
+        <div className="minimal-metric-card" data-subject="lrdi">
           <div className="minimal-metric-header">
             <span className="minimal-metric-title">{secLrdi.cardTitle || `${secLrdi.shortName} ${secLrdi.unit}`}</span>
-            <span className="minimal-metric-badge">{lrdiPercent}%</span>
+            <span className={`minimal-metric-badge ${lrdiPercent > 0 ? 'active' : 'zero'}`}>{lrdiPercent}%</span>
           </div>
           <div className="minimal-metric-number">
-            <Counter value={totalLrdidSolved} /> <span className="minimal-target">/ {grandTargets.lrdi}</span>
+            <span className="metric-val-num"><Counter value={totalLrdidSolved} /></span> <span className="minimal-target">/ {grandTargets.lrdi}</span>
           </div>
           <div className="minimal-progress-track">
             <div className="minimal-progress-fill lrdi-fill" style={{ width: `${lrdiPercent}%` }}></div>
@@ -223,13 +210,13 @@ function DashboardView({
         </div>
 
         {/* Slot 3: VARC / Math / Biology */}
-        <div className="minimal-metric-card">
+        <div className="minimal-metric-card" data-subject="varc">
           <div className="minimal-metric-header">
             <span className="minimal-metric-title">{secVarc.cardTitle || `${secVarc.shortName} ${secVarc.unit}`}</span>
-            <span className="minimal-metric-badge">{varcPercent}%</span>
+            <span className={`minimal-metric-badge ${varcPercent > 0 ? 'active' : 'zero'}`}>{varcPercent}%</span>
           </div>
           <div className="minimal-metric-number">
-            <Counter value={totalVarcSolved} /> <span className="minimal-target">/ {grandTargets.varc}</span>
+            <span className="metric-val-num"><Counter value={totalVarcSolved} /></span> <span className="minimal-target">/ {grandTargets.varc}</span>
           </div>
           <div className="minimal-progress-track">
             <div className="minimal-progress-fill varc-fill" style={{ width: `${varcPercent}%` }}></div>
@@ -237,13 +224,13 @@ function DashboardView({
         </div>
 
         {/* Mocks */}
-        <div className="minimal-metric-card">
+        <div className="minimal-metric-card" data-subject="mock">
           <div className="minimal-metric-header">
             <span className="minimal-metric-title">Mock Tests</span>
-            <span className="minimal-metric-badge">{mockPercent}%</span>
+            <span className={`minimal-metric-badge ${mockPercent > 0 ? 'active' : 'zero'}`}>{mockPercent}%</span>
           </div>
           <div className="minimal-metric-number">
-            <Counter value={mocksTaken} /> <span className="minimal-target">/ {grandTargets.mocks}</span>
+            <span className="metric-val-num"><Counter value={mocksTaken} /></span> <span className="minimal-target">/ {grandTargets.mocks}</span>
           </div>
           <div className="minimal-progress-track">
             <div className="minimal-progress-fill mock-fill" style={{ width: `${mockPercent}%` }}></div>
@@ -255,9 +242,9 @@ function DashboardView({
       <div className="minimal-section-card">
         <div className="minimal-section-header">
           <div>
-            <h3 className="minimal-section-title">Study Consistency & Streak Matrix</h3>
+            <h3 className="minimal-section-title">Study Consistency</h3>
             <p className="minimal-section-subtitle">
-              Daily preparation activity matrix. Maintain daily momentum across the 16-week curriculum.
+              Daily practice log and active streaks.
             </p>
           </div>
         </div>
@@ -296,14 +283,14 @@ function DashboardView({
 
             <div className="minimal-streak-box">
               <div className="streak-box-label">
-                <Icons.Calendar size={14} color="#38bdf8" />
+                <Icons.Calendar size={14} color="#a855f7" />
                 <span>CONSISTENCY RECORD</span>
               </div>
               <div className="streak-box-value">
                 <Counter value={allDaysChronological.filter(d => d.isDone).length} /> <span className="streak-box-unit">/ 112 Days</span>
               </div>
               <div className="streak-box-desc">
-                Total active practice days logged across 4 curriculum months.
+                Active study days logged across 16 weeks.
               </div>
             </div>
 
@@ -328,11 +315,11 @@ function DashboardView({
         <div className="minimal-section-header">
           <div>
             <h3 className="minimal-section-title">Current Study Focus</h3>
-            <p className="minimal-section-subtitle">Active curriculum syllabus milestones and target areas.</p>
+            <p className="minimal-section-subtitle">Weekly syllabus targets and core focus topics.</p>
           </div>
           {activeWeek && (
             <span className="minimal-phase-pill">
-              {activeWeek.week} • {activeWeek.phase}
+              {activeWeek.phase || activeWeek.week}
             </span>
           )}
         </div>

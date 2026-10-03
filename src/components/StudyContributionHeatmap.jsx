@@ -159,7 +159,10 @@ function StudyContributionHeatmap({ tracker = {}, startDateStr = '', compact = f
 
       {/* Centered Matrix Grid Container (0 Overlap, Even Boxes) */}
       <div className="heatmap-scroll-area">
-        <div className={`heatmap-grid-table ${isSingleMonth ? 'single-month-mode' : ''}`}>
+        <div 
+          key={selectedMonth} 
+          className={`heatmap-grid-table ${isSingleMonth ? 'single-month-mode' : ''} heatmap-grid-animated`}
+        >
           
           {/* Top Month / Week Header Labels */}
           <div className="heatmap-week-labels-row">
@@ -198,7 +201,11 @@ function StudyContributionHeatmap({ tracker = {}, startDateStr = '', compact = f
             {/* Week Columns Track */}
             <div className="heatmap-weeks-track">
               {displayedWeeks.map((week, wIdx) => (
-                <div key={wIdx} className="heatmap-week-column">
+                <div 
+                  key={`${week.month || ''}-${week.weekName || ''}-${wIdx}`} 
+                  className="heatmap-week-column"
+                  style={{ animationDelay: `${wIdx * 18}ms` }}
+                >
                   {week.days.map((cell, dIdx) => (
                     <div
                       key={dIdx}
@@ -228,7 +235,7 @@ function StudyContributionHeatmap({ tracker = {}, startDateStr = '', compact = f
           </span>
         ) : (
           <span className="tooltip-hint-text">
-            {totalActiveDays} active study days logged • Hover over any box to view details
+            {totalActiveDays} active study days logged across 16 weeks
           </span>
         )}
       </div>

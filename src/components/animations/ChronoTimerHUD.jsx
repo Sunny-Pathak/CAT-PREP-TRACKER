@@ -63,9 +63,9 @@ function ChronoTimerHUD({
       <svg className="chrono-hud-svg" viewBox="0 0 320 320">
         <defs>
           <linearGradient id="chronoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="var(--accent-color, #38bdf8)" />
-            <stop offset="50%" stopColor="var(--accent-secondary, #ec4899)" />
-            <stop offset="100%" stopColor="var(--accent-color, #38bdf8)" />
+            <stop offset="0%" stopColor="var(--accent-violet, #8b5cf6)" />
+            <stop offset="50%" stopColor="var(--accent-secondary, #a855f7)" />
+            <stop offset="100%" stopColor="var(--accent-violet, #c084fc)" />
           </linearGradient>
         </defs>
 
@@ -101,7 +101,7 @@ function ChronoTimerHUD({
           cy="160"
           r={radius}
           fill="none"
-          stroke={isStopwatch ? "var(--accent-color, #38bdf8)" : "url(#chronoGrad)"}
+          stroke={isStopwatch ? "var(--accent-violet, #8b5cf6)" : "url(#chronoGrad)"}
           strokeWidth={isStopwatch ? "2.5" : "5.5"}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -111,7 +111,7 @@ function ChronoTimerHUD({
             transform: 'rotate(-90deg)',
             transformOrigin: '160px 160px',
             transition: isStopwatch ? 'none' : 'stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
-            filter: isRunning ? 'drop-shadow(0 0 6px var(--accent-color, #38bdf8))' : 'none'
+            filter: isRunning ? 'drop-shadow(0 0 8px rgba(139, 92, 246, 0.7))' : 'none'
           }}
           opacity={isStopwatch ? 0.45 : 1}
         />
@@ -123,16 +123,16 @@ function ChronoTimerHUD({
             cy={beaconPos.cy}
             r="4"
             fill="#ffffff"
-            filter="drop-shadow(0 0 6px var(--accent-color, #38bdf8))"
+            filter="drop-shadow(0 0 6px var(--accent-violet, #8b5cf6))"
             className="chrono-beacon-dot"
           />
         )}
 
         {/* 4 Cardinal Crosshair Accents */}
-        <line x1="160" y1="12" x2="160" y2="18" stroke="var(--accent-color, #38bdf8)" strokeWidth="2" opacity="0.8" />
-        <line x1="160" y1="302" x2="160" y2="308" stroke="var(--accent-color, #38bdf8)" strokeWidth="2" opacity="0.8" />
-        <line x1="12" y1="160" x2="18" y2="160" stroke="var(--accent-color, #38bdf8)" strokeWidth="2" opacity="0.8" />
-        <line x1="302" y1="160" x2="308" y2="160" stroke="var(--accent-color, #38bdf8)" strokeWidth="2" opacity="0.8" />
+        <line x1="160" y1="12" x2="160" y2="18" stroke="var(--accent-violet, #8b5cf6)" strokeWidth="2" opacity="0.8" />
+        <line x1="160" y1="302" x2="160" y2="308" stroke="var(--accent-violet, #8b5cf6)" strokeWidth="2" opacity="0.8" />
+        <line x1="12" y1="160" x2="18" y2="160" stroke="var(--accent-violet, #8b5cf6)" strokeWidth="2" opacity="0.8" />
+        <line x1="302" y1="160" x2="308" y2="160" stroke="var(--accent-violet, #8b5cf6)" strokeWidth="2" opacity="0.8" />
       </svg>
 
       {/* Centered Readout & Indicators */}
