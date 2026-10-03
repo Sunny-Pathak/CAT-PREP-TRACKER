@@ -39,100 +39,113 @@ function ChronoTimerHUD({
     };
   }, [isStopwatch, progress, radius]);
 
-  // 60 precision radar ticks
-  const ticks = useMemo(() => {
-    const arr = [];
-    for (let i = 0; i < 60; i++) {
-      const angle = (i * 6) * (Math.PI / 180);
-      const isMajor = i % 5 === 0;
-      const rInner = isMajor ? 147 : 151;
-      const rOuter = 155;
-      arr.push({
-        x1: 160 + rInner * Math.cos(angle),
-        y1: 160 + rInner * Math.sin(angle),
-        x2: 160 + rOuter * Math.cos(angle),
-        y2: 160 + rOuter * Math.sin(angle),
-        isMajor
-      });
-    }
-    return arr;
-  }, []);
+  // Stopwatch orbital second indicator dot
+  const stopwatchDot = useMemo(() => {
+    if (!isStopwatch) return null;
+    const angleDeg = -90 + ((secondsLeft % 60) / 60) * 360;
+    const rad = (angleDeg * Math.PI) / 180;
+    return {
+      cx: 160 + radius * Math.cos(rad),
+      cy: 160 + radius * Math.sin(rad)
+    };
+  }, [isStopwatch, secondsLeft, radius]);
 
   return (
     <div className="chrono-hud-container">
       <svg className="chrono-hud-svg" viewBox="0 0 320 320">
         <defs>
           <linearGradient id="chronoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="var(--accent-violet, #8b5cf6)" />
-            <stop offset="50%" stopColor="var(--accent-secondary, #a855f7)" />
-            <stop offset="100%" stopColor="var(--accent-violet, #c084fc)" />
+            <stop offset="0%" stopColor="#a78bfa" />
+            <stop offset="50%" stopColor="#c084fc" />
+            <stop offset="100%" stopColor="#8b5cf6" />
           </linearGradient>
+
+          {/* Deep ambient lens glow for centerpiece */}
+          <radialGradient id="chronoLensGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(139, 92, 246, 0.12)" />
+            <stop offset="70%" stopColor="rgba(12, 10, 20, 0.6)" />
+            <stop offset="100%" stopColor="transparent" />
+          </radialGradient>
         </defs>
 
-        {/* 60 Precision Radar Perimeter Ticks */}
-        <g className="chrono-ticks-group">
-          {ticks.map((t, idx) => (
-            <line
-              key={idx}
-              x1={t.x1}
-              y1={t.y1}
-              x2={t.x2}
-              y2={t.y2}
-              stroke="var(--border-color, rgba(255, 255, 255, 0.15))"
-              strokeWidth={t.isMajor ? 1.75 : 1}
-              opacity={t.isMajor ? 0.75 : 0.25}
-            />
-          ))}
-        </g>
+        {/* Ambient Centerpiece Lens */}
+        <circle
+          cx="160"
+          cy="160"
+          r={radius - 4}
+          fill="url(#chronoLensGlow)"
+        />
 
-        {/* Background Track Arc */}
+        {/* Hairline Luxury Track Arc (Understated, Minimal) */}
         <circle
           cx="160"
           cy="160"
           r={radius}
           fill="none"
-          stroke="rgba(255, 255, 255, 0.05)"
-          strokeWidth="5"
+          stroke="rgba(255, 255, 255, 0.08)"
+          strokeWidth="1.5"
         />
 
-        {/* Dynamic Sweep Arc (or Static Bezel for Stopwatch) */}
-        <circle
-          cx="160"
-          cy="160"
-          r={radius}
-          fill="none"
-          stroke={isStopwatch ? "var(--accent-violet, #8b5cf6)" : "url(#chronoGrad)"}
-          strokeWidth={isStopwatch ? "2.5" : "5.5"}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          className={`chrono-progress-arc ${isStopwatch ? 'static-stopwatch' : ''}`}
-          style={{
-            transform: 'rotate(-90deg)',
-            transformOrigin: '160px 160px',
-            transition: isStopwatch ? 'none' : 'stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
-            filter: isRunning ? 'drop-shadow(0 0 8px rgba(139, 92, 246, 0.7))' : 'none'
-          }}
-          opacity={isStopwatch ? 0.45 : 1}
-        />
+        {/* Dynamic Sweep Arc (State-Aware: subtle when idle, luminous when running) */}
+        {!isStopwatch ? (
+          <circle
+            cx="160"
+            cy="160"
+            r={radius}
+            fill="none"
+            stroke="url(#chronoGrad)"
+            strokeWidth={isRunning ? "3.5" : "2"}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            className="chrono-progress-arc"
+            style={{
+              transform: 'rotate(-90deg)',
+              transformOrigin: '160px 160px',
+              transition: 'stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1), stroke-width 0.3s ease',
+              filter: isRunning ? 'drop-shadow(0 0 10px rgba(167, 139, 250, 0.7))' : 'drop-shadow(0 0 4px rgba(167, 139, 250, 0.25))',
+              opacity: isRunning ? 1 : 0.45
+            }}
+          />
+        ) : (
+          <circle
+            cx="160"
+            cy="160"
+            r={radius}
+            fill="none"
+            stroke="rgba(167, 139, 250, 0.35)"
+            strokeWidth="1.5"
+            strokeDasharray="4 6"
+            className="chrono-stopwatch-ring"
+            style={{
+              filter: isRunning ? 'drop-shadow(0 0 6px rgba(167, 139, 250, 0.4))' : 'none'
+            }}
+          />
+        )}
 
-        {/* Leading Orbital Laser Beacon (Countdown only) */}
-        {!isStopwatch && beaconPos && progress > 0 && progress < 1 && (
+        {/* Leading Orbital Beacon (Countdown) */}
+        {!isStopwatch && beaconPos && progress > 0 && progress < 1 && isRunning && (
           <circle
             cx={beaconPos.cx}
             cy={beaconPos.cy}
             r="4"
             fill="#ffffff"
-            filter="drop-shadow(0 0 6px var(--accent-violet, #8b5cf6))"
+            filter="drop-shadow(0 0 8px #c084fc)"
             className="chrono-beacon-dot"
           />
         )}
 
-        {/* 4 Cardinal Crosshair Accents */}
-        <line x1="160" y1="12" x2="160" y2="18" stroke="var(--accent-violet, #8b5cf6)" strokeWidth="2" opacity="0.8" />
-        <line x1="160" y1="302" x2="160" y2="308" stroke="var(--accent-violet, #8b5cf6)" strokeWidth="2" opacity="0.8" />
-        <line x1="12" y1="160" x2="18" y2="160" stroke="var(--accent-violet, #8b5cf6)" strokeWidth="2" opacity="0.8" />
-        <line x1="302" y1="160" x2="308" y2="160" stroke="var(--accent-violet, #8b5cf6)" strokeWidth="2" opacity="0.8" />
+        {/* Orbital Second Hand Dot (Stopwatch) */}
+        {isStopwatch && stopwatchDot && isRunning && (
+          <circle
+            cx={stopwatchDot.cx}
+            cy={stopwatchDot.cy}
+            r="3.5"
+            fill="#c084fc"
+            filter="drop-shadow(0 0 6px #c084fc)"
+            className="chrono-stopwatch-dot"
+          />
+        )}
       </svg>
 
       {/* Centered Readout & Indicators */}

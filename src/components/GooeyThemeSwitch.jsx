@@ -32,7 +32,7 @@ function HorizontalSwapIcon({ size = 13, className = "" }) {
  * Curated Dual Theme Presets for Instant Pairing
  */
 const CURATED_PRESETS = [
-  { label: 'Cyber Matrix', a: 'phosphor-crt', b: 'dark', colorA: '#39ff7a', colorB: '#ffffff' },
+  { label: 'Cyber Matrix', a: 'phosphor-crt', b: 'dark', colorA: '#39ff7a', colorB: '#8b5cf6' },
   { label: 'Velvet Gold', a: 'crimson-velvet', b: 'maneki-gold', colorA: '#b81432', colorB: '#f59e0b' },
   { label: 'Kyoto Zen', a: 'kyoto-zen', b: 'dark-olive', colorA: '#10b981', colorB: '#6d8c52' },
   { label: 'Sunset Mocha', a: 'sunset', b: 'coffee', colorA: '#e59b24', colorB: '#d9a774' },
@@ -54,6 +54,7 @@ export default function GooeyThemeSwitch({
   currentTheme,
   onSelectTheme,
   compact = false,
+  locked = false,
   className = ''
 }) {
   const filterId = useId();
@@ -99,6 +100,7 @@ export default function GooeyThemeSwitch({
   const themeBObj = THEMES.find(t => t.id === favoriteB) || THEMES[1] || THEMES[0];
 
   const handleToggle = () => {
+    if (locked) return;
     const nextTheme = isThemeB ? favoriteA : favoriteB;
     try {
       playSoftZenChime(0.2);
@@ -177,21 +179,23 @@ export default function GooeyThemeSwitch({
           type="button"
           className="topbar-quick-theme-btn"
           onClick={handleToggle}
-          title={`Quick Theme Flip: ${activeThemeObj.name} ⇄ ${targetThemeObj.name} (Click to switch)`}
-          aria-label={`Switch theme to ${targetThemeObj.name}`}
+          disabled={locked}
+          style={locked ? { opacity: 0.65, cursor: 'not-allowed' } : undefined}
+          title={locked ? "Theme switching is locked (Dark Obsidian active)" : `Quick Theme Flip: ${activeThemeObj.name} ⇄ ${targetThemeObj.name} (Click to switch)`}
+          aria-label={locked ? "Theme switching is locked" : `Switch theme to ${targetThemeObj.name}`}
         >
           <span 
             className="topbar-theme-dot" 
-            style={{ backgroundColor: activeThemeObj.colors[3] || 'var(--accent-color, #38bdf8)' }} 
+            style={{ backgroundColor: activeThemeObj.colors[3] || 'var(--accent-color, #8b5cf6)' }} 
           />
           <span className="topbar-theme-label font-mono topbar-theme-text-hide">
             {activeThemeObj.name.split(' ')[0]}
           </span>
           <span className="topbar-theme-swap-icon" aria-hidden="true">
-            <HorizontalSwapIcon size={11} />
+            {locked ? <Icons.Lock size={10} /> : <HorizontalSwapIcon size={11} />}
           </span>
           <span className="topbar-theme-target font-mono topbar-theme-text-hide">
-            {targetThemeObj.name.split(' ')[0]}
+            {locked ? 'Locked' : targetThemeObj.name.split(' ')[0]}
           </span>
         </button>
       </div>
@@ -220,17 +224,17 @@ export default function GooeyThemeSwitch({
         <div className="gooey-switch-label-col">
           <div className="gooey-header-tag">
             <span className="gooey-pulse-indicator" />
-            <span className="font-mono">QUICK DUAL THEME FLIP</span>
+            <span className="font-mono">{locked ? 'DEFAULT ACTIVE THEME' : 'QUICK DUAL THEME FLIP'}</span>
           </div>
           <div className="gooey-theme-names">
             <span className={`theme-name-opt ${!isThemeB ? 'is-active' : ''}`}>
-              {themeAObj.name}
+              Dark Obsidian
             </span>
-            <span className="gooey-swap-arrow" aria-hidden="true">
-              <HorizontalSwapIcon size={12} />
+            <span className="gooey-swap-arrow" style={locked ? { opacity: 0.45 } : undefined} aria-hidden="true">
+              {locked ? <Icons.Lock size={12} /> : <HorizontalSwapIcon size={12} />}
             </span>
-            <span className={`theme-name-opt ${isThemeB ? 'is-active' : ''}`}>
-              {themeBObj.name}
+            <span className={`theme-name-opt ${isThemeB && !locked ? 'is-active' : ''}`} style={locked ? { opacity: 0.5 } : undefined}>
+              {locked ? 'Others Locked' : themeBObj.name}
             </span>
           </div>
         </div>
@@ -239,12 +243,15 @@ export default function GooeyThemeSwitch({
         <div className="gooey-switch-interactive-group">
           <button
             type="button"
-            className={`gooey-switch-track ${isThemeB ? 'is-toggled' : ''}`}
+            className={`gooey-switch-track ${locked ? 'is-locked' : ''} ${isThemeB ? 'is-toggled' : ''}`}
             onClick={handleToggle}
+            disabled={locked}
+            style={locked ? { opacity: 0.65, cursor: 'not-allowed' } : undefined}
             role="switch"
             aria-checked={isThemeB}
-            aria-label={`Switch between ${themeAObj.name} and ${themeBObj.name}`}
-            title={`Switch to ${isThemeB ? themeAObj.name : themeBObj.name}`}
+            aria-disabled={locked}
+            aria-label={locked ? "Theme switching is locked" : `Switch between ${themeAObj.name} and ${themeBObj.name}`}
+            title={locked ? "Theme switching is locked (Dark Obsidian active)" : `Switch to ${isThemeB ? themeAObj.name : themeBObj.name}`}
           >
             {/* Liquid Blob Elements with SVG Gooey filter */}
             <div
@@ -271,16 +278,19 @@ export default function GooeyThemeSwitch({
           {/* Config / Swap Pair Trigger */}
           <button
             type="button"
-            className={`gooey-config-btn ${isConfiguring ? 'is-active' : ''}`}
+            className={`gooey-config-btn ${locked ? 'is-locked' : ''} ${isConfiguring ? 'is-active' : ''}`}
             onClick={() => {
+              if (locked) return;
               setIsConfiguring(prev => !prev);
               if (!isConfiguring) setActiveSlot('A');
             }}
-            title="Configure favorite theme pair"
+            disabled={locked}
+            style={locked ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+            title={locked ? "Theme pair configuration locked" : "Configure favorite theme pair"}
             aria-label="Configure favorite theme pair"
             aria-expanded={isConfiguring}
           >
-            <Icons.Settings size={13} />
+            {locked ? <Icons.Lock size={12} /> : <Icons.Settings size={13} />}
           </button>
         </div>
       </div>

@@ -104,10 +104,10 @@ export default function Stepper({
           left: 48px;
           height: 1px;
           max-width: calc(100% - 96px);
-          background: linear-gradient(90deg, var(--accent-color, #8b5cf6), var(--accent-secondary, #a855f7));
+          background: linear-gradient(90deg, var(--accent-color, #38bdf8), var(--accent-secondary, #0ea5e9));
           z-index: 2;
           transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-          box-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
+          box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
         }
 
         .rb-stepper-nodes {
@@ -146,21 +146,21 @@ export default function Stepper({
         }
 
         .rb-stepper-circle:hover {
-          border-color: var(--accent-color, #8b5cf6);
+          border-color: var(--accent-color, #38bdf8);
           color: var(--text-primary, #ffffff);
           transform: scale(1.05);
         }
 
         .rb-stepper-node.active .rb-stepper-circle {
           background: #0f0d1a;
-          border-color: var(--accent-color, #8b5cf6);
-          color: var(--accent-color, #a855f7);
-          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2), 0 0 14px rgba(139, 92, 246, 0.4);
+          border-color: var(--accent-color, #38bdf8);
+          color: var(--accent-color, #38bdf8);
+          box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2), 0 0 14px rgba(56, 189, 248, 0.4);
         }
 
         .rb-stepper-node.completed .rb-stepper-circle {
-          background: var(--accent-color, #8b5cf6);
-          border-color: var(--accent-color, #8b5cf6);
+          background: var(--accent-color, #38bdf8);
+          border-color: var(--accent-color, #38bdf8);
           color: #08070d;
         }
 
@@ -174,7 +174,7 @@ export default function Stepper({
           position: absolute;
           inset: -3px;
           border-radius: 50%;
-          border: 1px dashed var(--accent-color, #8b5cf6);
+          border: 1px dashed var(--accent-color, #38bdf8);
           opacity: 0.6;
           animation: rbSpin 10s linear infinite;
         }

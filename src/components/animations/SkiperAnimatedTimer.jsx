@@ -10,6 +10,7 @@ import NumberFlow, { NumberFlowGroup } from '@number-flow/react';
  */
 function SkiperAnimatedTimer({
   seconds = 0,
+  isRunning = false,
   className = '',
   style = {}
 }) {
@@ -17,33 +18,6 @@ function SkiperAnimatedTimer({
   const hours = Math.floor(totalSecs / 3600);
   const mins = Math.floor((totalSecs % 3600) / 60);
   const secs = totalSecs % 60;
-
-  const isMobile = typeof window !== 'undefined' && (
-    (typeof window.innerWidth === 'number' && window.innerWidth < 768) || 
-    (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches)
-  );
-
-  // Zero-overhead pure tabular layout on mobile for 120fps hardware fluidity
-  if (isMobile) {
-    return (
-      <div
-        className={`skiper-animated-timer-root ${className}`}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontVariantNumeric: 'tabular-nums',
-          fontFeatureSettings: '"tnum"',
-          userSelect: 'none',
-          lineHeight: 1,
-          ...style
-        }}
-      >
-        {hours > 0 && `${String(hours).padStart(2, '0')}:`}
-        {String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
-      </div>
-    );
-  }
 
   return (
     <NumberFlowGroup>
@@ -64,7 +38,7 @@ function SkiperAnimatedTimer({
             <NumberFlow
               value={hours}
               format={{ minimumIntegerDigits: 2 }}
-              trend={-1}
+              trend={isRunning ? -1 : undefined}
               willChange
             />
             <span className="skiper-timer-colon">:</span>
@@ -73,14 +47,14 @@ function SkiperAnimatedTimer({
         <NumberFlow
           value={mins}
           format={{ minimumIntegerDigits: 2 }}
-          trend={-1}
+          trend={isRunning ? -1 : undefined}
           willChange
         />
         <span className="skiper-timer-colon">:</span>
         <NumberFlow
           value={secs}
           format={{ minimumIntegerDigits: 2 }}
-          trend={-1}
+          trend={isRunning ? -1 : undefined}
           willChange
         />
       </div>

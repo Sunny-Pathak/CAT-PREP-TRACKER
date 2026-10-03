@@ -4,7 +4,7 @@ import CosmeticFrameSvg from './CosmeticFrameSvg';
 import { sanitizeUrl } from '../utils/textUtils';
 
 export const AVATAR_PRESETS = [
-  { id: 'rocket', label: 'Rocket Voyager', icon: Icons.Rocket, color: '#3b82f6' },
+  { id: 'rocket', label: 'Rocket Voyager', icon: Icons.Rocket, color: '#8b5cf6' },
   { id: 'brain', label: 'Strategic Mind', icon: Icons.Zap, color: '#8b5cf6' },
   { id: 'target', label: 'Bullseye Focus', icon: Icons.Target, color: '#10b981' },
   { id: 'scholar', label: 'Scholar Elite', icon: Icons.BookOpen, color: '#f59e0b' },
@@ -17,7 +17,7 @@ export const AVATAR_PRESETS = [
 export default React.memo(function AvatarRenderer({ 
   avatar = '', 
   name = '', 
-  avatarBg = '#3b82f6', 
+  avatarBg = '#8b5cf6', 
   size = 40, 
   status = null, // 'studying' | 'online' | 'offline'
   frameId = 'default',

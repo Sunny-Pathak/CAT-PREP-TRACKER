@@ -38,7 +38,6 @@ export { default as DataSyncAuditModal } from './DataSyncAuditModal';
 export { default as LevelUpModal } from './LevelUpModal';
 export { default as AdaptiveWeekReviewModal } from './AdaptiveWeekReviewModal';
 export { default as DailyQuotaCelebrationModal } from './DailyQuotaCelebrationModal';
-export { default as JapaneseCatStampRallyModal } from './JapaneseCatStampRallyModal';
 export { default as SadCatGuiltTripModal } from './SadCatGuiltTripModal';
 export { default as SanctuaryBazaarModal } from './SanctuaryBazaarModal';
 export { default as TermsAndPrivacyModal } from './TermsAndPrivacyModal';

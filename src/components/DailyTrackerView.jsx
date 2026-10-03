@@ -37,11 +37,7 @@ function DailyTrackerView({
   updateCustomObjectiveConfig,
   syncStatus = 'saved',
   lastSyncedTimeStr = '',
-  hasUnsyncedCloudChanges = false,
   onRecordDayProgress,
-  onOpenStampRally,
-  onAwardDailyStamp,
-  stampRallyData,
   onOpenCheckpoint,
   onNavigateToBacklog,
   hasBacklog = false,
@@ -386,13 +382,9 @@ function DailyTrackerView({
       selectedCompletedCount === totalDayQuotas
     ) {
       setShowCelebrationModal(true);
-      if (onAwardDailyStamp) {
-        const dateStr = new Date().toISOString().split('T')[0];
-        onAwardDailyStamp(dateStr, selectedDay.day || 'Today');
-      }
     }
     prevCompletedCountRef.current = selectedCompletedCount;
-  }, [selectedCompletedCount, totalDayQuotas, onAwardDailyStamp, selectedDay.day]);
+  }, [selectedCompletedCount, totalDayQuotas, selectedDay.day]);
 
   // Subject timer sessions
   const quantSessions = (selectedDay.sessions || []).filter(s => (s.subject || '').toLowerCase() === 'quant');
@@ -760,28 +752,6 @@ function DailyTrackerView({
             </div>
 
             <div className="day-overview-right-cluster">
-              {onOpenStampRally && (
-                <button
-                  type="button"
-                  className="daily-stamp-rally-card-btn"
-                  onClick={onOpenStampRally}
-                  title="Inspect Japanese Cat Stamp Rally Card (6 Daily Stamps to Unlock Sakura Theme)"
-                >
-                  <div className="stamp-card-icon-circle">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ width: 14, height: 14 }}>
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="M12 7v10M9 9.5c.8-1 2.2-1 3 0s2.2 1 3 0" />
-                    </svg>
-                  </div>
-                  <div className="stamp-card-btn-content">
-                    <span className="stamp-card-btn-tag">STAMP RALLY</span>
-                    <span className="stamp-card-btn-val">
-                      {stampRallyData?.currentCardStamps?.length || 0}/6 Stamps
-                    </span>
-                  </div>
-                </button>
-              )}
-
               <div 
                 className={`day-quota-tally ${selectedCompletedCount === totalDayQuotas ? 'all-done clickable-celebrate' : ''}`}
                 onClick={() => {
@@ -1023,8 +993,8 @@ function DailyTrackerView({
                       gap: '5px',
                       fontSize: '11px',
                       fontWeight: 600,
-                      color: '#a855f7',
-                      background: 'rgba(168, 85, 247, 0.08)',
+                      color: '#38bdf8',
+                      background: 'rgba(56, 189, 248, 0.1)',
                       padding: '2px 8px',
                       borderRadius: '4px',
                       width: 'fit-content'
@@ -1426,7 +1396,7 @@ function DailyTrackerView({
             ) : (
               <div className="stream-empty-state">
                 <Icons.Clock size={20} className="stream-empty-icon" />
-                <p>No timer sessions logged today yet. Complete a Pomodoro in Study Timer to auto-record your minutes here!</p>
+                <p>No sessions recorded today. Run a timer to log focus.</p>
               </div>
             )}
           </div>
@@ -1920,7 +1890,6 @@ function DailyTrackerView({
           (Number(selectedDay.varcCount) || 0) +
           (Number(selectedDay.customCount) || 0)
         }
-        onOpenStampRally={onOpenStampRally}
         theme={state?.settings?.theme}
       />
 

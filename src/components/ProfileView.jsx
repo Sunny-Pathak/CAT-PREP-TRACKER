@@ -268,7 +268,7 @@ export default function ProfileView({
       ? userProfile.avatar
       : (user?.photoURL || userProfile?.photoURL || userProfile?.avatar || savedCosmetics?.avatar || 'rocket')
   );
-  const [profAvatarBg, setProfAvatarBg] = useState(userProfile?.avatarBg || savedCosmetics?.avatarBg || '#38bdf8');
+  const [profAvatarBg, setProfAvatarBg] = useState(userProfile?.avatarBg || savedCosmetics?.avatarBg || '#8b5cf6');
   const [profFrameId, setProfFrameId] = useState(getEffectiveFrameId(userProfile?.frameId || savedCosmetics?.frameId || 'default', userLevel));
   const [profBannerId, setProfBannerId] = useState(getEffectiveBannerId(userProfile?.bannerId || savedCosmetics?.bannerId || 'cyber_grid', userLevel));
   const [profBannerBg, setProfBannerBg] = useState(userProfile?.bannerBg || savedCosmetics?.bannerBg || '#0b1120');

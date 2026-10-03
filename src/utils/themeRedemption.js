@@ -1,14 +1,28 @@
 // Premium Theme Redemption and Authorization System
 
 export const PREMIUM_THEME_IDS = [
+  'phosphor-crt',
   'kyoto-zen',
   'maneki-gold',
+  'dark-olive',
+  'plum-velvet',
+  'slate-terracotta',
+  'coffee',
+  'fall',
+  'warm',
+  'sunset',
   'sunset-magenta',
   'crimson-twilight',
   'cosmic-nebula',
   'electric-lilac',
   'royal-cobalt',
-  'deep-abyss'
+  'deep-abyss',
+  'ephemeral',
+  'emerald',
+  'nordic',
+  'nordic-slate',
+  'crimson-velvet',
+  'sage-frost'
 ];
 
 const STORAGE_KEY = 'cat_unlocked_premium_themes';
@@ -112,12 +126,9 @@ export function getUnlockedThemes() {
  * Check if a theme is unlocked for the user
  */
 export function isThemeUnlocked(themeId, unlockedThemesList = null) {
-  // If not a premium theme, it is always free & unlocked
-  if (!PREMIUM_THEME_IDS.includes(themeId)) {
-    return true;
-  }
-  const unlocked = unlockedThemesList !== null ? unlockedThemesList : getUnlockedThemes();
-  return unlocked.includes(themeId);
+  // Dark Obsidian is the solitary unlocked and active theme.
+  // Other themes are locked for maintenance.
+  return themeId === 'dark';
 }
 
 /**

@@ -75,9 +75,9 @@ export const PROFILE_BANNERS = [
     name: 'Harmonic Wave Threads',
     minLevel: 1,
     tier: 'COMMON',
-    tierColor: '#38bdf8',
-    glowColor: 'rgba(56, 189, 248, 0.45)',
-    bg: 'linear-gradient(135deg, #040814 0%, #081226 50%, #02040a 100%)',
+    tierColor: '#8b5cf6',
+    glowColor: 'rgba(139, 92, 246, 0.45)',
+    bg: 'linear-gradient(135deg, #08070d 0%, #171424 50%, #040307 100%)',
     overlayClass: 'banner-anim-grid',
     description: 'Resonant multi-frequency sine ribbons with volumetric depth glow and drifting stardust.'
   },

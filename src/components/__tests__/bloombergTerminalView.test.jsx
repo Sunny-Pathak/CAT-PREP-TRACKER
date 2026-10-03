@@ -170,9 +170,9 @@ describe('BloombergTerminalView Component', () => {
     expect(zenColors.color1).toBe('#f43f5e');
     expect(zenColors.color2).toBe('#10b981');
 
-    // Dark obsidian matches ice cyan
+    // Dark obsidian matches electric violet
     const darkColors = getBalatroThemeColors('dark');
-    expect(darkColors.color1).toBe('#38bdf8');
+    expect(darkColors.color1).toBe('#8b5cf6');
   });
 
   it('prevents Lenis smooth scroll hijacking and enables mouse wheel scrolling on terminal stream', () => {

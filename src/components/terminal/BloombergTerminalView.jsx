@@ -46,9 +46,9 @@ export function getBalatroThemeColors(themeId = 'dark') {
       case 'dark':
       case 'dark-obsidian':
         return {
-          color1: '#38bdf8', // crisp cyan
-          color2: '#6366f1', // electric indigo
-          color3: '#09090b'  // obsidian black
+          color1: '#8b5cf6', // electric violet
+          color2: '#4f46e5', // royal indigo
+          color3: '#08070d'  // deep obsidian void
         };
       case 'light':
         return {

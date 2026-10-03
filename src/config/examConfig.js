@@ -72,8 +72,8 @@ export const SUPPORTED_EXAMS = {
     badge: 'MBA / IIMs',
     targetAudience: 'IIMs, FMS, XLRI, SPJIMR & Top B-Schools',
     defaultYear: '2025',
-    color: '#38bdf8',
-    glowColor: 'rgba(56, 189, 248, 0.25)',
+    color: '#8b5cf6',
+    glowColor: 'rgba(139, 92, 246, 0.25)',
     icon: 'Trophy',
     trackingColumns: [
       { key: 'status', label: 'Status' },
@@ -92,7 +92,7 @@ export const SUPPORTED_EXAMS = {
         badge: 'QA',
         defaultDailyQuota: 18,
         unit: 'Questions',
-        color: '#38bdf8',
+        color: '#8b5cf6',
         topics: [
           'Arithmetic (Percentages, Profit/Loss, TSD, Work)',
           'Algebra (Linear/Quadratic Equations, Functions)',

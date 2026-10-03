@@ -111,7 +111,7 @@ export default function SettingsView({
   const [justSelectedId, setJustSelectedId] = useState(null);
 
   const handleThemeCardClick = (e, themeId, isPrem, isUnlocked, accentColor) => {
-    if (isPrem && !isUnlocked) {
+    if (themeId !== 'dark') {
       onOpenRedeemModal(themeId);
       return;
     }
@@ -149,7 +149,7 @@ export default function SettingsView({
   const currentAspirantId = userProfile?.aspirantId || getLocalAspirantId();
   const profName = userProfile?.displayName || user?.displayName || 'CAT Aspirant';
   const profAvatar = userProfile?.avatar || '';
-  const profAvatarBg = userProfile?.avatarBg || '#0284c7';
+  const profAvatarBg = userProfile?.avatarBg || '#8b5cf6';
 
   // Fixed Active Theme to eliminate layout reflow and stuttering
   const activeThemeObj = THEMES.find(t => t.id === currentTheme) || THEMES[0];
@@ -486,6 +486,7 @@ export default function SettingsView({
                 <GooeyThemeSwitch 
                   currentTheme={currentTheme}
                   onSelectTheme={onSelectTheme}
+                  locked={true}
                 />
               </div>
 
@@ -1081,9 +1082,9 @@ export default function SettingsView({
                     gap: '6px',
                     padding: '8px 14px',
                     borderRadius: '8px',
-                    background: 'rgba(56, 189, 248, 0.12)',
-                    border: '1px solid rgba(56, 189, 248, 0.3)',
-                    color: '#38bdf8',
+                    background: 'rgba(139, 92, 246, 0.12)',
+                    border: '1px solid rgba(139, 92, 246, 0.3)',
+                    color: '#c084fc',
                     fontSize: '12px',
                     fontWeight: '700',
                     cursor: !user ? 'not-allowed' : 'pointer',
@@ -1105,13 +1106,13 @@ export default function SettingsView({
                     gap: '6px',
                     padding: '8px 16px',
                     borderRadius: '8px',
-                    background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.28) 0%, rgba(14, 165, 233, 0.16) 100%)',
-                    border: '1px solid rgba(56, 189, 248, 0.45)',
-                    color: '#38bdf8',
+                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.28) 0%, rgba(124, 58, 237, 0.16) 100%)',
+                    border: '1px solid rgba(139, 92, 246, 0.45)',
+                    color: '#ffffff',
                     fontSize: '12px',
                     fontWeight: '700',
                     cursor: 'pointer',
-                    boxShadow: '0 0 14px rgba(56, 189, 248, 0.2)',
+                    boxShadow: '0 0 14px rgba(139, 92, 246, 0.2)',
                     transition: 'all 0.18s ease'
                   }}
                 >
@@ -1267,7 +1268,7 @@ export default function SettingsView({
                         type="button"
                         className="vip-gallery-link-btn"
                         onClick={() => onOpenOnboarding()}
-                        style={{ background: 'rgba(56, 189, 248, 0.12)', borderColor: 'var(--accent-color, #38bdf8)' }}
+                        style={{ background: 'rgba(139, 92, 246, 0.12)', borderColor: 'var(--accent-color, #8b5cf6)' }}
                       >
                         <Icons.Sparkles size={14} />
                         <span>Open Setup Dialog</span>
@@ -1301,7 +1302,7 @@ export default function SettingsView({
                           style={{
                             cursor: 'pointer',
                             padding: '14px',
-                            background: isSelected ? 'rgba(56, 189, 248, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                            background: isSelected ? 'rgba(139, 92, 246, 0.12)' : 'rgba(255, 255, 255, 0.02)',
                             border: `1px solid ${isSelected ? exam.color : 'rgba(255, 255, 255, 0.08)'}`,
                             borderRadius: '12px'
                           }}

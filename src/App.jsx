@@ -35,7 +35,6 @@ import FloatingTimerWidget from './components/FloatingTimerWidget';
 import ThemeSelectorDropdown from './components/ThemeSelectorDropdown';
 import ThemeSwitchToast from './components/ThemeSwitchToast';
 import { getUnlockedThemes } from './utils/themeRedemption';
-import { getStampRallyData, saveStampRallyData, awardDailyQuotaStamp, redeemStampReward } from './utils/stampRallyStorage';
 import UpdateNotificationToast from './components/UpdateNotificationToast';
 import ActivityNotificationToast from './components/ActivityNotificationToast';
 import { checkForAppUpdate } from './utils/versionCheck';
@@ -53,6 +52,7 @@ const ErrorLogView = lazy(() => import('./components/ErrorLogView'));
 const ProfileView = lazy(() => import('./components/ProfileView'));
 const StudyTimerView = lazy(() => import('./components/StudyTimerView'));
 const StudyLounge = lazy(() => import('./components/StudyLounge'));
+const LeaderboardComingSoonView = lazy(() => import('./components/LeaderboardComingSoonView'));
 const SettingsView = lazy(() => import('./components/SettingsView'));
 const AchievementsView = lazy(() => import('./components/AchievementsView'));
 const BacklogRecoveryView = lazy(() => import('./components/BacklogRecoveryView'));
@@ -62,7 +62,6 @@ const BloombergTerminalView = lazy(() => import('./components/BloombergTerminalV
 const AuthScreen = lazy(() => import('./components/AuthScreen'));
 const DataSyncAuditModal = lazy(() => import('./components/DataSyncAuditModal'));
 const ThemeRedeemModal = lazy(() => import('./components/ThemeRedeemModal'));
-const JapaneseCatStampRallyModal = lazy(() => import('./components/JapaneseCatStampRallyModal'));
 const TermsAndPrivacyModal = lazy(() => import('./components/TermsAndPrivacyModal'));
 const OnboardingWelcomeModal = lazy(() => import('./components/OnboardingWelcomeModal'));
 const PeerInspectorModal = lazy(() => import('./components/PeerInspectorModal'));
@@ -299,10 +298,7 @@ export default function App() {
   const [unlockedThemes, setUnlockedThemes] = useState(() => getUnlockedThemes());
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [redeemPreselectTheme, setRedeemPreselectTheme] = useState(null);
-  const [stampRallyData, setStampRallyData] = useState(() => getStampRallyData());
-  const [isStampRallyOpen, setIsStampRallyOpen] = useState(false);
   const [isPatchNotesOpen, setIsPatchNotesOpen] = useState(false);
-  const [triggerStampAnimation, setTriggerStampAnimation] = useState(false);
   const [isInitialEntrance, setIsInitialEntrance] = useState(false);
 
   const [levelUpModalData, setLevelUpModalData] = useState({
@@ -402,34 +398,7 @@ export default function App() {
     });
   }, []);
 
-  const handleOpenStampRally = (shouldAnimate = false) => {
-    setTriggerStampAnimation(shouldAnimate);
-    setIsStampRallyOpen(true);
-  };
 
-  const handleAwardStamp = (dateStr, dayName) => {
-    const res = awardDailyQuotaStamp(dateStr, dayName);
-    if (res.updatedData) {
-      setStampRallyData(res.updatedData);
-      if (res.newStampAwarded) {
-        handleOpenStampRally(true);
-      }
-    }
-  };
-
-  const handleRedeemStampTheme = (themeId) => {
-    const res = redeemStampReward(themeId);
-    if (res.success) {
-      setStampRallyData(res.updatedData);
-      setUnlockedThemes(getUnlockedThemes());
-      setTheme(themeId);
-      setShowThemeToast(true);
-      setState(prev => ({
-        ...prev,
-        settings: { ...(prev.settings || {}), theme: themeId }
-      }));
-    }
-  };
 
   // Draggable Floating Overlay Dock State (allows users to freely position the dock anywhere)
   const [dockPos, setDockPos] = useState(() => {
@@ -815,29 +784,9 @@ export default function App() {
     };
   }, []);
 
-  // Animate Silky Page Transition & Reset Scroll Position when activeTab changes
+  // Clean immediate scroll reset when activeTab changes — zero translation jump/shake
   useEffect(() => {
     scrollToTop({ immediate: true });
-    if (typeof window !== 'undefined') {
-      const mainEl = document.querySelector('.main-content');
-      if (mainEl) {
-        gsap.fromTo(
-          mainEl,
-          { opacity: 0, y: 10 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.28,
-            ease: 'power2.out',
-            clearProps: 'transform,opacity'
-          }
-        );
-      }
-    }
-    const timer = setTimeout(() => {
-      animatePageEntrance('.main-content');
-    }, 30);
-    return () => clearTimeout(timer);
   }, [activeTab]);
 
   // Attach Magnetic Damping Physics to Interactive Sidebar & Header Elements
@@ -2648,9 +2597,9 @@ export default function App() {
           <DockItem 
             active={activeTab === 'lounge'} 
             onClick={() => setActiveTab('lounge')} 
-            ariaLabel="Study Arena & Leaderboard"
+            ariaLabel="Leaderboard (Coming Soon)"
             tooltipTitle="Leaderboard"
-            tooltipTag="STUDY ARENA"
+            tooltipTag="COMING SOON"
           >
             <Icons.Trophy />
           </DockItem>
@@ -2777,8 +2726,8 @@ export default function App() {
             <button 
               type="button" 
               className="brand-emblem-badge header-logo-badge landing-brand-logo" 
-              onClick={() => setShowIntro(true)} 
-              title="CATalyze — Replay Cinematic Intro"
+              onClick={() => setActiveTab('dashboard')} 
+              title="CATalyze — Return to Dashboard"
             >
               <div className="brand-square-glyph" />
               <span className="brand-logo-text">CATALYZE</span>
@@ -2789,7 +2738,7 @@ export default function App() {
             <div className="cyber-protocol-badge desktop-only">
               <span className="cyber-pulse-dot" />
               <span className="cyber-page-name" key={activeTab}>
-                {activeTab === 'dashboard' ? 'DASHBOARD' : activeTab === 'terminal' ? 'CAT TERMINAL' : activeTab === 'recovery' ? 'BACKLOG RECOVERY' : activeTab === 'lounge' ? 'STUDY LOUNGE' : activeTab === 'timeline' ? 'STUDY PLAN' : activeTab === 'timer' ? 'FOCUS SANCTUARY' : activeTab === 'daily' ? 'DAILY DRILLS' : activeTab === 'mocks' ? 'MOCK TESTS' : activeTab === 'achievements' ? 'ACHIEVEMENTS' : activeTab === 'errors' ? 'ERROR LOG' : activeTab === 'profile' ? 'PROFILE' : activeTab === 'settings' ? 'SETTINGS' : 'DASHBOARD'}
+                {activeTab === 'dashboard' ? 'DASHBOARD' : activeTab === 'terminal' ? 'CAT TERMINAL' : activeTab === 'recovery' ? 'BACKLOG RECOVERY' : activeTab === 'lounge' ? 'LEADERBOARD (SOON)' : activeTab === 'timeline' ? 'STUDY PLAN' : activeTab === 'timer' ? 'FOCUS SANCTUARY' : activeTab === 'daily' ? 'DAILY DRILLS' : activeTab === 'mocks' ? 'MOCK TESTS' : activeTab === 'achievements' ? 'ACHIEVEMENTS' : activeTab === 'errors' ? 'ERROR LOG' : activeTab === 'profile' ? 'PROFILE' : activeTab === 'settings' ? 'SETTINGS' : 'DASHBOARD'}
               </span>
             </div>
           </div>
@@ -2801,6 +2750,7 @@ export default function App() {
                 compact={true}
                 currentTheme={theme}
                 onSelectTheme={handleSelectTheme}
+                locked={true}
               />
             )}
 
@@ -2922,9 +2872,6 @@ export default function App() {
               lastSyncedTimeStr={lastSyncedTimeStr}
               hasUnsyncedCloudChanges={hasUnsyncedCloudChanges}
               onRecordDayProgress={() => handleRecordDayProgress(false)}
-              onOpenStampRally={() => handleOpenStampRally(true)}
-              onAwardDailyStamp={handleAwardStamp}
-              stampRallyData={stampRallyData}
               onOpenCheckpoint={handleOpenCheckpoint}
               onNavigateToBacklog={() => setActiveTab('recovery')}
               hasBacklog={overallBacklog.hasBacklog}
@@ -2980,19 +2927,8 @@ export default function App() {
             />
           )}
           {activeTab === 'lounge' && (
-            <StudyLounge
-              peers={peers}
-              friends={friends}
-              onInspectFriend={handleInspectFriend}
-              currentUser={user}
-              userProfile={userProfile}
-              timerState={timerState}
-              todayTotalHours={todayTotalHours}
-              onNavigateToTimer={() => setActiveTab('timer')}
-              onNavigateToFriends={() => {
-                setProfileSubTab('friends');
-                setActiveTab('profile');
-              }}
+            <LeaderboardComingSoonView
+              onBack={() => setActiveTab('dashboard')}
             />
           )}
           {activeTab === 'profile' && (
@@ -3112,8 +3048,8 @@ export default function App() {
           <DockItem 
             active={activeTab === 'lounge'} 
             onClick={() => setActiveTab('lounge')} 
-            ariaLabel="Leaderboard"
-            tooltipTitle="Leaderboard"
+            ariaLabel="Leaderboard (Coming Soon)"
+            tooltipTitle="Leaderboard (Soon)"
             className="mobile-dock-btn"
           >
             <Icons.Trophy size={22} />
@@ -3238,21 +3174,7 @@ export default function App() {
         </Suspense>
       )}
 
-      {/* Japanese Cat Washi Paper Stamp Rally Modal */}
-      {isStampRallyOpen && (
-        <Suspense fallback={null}>
-          <JapaneseCatStampRallyModal
-            isOpen={isStampRallyOpen}
-            onClose={() => {
-              setIsStampRallyOpen(false);
-              setTriggerStampAnimation(false);
-            }}
-            stampRallyData={stampRallyData}
-            onRedeemTheme={handleRedeemStampTheme}
-            triggerNewStamp={triggerStampAnimation}
-          />
-        </Suspense>
-      )}
+
 
       {/* User Exam Onboarding & Tutorial Cockpit Modal */}
       {isOnboardingOpen && (

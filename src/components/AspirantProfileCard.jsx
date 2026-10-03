@@ -50,7 +50,7 @@ export default function AspirantProfileCard({
     if (user?.photoURL) return user.photoURL;
     return profile?.avatar || 'rocket';
   }, [profile?.avatar, profile?.photoURL, user?.photoURL]);
-  const avatarBg = profile?.avatarBg || '#0284c7';
+  const avatarBg = profile?.avatarBg || '#8b5cf6';
   const bio = profile?.bio || '';
   const streak = profile?.streak ?? profile?.careerStreak ?? profile?.baseStreak ?? user?.streak ?? 0;
   const solvedQs = profile?.solvedQs ?? profile?.totalSolvedQs ?? profile?.baseSolvedQs ?? user?.solvedQs ?? 0;

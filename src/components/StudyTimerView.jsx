@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { stripEmojis } from '../utils/textUtils';
 import StudyCompanionEntity from './StudyCompanionEntity';
 import AsciiMascot from './AsciiMascot';
@@ -11,6 +12,8 @@ import SkiperAnimatedTimer from './animations/SkiperAnimatedTimer';
 import ChronoTimerHUD from './animations/ChronoTimerHUD';
 import SmoothCaretInput from './animations/SmoothCaretInput';
 import { Icons } from './AspirantIcons';
+
+gsap.registerPlugin(useGSAP);
 
 export default function StudyTimerView({
   timerState,
@@ -40,6 +43,13 @@ export default function StudyTimerView({
   const [showGuiltTrip, setShowGuiltTrip] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const companionRef = useRef(null);
+  const cadenceIndicatorRef = useRef(null);
+  const cadenceTabRefs = useRef({});
+  const subjectIndicatorRef = useRef(null);
+  const subjectTabRefs = useRef({});
+  const customLineRef = useRef(null);
+  const digitsAnchorRef = useRef(null);
+
   const {
     secondsLeft = 1500,
     totalSeconds = 1500,
@@ -61,6 +71,86 @@ export default function StudyTimerView({
   const [editingSession, setEditingSession] = useState(null);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const prevSecondsLeftRef = useRef(secondsLeft);
+
+  // Effective seconds: dynamically reflect selected duration / stopwatch mode when idle
+  const effectiveSecondsLeft = (isRunning || isPaused)
+    ? secondsLeft
+    : timerMode === 'stopwatch'
+      ? 0
+      : timerMode === 'custom'
+        ? customMinutes * 60
+        : selectedDuration * 60;
+
+  const effectiveTotalSeconds = (isRunning || isPaused)
+    ? totalSeconds
+    : timerMode === 'stopwatch'
+      ? 0
+      : timerMode === 'custom'
+        ? customMinutes * 60
+        : selectedDuration * 60;
+
+  const triggerTactile = (e) => {
+    if (e?.currentTarget) {
+      gsap.fromTo(e.currentTarget,
+        { scale: 0.92 },
+        { scale: 1, duration: 0.28, ease: 'back.out(2.5)' }
+      );
+    }
+  };
+
+  const activeCadenceKey = timerMode === 'pomodoro'
+    ? `${selectedDuration}m`
+    : timerMode === 'custom'
+      ? 'custom'
+      : 'stopwatch';
+
+  // GSAP Sliding Pill Animation for Duration Cadence Rack
+  useGSAP(() => {
+    const activeEl = cadenceTabRefs.current[activeCadenceKey];
+    if (activeEl && cadenceIndicatorRef.current) {
+      gsap.to(cadenceIndicatorRef.current, {
+        x: activeEl.offsetLeft,
+        width: activeEl.offsetWidth,
+        opacity: 1,
+        duration: 0.32,
+        ease: 'power3.out'
+      });
+    }
+  }, [activeCadenceKey]);
+
+  // GSAP Sliding Pill Animation for Disciplines Rack
+  useGSAP(() => {
+    const activeEl = subjectTabRefs.current[currentSubject];
+    if (activeEl && subjectIndicatorRef.current) {
+      gsap.to(subjectIndicatorRef.current, {
+        x: activeEl.offsetLeft,
+        width: activeEl.offsetWidth,
+        opacity: 1,
+        duration: 0.32,
+        ease: 'power3.out'
+      });
+    }
+  }, [currentSubject]);
+
+  // GSAP Expand Animation for Custom Duration Line
+  useGSAP(() => {
+    if (timerMode === 'custom' && customLineRef.current) {
+      gsap.fromTo(customLineRef.current,
+        { opacity: 0, y: -6, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.28, ease: 'back.out(1.5)' }
+      );
+    }
+  }, [timerMode]);
+
+  // GSAP Punch on Digits Anchor
+  useGSAP(() => {
+    if (digitsAnchorRef.current) {
+      gsap.fromTo(digitsAnchorRef.current,
+        { scale: 0.965 },
+        { scale: 1, duration: 0.3, ease: 'power2.out' }
+      );
+    }
+  }, [effectiveSecondsLeft, timerMode]);
 
   useEffect(() => {
     if (!isRunning && !isPaused) {
@@ -309,7 +399,10 @@ export default function StudyTimerView({
             <button
               type="button"
               className="monumental-ghost-btn"
-              onClick={toggleZenFullscreen}
+              onClick={(e) => {
+                triggerTactile(e);
+                toggleZenFullscreen();
+              }}
               title="Toggle Fullscreen Sanctuary (Shortcut: F)"
             >
               <span>Fullscreen [F]</span>
@@ -325,11 +418,12 @@ export default function StudyTimerView({
         <div className="monumental-chrono-centerpiece">
           <ChronoTimerHUD
             timerMode={timerMode}
-            secondsLeft={secondsLeft}
-            totalSeconds={totalSeconds}
+            secondsLeft={effectiveSecondsLeft}
+            totalSeconds={effectiveTotalSeconds}
             isRunning={isRunning}
           >
             <div 
+              ref={digitsAnchorRef}
               className="monumental-digits-anchor"
               onClick={!isRunning && !isPaused ? handleStart : isRunning ? onPauseTimer : onResumeTimer}
               role="button"
@@ -337,7 +431,7 @@ export default function StudyTimerView({
               title="Click to Start / Pause (Shortcut: Space)"
             >
               <span className="monumental-clock-readout font-display">
-                <SkiperAnimatedTimer seconds={secondsLeft} />
+                <SkiperAnimatedTimer seconds={effectiveSecondsLeft} isRunning={isRunning} />
               </span>
               
               <div className="monumental-readout-sub">
@@ -354,37 +448,54 @@ export default function StudyTimerView({
         {!isZenFullscreen && (
           <div className="monumental-controls-console">
             
-            {/* Row 1: Duration Cadence */}
+            {/* Row 1: Duration Cadence with GSAP Sliding Pill Indicator */}
             <div className="monumental-cadence-rack">
-              {[15, 25, 45, 60].map(m => (
-                <button
-                  key={m}
-                  type="button"
-                  className={`cadence-text-btn ${timerMode === 'pomodoro' && selectedDuration === m ? 'active' : ''}`}
-                  onClick={() => {
-                    playSoftClick();
-                    setTimerMode('pomodoro');
-                    setSelectedDuration(m);
-                  }}
-                  disabled={isRunning || isPaused}
-                >
-                  {m}m
-                </button>
-              ))}
+              <div ref={cadenceIndicatorRef} className="segmented-indicator-pill" aria-hidden="true" />
+              {[15, 25, 45, 60].map(m => {
+                const key = `${m}m`;
+                const isActive = timerMode === 'pomodoro' && selectedDuration === m;
+                return (
+                  <button
+                    key={m}
+                    ref={el => { cadenceTabRefs.current[key] = el; }}
+                    type="button"
+                    className={`cadence-text-btn ${isActive ? 'active' : ''}`}
+                    onClick={(e) => {
+                      triggerTactile(e);
+                      playSoftClick();
+                      setTimerMode('pomodoro');
+                      setSelectedDuration(m);
+                    }}
+                    disabled={isRunning || isPaused}
+                  >
+                    {m}m
+                  </button>
+                );
+              })}
 
               <button
+                ref={el => { cadenceTabRefs.current['custom'] = el; }}
                 type="button"
                 className={`cadence-text-btn ${timerMode === 'custom' ? 'active' : ''}`}
-                onClick={() => { playSoftClick(); setTimerMode('custom'); }}
+                onClick={(e) => {
+                  triggerTactile(e);
+                  playSoftClick();
+                  setTimerMode('custom');
+                }}
                 disabled={isRunning || isPaused}
               >
                 Custom
               </button>
 
               <button
+                ref={el => { cadenceTabRefs.current['stopwatch'] = el; }}
                 type="button"
                 className={`cadence-text-btn ${timerMode === 'stopwatch' ? 'active' : ''}`}
-                onClick={() => { playSoftClick(); setTimerMode('stopwatch'); }}
+                onClick={(e) => {
+                  triggerTactile(e);
+                  playSoftClick();
+                  setTimerMode('stopwatch');
+                }}
                 disabled={isRunning || isPaused}
               >
                 Stopwatch
@@ -393,7 +504,7 @@ export default function StudyTimerView({
 
             {/* Custom Minutes Input (Inline when active) */}
             {timerMode === 'custom' && (
-              <div className="monumental-custom-line">
+              <div ref={customLineRef} className="monumental-custom-line">
                 <span className="custom-prompt">Duration:</span>
                 <input
                   type="number"
@@ -408,77 +519,77 @@ export default function StudyTimerView({
               </div>
             )}
 
-            {/* Row 2: Clean Subject Selector (No Redundant Abbreviations) */}
+            {/* Row 2: Clean Subject Selector with GSAP Sliding Pill Indicator */}
             <div className="monumental-disciplines-rack">
-              {['Quant', 'LRDI', 'VARC', 'General'].map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  className={`discipline-text-btn ${currentSubject === s ? 'active' : ''}`}
-                  onClick={() => { playSoftClick(); setCurrentSubject(s); }}
-                  disabled={isRunning || isPaused}
-                >
-                  <span className="name">{s}</span>
-                </button>
-              ))}
+              <div ref={subjectIndicatorRef} className="segmented-indicator-pill" aria-hidden="true" />
+              {['Quant', 'LRDI', 'VARC', 'General'].map(s => {
+                const isActive = currentSubject === s;
+                return (
+                  <button
+                    key={s}
+                    ref={el => { subjectTabRefs.current[s] = el; }}
+                    type="button"
+                    className={`discipline-text-btn ${isActive ? 'active' : ''}`}
+                    onClick={(e) => {
+                      triggerTactile(e);
+                      playSoftClick();
+                      setCurrentSubject(s);
+                    }}
+                    disabled={isRunning || isPaused}
+                  >
+                    <span className="name">{s}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Row 3: Direct Action Trigger (No video game jargon) */}
+            {/* Row 3: Direct Action Trigger with fluid pop-in animation */}
             <div className="monumental-actuation-rack">
               {!isRunning && !isPaused ? (
                 <button 
                   type="button" 
                   className="monumental-engage-cta" 
-                  onClick={handleStart}
+                  onClick={(e) => {
+                    triggerTactile(e);
+                    handleStart(e);
+                  }}
                 >
                   <span className="engage-icon">▶</span>
                   <span className="engage-text">Start</span>
                   <span className="engage-shortcut">[Space]</span>
                 </button>
-              ) : isRunning ? (
-                <div className="monumental-running-controls">
-                  <button 
-                    type="button"
-                    className="monumental-running-btn pause-btn" 
-                    onClick={() => { playSoftClick(); onPauseTimer(); }}
-                  >
-                    <span>Pause [Space]</span>
-                  </button>
-                  <button 
-                    type="button"
-                    className="monumental-running-btn log-btn" 
-                    onClick={handleFinish}
-                  >
-                    <span>Log Session</span>
-                  </button>
-                  <button 
-                    type="button"
-                    className="monumental-running-btn reset-btn" 
-                    onClick={() => { playSoftClick(); onResetTimer(); }}
-                  >
-                    <span>Reset</span>
-                  </button>
-                </div>
               ) : (
                 <div className="monumental-running-controls">
                   <button 
                     type="button"
-                    className="monumental-running-btn resume-btn" 
-                    onClick={() => { playSoftClick(); onResumeTimer(); }}
+                    className={`monumental-running-btn ${isRunning ? 'pause-btn' : 'resume-btn'}`} 
+                    onClick={(e) => {
+                      triggerTactile(e);
+                      playSoftClick();
+                      if (isRunning) onPauseTimer();
+                      else onResumeTimer();
+                    }}
                   >
-                    <span>Resume [Space]</span>
+                    <span>{isRunning ? 'Pause [Space]' : 'Resume [Space]'}</span>
                   </button>
                   <button 
                     type="button"
                     className="monumental-running-btn log-btn" 
-                    onClick={handleFinish}
+                    onClick={(e) => {
+                      triggerTactile(e);
+                      handleFinish();
+                    }}
                   >
                     <span>Log Session</span>
                   </button>
                   <button 
                     type="button"
                     className="monumental-running-btn reset-btn" 
-                    onClick={() => { playSoftClick(); onResetTimer(); }}
+                    onClick={(e) => {
+                      triggerTactile(e);
+                      playSoftClick();
+                      onResetTimer();
+                    }}
                   >
                     <span>Reset</span>
                   </button>
@@ -523,7 +634,11 @@ export default function StudyTimerView({
             <button
               type="button"
               className="telemetry-log-toggle"
-              onClick={() => setIsHistoryExpanded(prev => !prev)}
+              onClick={(e) => {
+                triggerTactile(e);
+                playSoftClick();
+                setIsHistoryExpanded(prev => !prev);
+              }}
               title="Toggle Today's Session Log"
             >
               <span className="telemetry-value">Today: {todayTotalHours.toFixed(1)} hrs</span>
@@ -539,54 +654,56 @@ export default function StudyTimerView({
         </footer>
       )}
 
-      {/* 4. Quiet Monospace Flight Journal (Only when expanded by user) */}
-      {!isZenFullscreen && isHistoryExpanded && (
-        <div className="monumental-journal-drawer">
-          {todaySessions.length === 0 ? (
-            <div className="journal-empty">
-              <span>No sessions recorded today. Start a session above to begin.</span>
-            </div>
-          ) : (
-            <div className="journal-stream">
-              {todaySessions.map((s, idx) => (
-                <div key={s.id || idx} className="journal-entry">
-                  <div className="journal-col-time">
-                    <span className="time-range">{s.startTime || '—'} → {s.endTime || '—'}</span>
+      {/* 4. Quiet Monospace Flight Journal (Smooth CSS Grid Accordion) */}
+      {!isZenFullscreen && (
+        <div className={`monumental-journal-drawer ${isHistoryExpanded ? 'is-expanded' : ''}`}>
+          <div className="monumental-journal-drawer-inner">
+            {todaySessions.length === 0 ? (
+              <div className="journal-empty">
+                <span>No sessions recorded today. Start a session above to begin.</span>
+              </div>
+            ) : (
+              <div className="journal-stream">
+                {todaySessions.map((s, idx) => (
+                  <div key={s.id || idx} className="journal-entry">
+                    <div className="journal-col-time">
+                      <span className="time-range">{s.startTime || '—'} → {s.endTime || '—'}</span>
+                    </div>
+                    <div className="journal-col-subject">
+                      <span className="subject-tag">{s.subject || 'General'}</span>
+                    </div>
+                    <div className="journal-col-duration">
+                      <span className="duration-tag">{s.durationMinutes}m</span>
+                      <span className="hours-fraction">({(s.durationMinutes / 60).toFixed(1)}h)</span>
+                    </div>
+                    <div className="journal-col-notes">
+                      <span className="notes-text">{s.notes ? `"${s.notes}"` : '—'}</span>
+                    </div>
+                    <div className="journal-col-actions">
+                      {onEditSession && (
+                        <button
+                          type="button"
+                          className="journal-action-link edit"
+                          onClick={() => setEditingSession(s)}
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {onDeleteSession && (
+                        <button
+                          type="button"
+                          className="journal-action-link delete"
+                          onClick={() => onDeleteSession(s.id)}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="journal-col-subject">
-                    <span className="subject-tag">{s.subject || 'General'}</span>
-                  </div>
-                  <div className="journal-col-duration">
-                    <span className="duration-tag">{s.durationMinutes}m</span>
-                    <span className="hours-fraction">({(s.durationMinutes / 60).toFixed(1)}h)</span>
-                  </div>
-                  <div className="journal-col-notes">
-                    <span className="notes-text">{s.notes ? `"${s.notes}"` : '—'}</span>
-                  </div>
-                  <div className="journal-col-actions">
-                    {onEditSession && (
-                      <button
-                        type="button"
-                        className="journal-action-link edit"
-                        onClick={() => setEditingSession(s)}
-                      >
-                        Edit
-                      </button>
-                    )}
-                    {onDeleteSession && (
-                      <button
-                        type="button"
-                        className="journal-action-link delete"
-                        onClick={() => onDeleteSession(s.id)}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

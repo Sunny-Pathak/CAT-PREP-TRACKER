@@ -168,74 +168,81 @@ const ThemeIcons = {
 
 export const THEMES = [
   { 
+    id: 'dark', 
+    name: 'Dark Obsidian', 
+    IconComponent: ThemeIcons.dark, 
+    colors: ['#08070d', '#0f0d18', '#171424', '#8b5cf6'],
+    badgeText: 'DEFAULT'
+  },
+  { 
+    id: 'phosphor-crt', 
+    name: 'Phosphor CRT Matrix', 
+    IconComponent: ThemeIcons.phosphorCrt, 
+    colors: ['#05080a', '#0a160f', '#10b981', '#39ff7a'],
+    isPremium: true
+  },
+  { 
     id: 'kyoto-zen', 
     name: 'Kyoto Zen Sanctuary', 
     IconComponent: ThemeIcons.kyotoZen, 
     colors: ['#070b19', '#0d1830', '#10b981', '#f43f5e'],
-    isPremium: true,
-    badgeText: 'STAMP RALLY'
+    isPremium: true
   },
   { 
     id: 'maneki-gold', 
     name: 'Maneki Fortune Gold', 
     IconComponent: ThemeIcons.manekiGold, 
     colors: ['#08080c', '#151520', '#f59e0b', '#fbbf24'],
-    isPremium: true,
-    badgeText: 'STAMP RALLY'
-  },
-  { 
-    id: 'phosphor-crt', 
-    name: 'Phosphor CRT Matrix', 
-    IconComponent: ThemeIcons.phosphorCrt, 
-    colors: ['#05080a', '#0a160f', '#10b981', '#39ff7a']
-  },
-  { 
-    id: 'dark', 
-    name: 'Dark Obsidian', 
-    IconComponent: ThemeIcons.dark, 
-    colors: ['#09090b', '#121215', '#1a1a20', '#ffffff']
+    isPremium: true
   },
   { 
     id: 'dark-olive', 
     name: 'Dark Olive', 
     IconComponent: ThemeIcons.darkOlive, 
-    colors: ['#151a14', '#243022', '#6d8c52', '#e6caa4']
+    colors: ['#151a14', '#243022', '#6d8c52', '#e6caa4'],
+    isPremium: true
   },
   { 
     id: 'plum-velvet', 
     name: 'Plum Velvet', 
     IconComponent: ThemeIcons.plumVelvet, 
-    colors: ['#16131a', '#36243b', '#6b1d52', '#aa5482']
+    colors: ['#16131a', '#36243b', '#6b1d52', '#aa5482'],
+    isPremium: true
   },
   { 
     id: 'slate-terracotta', 
     name: 'Slate Terracotta', 
     IconComponent: ThemeIcons.slateTerracotta, 
-    colors: ['#1c2834', '#2b3f4f', '#9e6b6b', '#e8b2a2']
+    colors: ['#1c2834', '#2b3f4f', '#9e6b6b', '#e8b2a2'],
+    isPremium: true
   },
   { 
     id: 'coffee', 
     name: 'Coffee Mocha', 
     IconComponent: ThemeIcons.coffee, 
-    colors: ['#0e0906', '#19120c', '#38271a', '#d9a774']
+    colors: ['#0e0906', '#19120c', '#38271a', '#d9a774'],
+    isPremium: true
   },
   { 
     id: 'fall', 
     name: 'Fall Season', 
     IconComponent: ThemeIcons.fall, 
-    colors: ['#0d1b2a', '#162638', '#2b4463', '#e59b24']
+    colors: ['#0d1b2a', '#162638', '#2b4463', '#e59b24'],
+    isPremium: true
   },
   { 
     id: 'warm', 
     name: 'Warm Terracotta', 
     IconComponent: ThemeIcons.warm, 
-    colors: ['#0b1a23', '#152733', '#314b5c', '#d97a66']
+    colors: ['#0b1a23', '#152733', '#314b5c', '#d97a66'],
+    isPremium: true
   },
   { 
     id: 'sunset', 
     name: 'Sun Set', 
     IconComponent: ThemeIcons.sunset, 
-    colors: ['#1e2633', '#3c4a5c', '#b8657d', '#f46b78']
+    colors: ['#1e2633', '#3c4a5c', '#b8657d', '#f46b78'],
+    isPremium: true
   },
   { 
     id: 'sunset-magenta', 
@@ -283,37 +290,43 @@ export const THEMES = [
     id: 'ephemeral', 
     name: 'Ephemeral', 
     IconComponent: ThemeIcons.ephemeral, 
-    colors: ['#141a21', '#1f2730', '#384250', '#e3d6c3']
+    colors: ['#141a21', '#1f2730', '#384250', '#e3d6c3'],
+    isPremium: true
   },
   { 
     id: 'emerald', 
     name: 'Emerald Forest', 
     IconComponent: ThemeIcons.emerald, 
-    colors: ['#06120a', '#0e2113', '#22492c', '#34d399']
+    colors: ['#06120a', '#0e2113', '#22492c', '#34d399'],
+    isPremium: true
   },
   { 
     id: 'nordic', 
     name: 'Nordic Midnight', 
     IconComponent: ThemeIcons.nordic, 
-    colors: ['#060b14', '#0e1726', '#2a384e', '#38bdf8']
+    colors: ['#060b14', '#0e1726', '#2a384e', '#38bdf8'],
+    isPremium: true
   },
   { 
     id: 'nordic-slate', 
     name: 'Nordic Slate', 
     IconComponent: ThemeIcons.nordic, 
-    colors: ['#162836', '#23455b', '#3c617b', '#c8b7a6']
+    colors: ['#162836', '#23455b', '#3c617b', '#c8b7a6'],
+    isPremium: true
   },
   { 
     id: 'crimson-velvet', 
     name: 'Crimson Velvet', 
     IconComponent: ThemeIcons.sunset, 
-    colors: ['#b81432', '#18263e', '#224b6d', '#36959b']
+    colors: ['#b81432', '#18263e', '#224b6d', '#36959b'],
+    isPremium: true
   },
   { 
     id: 'sage-frost', 
     name: 'Sage Frost', 
     IconComponent: ThemeIcons.emerald, 
-    colors: ['#edf6ee', '#c2f0b5', '#9be2b0', '#7daeb9']
+    colors: ['#edf6ee', '#c2f0b5', '#9be2b0', '#7daeb9'],
+    isPremium: true
   }
 ];
 
@@ -425,7 +438,12 @@ export default function ThemeSelectorDropdown({
                     </span>
 
                     <div className="theme-card-meta">
-                      {isPrem && (
+                      {t.badgeText && (
+                        <span className={`theme-meta-pill ${t.badgeText === 'DEFAULT' ? 'default-theme' : 'vip'}`}>
+                          {t.badgeText}
+                        </span>
+                      )}
+                      {isPrem && !t.badgeText && (
                         <span className={`theme-meta-pill ${isUnlocked ? 'vip' : 'lock'}`}>
                           {isUnlocked ? 'VIP' : 'LOCK'}
                         </span>
