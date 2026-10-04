@@ -282,7 +282,7 @@ export default function MockTrackerView({ state, updateMockRow }) {
         <div className="cockpit-card mission-spotlight">
           <div className="card-top-tag">
             <span className="live-ping-dot" />
-            <span>ACTIVE FLIGHT STATUS</span>
+            <span>UPCOMING MOCK</span>
           </div>
 
           <div className="spotlight-title-row">
@@ -290,7 +290,7 @@ export default function MockTrackerView({ state, updateMockRow }) {
             <div className="spotlight-text-block">
               <h2 className="spotlight-title">{nextMock.title || `Mock Test ${nextMock.id}`}</h2>
               <span className="spotlight-subtitle">
-                {nextMock.status === 'Scheduled' ? `Scheduled for ${nextMock.date}` : 'Awaiting flight simulation'}
+                {nextMock.status === 'Scheduled' ? `Scheduled for ${nextMock.date}` : 'Awaiting attempt'}
               </span>
             </div>
           </div>
@@ -310,10 +310,10 @@ export default function MockTrackerView({ state, updateMockRow }) {
           </div>
         </div>
 
-        {/* Pillar 2: Telemetry Readout & Percentile Tier Stepper */}
+        {/* Pillar 2: Performance Summary & Percentile Tier Stepper */}
         <div className="cockpit-card telemetry-readout">
           <div className="card-top-tag">
-            <span>PERFORMANCE TELEMETRY</span>
+            <span>PERFORMANCE SUMMARY</span>
           </div>
 
           <div className="readout-hero-metric">
@@ -347,10 +347,10 @@ export default function MockTrackerView({ state, updateMockRow }) {
           </div>
         </div>
 
-        {/* Pillar 3: Cadence Streak & Sectional Balance */}
+        {/* Pillar 3: Streak & Sectional Balance */}
         <div className="cockpit-card cadence-balance">
           <div className="card-top-tag">
-            <span>CADENCE & SECTIONAL RADAR</span>
+            <span>SECTIONAL SUMMARY</span>
           </div>
 
           <div className="streak-hero-block">
@@ -428,7 +428,7 @@ export default function MockTrackerView({ state, updateMockRow }) {
 
         <div className="toolbar-legend">
           <span className="legend-chip"><span className="dot taken" /> Evaluated</span>
-          <span className="legend-chip"><span className="dot next" /> Next Mission</span>
+          <span className="legend-chip"><span className="dot next" /> Next Up</span>
           <span className="legend-chip"><span className="dot pending" /> Pending</span>
         </div>
       </div>
@@ -508,11 +508,11 @@ export default function MockTrackerView({ state, updateMockRow }) {
           </div>
         </div>
 
-        {/* RIGHT: SPACIOUS MISSION INSPECTOR PANEL */}
+        {/* RIGHT: MOCK DETAILS PANEL */}
         <div className="mock-inspector-panel">
           <div className="inspector-head">
             <div className="inspector-badge-row">
-              <span className="inspector-badge-lbl">MISSION INSPECTOR</span>
+              <span className="inspector-badge-lbl">MOCK DETAILS</span>
               <span className="inspector-id-code">MOCK #{selectedMock.id < 10 ? `0${selectedMock.id}` : selectedMock.id}</span>
             </div>
             <button
@@ -616,9 +616,9 @@ export default function MockTrackerView({ state, updateMockRow }) {
                 <div className="pending-icon-circle">
                   <Icons.Award size={26} />
                 </div>
-                <h4 className="pending-title">Exam Flight Not Attempted</h4>
+                <h4 className="pending-title">Mock Not Attempted</h4>
                 <p className="pending-desc">
-                  Take this 2-hour full-length CAT exam to unlock precision sectional telemetry, velocity delta, and projected percentile bracket.
+                  Complete this 2-hour full-length CAT exam to evaluate sectional scores, percentile projections, and mistake analysis.
                 </p>
                 <button
                   type="button"

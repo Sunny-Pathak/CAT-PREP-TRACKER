@@ -34,9 +34,7 @@ export default function BacklogRecoveryView({
   const {
     hasBacklog,
     totalDeficitDrills,
-    totalDeficitHours,
     backlogClearancePct,
-    backlogWeeks,
     primaryBottleneck,
     isExtendedWeekActive
   } = backlogData;
@@ -98,7 +96,7 @@ export default function BacklogRecoveryView({
 
     const weekTitle = planItem.week || `${bottleneckMonth}: ${bottleneckWeek}`;
     onUpdateWeekPlan(weekTitle, { completedSubtopics: updatedSubtopics });
-    showToast(isDone ? `Unchecked: ${subtopic}` : `Mastered concept: ${subtopic} (+50 EXP)`);
+    showToast(isDone ? `Unchecked: ${subtopic}` : `Completed concept: ${subtopic}`);
   };
 
   // Handle applying a recovery strategy
@@ -113,7 +111,7 @@ export default function BacklogRecoveryView({
       const optionsList = Object.values(recoveryOpts);
       const chosen = optionsList.find(o => o?.id === strategyId) || recoveryOpts[strategyId] || { id: strategyId };
       onApplyPlan(strategyId, chosen, bottleneckWeekData);
-      showToast(`Activated ${chosen.title || strategyId.replace(/_/g, ' ').toUpperCase()} recovery mode`);
+      showToast(`Activated ${chosen.title || strategyId.replace(/_/g, ' ').toUpperCase()}`);
     }
   };
 
@@ -130,37 +128,35 @@ export default function BacklogRecoveryView({
   const planItem = (state?.studyPlan || [])[bottleneckGlobalIdx - 1] || {};
   const completedSubtopics = planItem.completedSubtopics || [];
 
-  // When there are no backlogs, render a triumphant all-clear hero card
+  // When there are no backlogs, render a clean on-schedule screen
   if (!hasBacklog) {
     const activeM = propActiveMonth || 'Month 1';
     const activeW = propActiveWeek || 'Week 1';
     return (
-      <div className="backlog-recovery-view-root fade-in">
-        <div className="recovery-all-clear-card">
-          <div className="recovery-all-clear-icon-bubble">
-            <Icons.CheckCircle size={44} />
+      <div className="backlog-recovery-view-root purity-ledger fade-in">
+        <div className="ledger-all-clear-stage">
+          <div className="ledger-monumental-symbol">
+            <Icons.CheckCircle size={44} strokeWidth={1.5} />
           </div>
-          <h2 className="recovery-all-clear-title">
+          <h2 className="ledger-all-clear-title">
             All Clear — Zero Active Backlogs
           </h2>
-          <p className="recovery-all-clear-desc">
-            Your preparation is 100% on schedule with no overdue modules. You are currently mastering <strong style={{ color: '#38bdf8' }}>{activeM} • {activeW}</strong> at peak pace.
+          <p className="ledger-all-clear-desc">
+            Your preparation is on schedule with no overdue modules. Currently progressing through <span className="ledger-accent-text">{activeM} · {activeW}</span>.
           </p>
-          <div className="recovery-all-clear-actions">
+          <div className="ledger-hero-actions">
             <button
               type="button"
-              className="recovery-hero-btn primary"
+              className="ledger-action-btn primary"
               onClick={() => onNavigateToDaily && onNavigateToDaily(activeM, activeW, 'Monday')}
             >
-              <Icons.Drills size={15} />
               <span>Start {activeW} Daily Drills &rarr;</span>
             </button>
             <button
               type="button"
-              className="recovery-hero-btn ghost"
+              className="ledger-action-btn ghost"
               onClick={onNavigateToTimeline}
             >
-              <Icons.Timeline size={15} />
               <span>View Full Syllabus Roadmap</span>
             </button>
           </div>
@@ -169,21 +165,18 @@ export default function BacklogRecoveryView({
     );
   }
 
-  // Calculate subject progress percentages for mini bars
+  // Calculate subject progress percentages
   const quantTarget = bottleneckWeekData?.targetQuant || 125;
   const quantSolved = bottleneckWeekData?.quantSolved || 0;
-  const quantPct = Math.min(100, Math.round((quantSolved / quantTarget) * 100));
 
   const lrdiTarget = bottleneckWeekData?.targetLrdi || 25;
   const lrdiSolved = bottleneckWeekData?.lrdiSolved || 0;
-  const lrdiPct = Math.min(100, Math.round((lrdiSolved / lrdiTarget) * 100));
 
   const varcTarget = bottleneckWeekData?.targetVarc || 25;
   const varcSolved = bottleneckWeekData?.varcSolved || 0;
-  const varcPct = Math.min(100, Math.round((varcSolved / varcTarget) * 100));
 
   return (
-    <div className="backlog-recovery-view-root fade-in">
+    <div className="backlog-recovery-view-root purity-ledger fade-in">
       {/* Toast Alert */}
       {notification && (
         <div className="recovery-toast-alert">
@@ -192,481 +185,332 @@ export default function BacklogRecoveryView({
         </div>
       )}
 
-      {/* 1. Tactical Command Hero Banner */}
-      <div className="recovery-command-hero">
-        <div className="recovery-hero-left">
-          <div className="recovery-protocol-tag">
-            <div className="recovery-protocol-pill">
-              <span className="recovery-pulse-ping" />
-              <span>ACTIVE BACKLOG RECOVERY COCKPIT</span>
+      {/* 1. Clean Minimal Hero Section */}
+      <section className="ledger-hero-stage">
+        <div className="ledger-hero-text">
+          <div className="ledger-eyebrow">
+            <span>FOUNDATION CATCH-UP</span>
+            <span className="ledger-dim-sep">·</span>
+            <span>{bottleneckMonth.toUpperCase()} · {bottleneckWeek.toUpperCase()}</span>
+          </div>
+          <h1 className="ledger-monumental-headline">Backlog Recovery</h1>
+          <p className="ledger-narrative-lead">
+            {totalDeficitDrills} drills remaining to catch up to your active schedule.
+          </p>
+        </div>
+
+        {/* Hero Actions */}
+        <div className="ledger-hero-actions">
+          <button
+            type="button"
+            className="ledger-action-btn primary"
+            onClick={() => onNavigateToDaily && onNavigateToDaily(bottleneckMonth, bottleneckWeek, 'Monday')}
+            title="Launch daily drills for this backlog week"
+          >
+            <span>Launch {bottleneckWeek} Drills &rarr;</span>
+          </button>
+          <button
+            type="button"
+            className="ledger-action-btn ghost"
+            onClick={() => handleSwitchStrategy('mark_complete')}
+            title="Mark backlog cleared offline"
+          >
+            <span>Mark Completed Offline</span>
+          </button>
+        </div>
+      </section>
+
+      {/* 2. Prerequisite Clearance Meter */}
+      <section className="ledger-clearance-section">
+        <div className="ledger-clearance-header">
+          <span className="ledger-clearance-label">Recovery Progress</span>
+          <span className="ledger-clearance-metric">
+            {backlogClearancePct}% Complete ({totalDeficitDrills} Remaining)
+          </span>
+        </div>
+        <div className="ledger-clearance-hairline-track">
+          <div 
+            className="ledger-clearance-hairline-fill" 
+            style={{ width: `${Math.max(2, backlogClearancePct)}%` }} 
+          />
+        </div>
+        <div className="ledger-clearance-telemetry-row">
+          <span>QA: <strong className="text-white">-{bottleneckWeekData?.deficitQuant || 0} Qs</strong></span>
+          <span className="ledger-dim-sep">·</span>
+          <span>DILR: <strong className="text-white">-{bottleneckWeekData?.deficitLrdi || 0} Sets</strong></span>
+          <span className="ledger-dim-sep">·</span>
+          <span>VARC: <strong className="text-white">-{bottleneckWeekData?.deficitVarc || 0} RCs</strong></span>
+          <span className="ledger-dim-sep">·</span>
+          <span>Concepts: <strong className="text-white">{completedSubtopics.length}/{subtopicItems.length || 12}</strong></span>
+        </div>
+      </section>
+
+      {/* 3. Core Drills */}
+      <section className="ledger-section priority-focus-section">
+        <div className="ledger-section-header">
+          <div>
+            <h2 className="ledger-section-title">{bottleneckMonth} · {bottleneckWeek} Drills</h2>
+          </div>
+          <button
+            type="button"
+            className="ledger-link-action"
+            onClick={() => onNavigateToDaily && onNavigateToDaily(bottleneckMonth, bottleneckWeek, 'Monday')}
+          >
+            <span>Jump to Daily Tracker &rarr;</span>
+          </button>
+        </div>
+
+        {/* 3 Clean Ledger Rows */}
+        <div className="ledger-drill-rows">
+          {/* Quant Row */}
+          <div className="ledger-drill-row">
+            <div className="ledger-drill-id">01</div>
+            <div className="ledger-drill-info">
+              <div className="ledger-drill-name">
+                <Icons.Calculator size={15} />
+                <span>Quantitative Aptitude</span>
+              </div>
+              <div className="ledger-drill-meta">
+                Target: {quantTarget} Qs · Solved: {quantSolved}
+              </div>
             </div>
-            <span className="recovery-paused-chip">
-              PAUSED AT WEEK {currentGlobalWeek}
+            <div className="ledger-drill-deficit">
+              <span>-{bottleneckWeekData?.deficitQuant || 18} Qs</span>
+            </div>
+            <div className="ledger-drill-steppers">
+              <button
+                type="button"
+                className="ledger-step-btn"
+                onClick={() => handleIncrementDrill('quant', -5)}
+                aria-label="-5 Qs"
+              >
+                -5
+              </button>
+              <button
+                type="button"
+                className="ledger-step-btn"
+                onClick={() => handleIncrementDrill('quant', -1)}
+                aria-label="-1 Q"
+              >
+                -1
+              </button>
+              <button
+                type="button"
+                className="ledger-step-btn"
+                onClick={() => handleIncrementDrill('quant', 1)}
+                aria-label="+1 Q"
+              >
+                +1
+              </button>
+              <button
+                type="button"
+                className="ledger-step-btn"
+                onClick={() => handleIncrementDrill('quant', 5)}
+                aria-label="+5 Qs"
+              >
+                +5 Qs
+              </button>
+              <button
+                type="button"
+                className="ledger-step-btn"
+                onClick={() => handleIncrementDrill('quant', 10)}
+                aria-label="+10 Qs"
+              >
+                +10
+              </button>
+            </div>
+          </div>
+
+          {/* DILR Row */}
+          <div className="ledger-drill-row">
+            <div className="ledger-drill-id">02</div>
+            <div className="ledger-drill-info">
+              <div className="ledger-drill-name">
+                <Icons.Puzzles size={15} />
+                <span>DILR Selection Engine</span>
+              </div>
+              <div className="ledger-drill-meta">
+                Target: {lrdiTarget} Sets · Solved: {lrdiSolved}
+              </div>
+            </div>
+            <div className="ledger-drill-deficit">
+              <span>-{bottleneckWeekData?.deficitLrdi || 4} Sets</span>
+            </div>
+            <div className="ledger-drill-steppers">
+              <button
+                type="button"
+                className="ledger-step-btn"
+                onClick={() => handleIncrementDrill('lrdi', -1)}
+                aria-label="-1 Set"
+              >
+                -1
+              </button>
+              <button
+                type="button"
+                className="ledger-step-btn"
+                onClick={() => handleIncrementDrill('lrdi', 1)}
+                aria-label="+1 Set"
+              >
+                +1 Set
+              </button>
+              <button
+                type="button"
+                className="ledger-step-btn"
+                onClick={() => handleIncrementDrill('lrdi', 2)}
+                aria-label="+2 Sets"
+              >
+                +2 Sets
+              </button>
+            </div>
+          </div>
+
+          {/* VARC Row */}
+          <div className="ledger-drill-row">
+            <div className="ledger-drill-id">03</div>
+            <div className="ledger-drill-info">
+              <div className="ledger-drill-name">
+                <Icons.BookOpen size={15} />
+                <span>Dialectical VARC</span>
+              </div>
+              <div className="ledger-drill-meta">
+                Target: {varcTarget} RCs · Solved: {varcSolved}
+              </div>
+            </div>
+            <div className="ledger-drill-deficit">
+              <span>-{bottleneckWeekData?.deficitVarc || 4} RCs</span>
+            </div>
+            <div className="ledger-drill-steppers">
+              <button
+                type="button"
+                className="ledger-step-btn"
+                onClick={() => handleIncrementDrill('varc', -1)}
+                aria-label="-1 RC"
+              >
+                -1
+              </button>
+              <button
+                type="button"
+                className="ledger-step-btn"
+                onClick={() => handleIncrementDrill('varc', 1)}
+                aria-label="+1 RC"
+              >
+                +1 RC
+              </button>
+              <button
+                type="button"
+                className="ledger-step-btn"
+                onClick={() => handleIncrementDrill('varc', 2)}
+                aria-label="+2 RCs"
+              >
+                +2 RCs
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Lower Split: Foundational Syllabus Index & Strategy */}
+      <section className="ledger-lower-grid">
+        {/* Left: Prerequisite Concepts (Clean document list) */}
+        <div className="ledger-column">
+          <div className="ledger-column-head">
+            <div>
+              <h3 className="ledger-column-title">Concept Checklist</h3>
+              <p className="ledger-column-sub">{bottleneckWeek} topics:</p>
+            </div>
+            <span className="ledger-count-tag">
+              {completedSubtopics.length}/{subtopicItems.length || 12} Done
             </span>
           </div>
 
-          <h1 className="recovery-command-headline">
-            CURRICULUM <span className="recovery-headline-accent">Recovery Command.</span>
-          </h1>
+          <div className="ledger-checklist" data-lenis-prevent="true">
+            {subtopicItems.map((subtopic, sIdx) => {
+              const isDone = completedSubtopics.includes(subtopic);
+              return (
+                <button
+                  key={subtopic || sIdx}
+                  type="button"
+                  className={`ledger-check-item ${isDone ? 'done' : ''}`}
+                  onClick={() => handleToggleSubtopic(subtopic)}
+                >
+                  <div className={`ledger-checkbox ${isDone ? 'checked' : ''}`}>
+                    {isDone && <Icons.Check size={10} strokeWidth={2.5} />}
+                  </div>
+                  <span className="ledger-check-text">{subtopic}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-          <p className="recovery-command-manifesto">
-            To protect your foundational retention, curriculum pacing is temporarily frozen. Master your prerequisite <strong style={{ color: '#fbbf24' }}>{bottleneckMonth} • {bottleneckWeek}</strong> bottleneck ({totalDeficitDrills} deficit questions) below. Once conquered, regular syllabus modules unlock automatically.
-          </p>
+        {/* Right: Recovery Schedule */}
+        <div className="ledger-column">
+          <div className="ledger-column-head">
+            <div>
+              <h3 className="ledger-column-title">Recovery Pacing</h3>
+              <p className="ledger-column-sub">Choose daily or weekend distribution:</p>
+            </div>
+          </div>
 
-          <div className="recovery-hero-actions">
+          <div className="ledger-strategy-list">
             <button
               type="button"
-              className="recovery-hero-btn primary"
-              onClick={() => onNavigateToDaily && onNavigateToDaily(bottleneckMonth, bottleneckWeek, 'Monday')}
-              title="Launch daily drills for this backlog week"
-            >
-              <Icons.ArrowRight size={14} />
-              <span>Launch {bottleneckWeek} Drills</span>
-            </button>
-            <button
-              type="button"
-              className="recovery-hero-btn ghost"
-              onClick={onNavigateToTimer}
-              title="Start a focused study session"
-            >
-              <Icons.Timer size={14} />
-              <span>Start Focus Timer</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tactical Clearance HUD */}
-        <div className="recovery-hud-card">
-          <div className="recovery-hud-top-row">
-            <span className="recovery-hud-label">Prerequisite Mastery Clearance</span>
-            <span className="recovery-hud-score">{backlogClearancePct}% Cleared ({totalDeficitDrills} Deficit Questions Remaining)</span>
-          </div>
-
-          <div className="recovery-hud-track">
-            <div
-              className="recovery-hud-fill"
-              style={{ width: `${Math.max(5, backlogClearancePct)}%` }}
-            />
-          </div>
-
-          <div className="recovery-hud-telemetry-grid">
-            <div className="recovery-hud-pill quant">
-              <span>QA</span>
-              <strong>-{bottleneckWeekData?.deficitQuant || 0} Qs</strong>
-            </div>
-            <div className="recovery-hud-pill lrdi">
-              <span>DILR</span>
-              <strong>-{bottleneckWeekData?.deficitLrdi || 0} Sets</strong>
-            </div>
-            <div className="recovery-hud-pill varc">
-              <span>VARC</span>
-              <strong>-{bottleneckWeekData?.deficitVarc || 0} RCs</strong>
-            </div>
-            <div className="recovery-hud-pill theory">
-              <span>Theory</span>
-              <strong>{completedSubtopics.length}/{subtopicItems.length || 12}</strong>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Priority 1 Bottleneck Hub & Interactive Stations */}
-      <div className="recovery-section-card priority-focus">
-        <div className="recovery-section-header">
-          <div className="recovery-section-header-left">
-            <div className="recovery-section-badge warning">
-              <Icons.Target size={22} />
-            </div>
-            <div>
-              <div className="recovery-priority-tag">
-                PRIORITY 1: COMPLETE THESE TOPICS FIRST
-              </div>
-              <h2 className="recovery-section-title">
-                {bottleneckMonth} • {bottleneckWeek} Foundation Topics
-              </h2>
-              <p className="recovery-section-subtitle">
-                Prerequisites for upcoming modules • Log drills directly below
-              </p>
-            </div>
-          </div>
-
-          <div className="recovery-section-actions">
-            <button
-              type="button"
-              className="recovery-hero-btn ghost clean-pill-btn"
-              onClick={() => onNavigateToDaily && onNavigateToDaily(bottleneckMonth, bottleneckWeek, 'Monday')}
-              title="Jump directly to this week in the daily tracker"
-            >
-              <Icons.ArrowRight size={13} />
-              <span>Jump to Daily Tracker</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 3 Subject Stations Grid */}
-        <div className="recovery-stations-grid">
-          {/* Quant Station */}
-          <div className="recovery-station-card quant">
-            <div className="recovery-station-header">
-              <div className="station-title-wrap">
-                <div className="station-icon-bullet">
-                  <Icons.Calculator size={13} />
-                </div>
-                <span className="station-name">Quant Aptitude</span>
-              </div>
-              <span className="station-deficit">-{bottleneckWeekData?.deficitQuant || 18} Qs</span>
-            </div>
-
-            <div className="recovery-station-body">
-              <div className="station-stat-row">
-                <span>Target: <strong>{quantTarget} Qs</strong></span>
-                <span>Solved: <strong>{quantSolved}</strong></span>
-              </div>
-
-              <div className="station-mini-track">
-                <div className="station-mini-fill" style={{ width: `${quantPct}%` }} />
-              </div>
-
-              <div className="station-stepper-row">
-                <button
-                  type="button"
-                  className="station-stepper-btn dec"
-                  onClick={() => handleIncrementDrill('quant', -5)}
-                  title="Decrease 5 questions"
-                  aria-label="-5 Qs"
-                >
-                  -5
-                </button>
-                <button
-                  type="button"
-                  className="station-stepper-btn dec"
-                  onClick={() => handleIncrementDrill('quant', -1)}
-                  title="Decrease 1 question"
-                  aria-label="-1 Q"
-                >
-                  -1
-                </button>
-                <button
-                  type="button"
-                  className="station-stepper-btn inc primary-pill"
-                  onClick={() => handleIncrementDrill('quant', 1)}
-                  title="Solve 1 question"
-                  aria-label="+1 Q"
-                >
-                  +1
-                </button>
-                <button
-                  type="button"
-                  className="station-stepper-btn inc highlight"
-                  onClick={() => handleIncrementDrill('quant', 5)}
-                  title="Solve 5 questions"
-                  aria-label="+5 Qs"
-                >
-                  +5
-                </button>
-                <button
-                  type="button"
-                  className="station-stepper-btn inc boost"
-                  onClick={() => handleIncrementDrill('quant', 10)}
-                  title="Solve 10 questions"
-                  aria-label="+10 Qs"
-                >
-                  +10
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* DILR Station */}
-          <div className="recovery-station-card lrdi">
-            <div className="recovery-station-header">
-              <div className="station-title-wrap">
-                <div className="station-icon-bullet">
-                  <Icons.Puzzles size={13} />
-                </div>
-                <span className="station-name">DILR Puzzles</span>
-              </div>
-              <span className="station-deficit">-{bottleneckWeekData?.deficitLrdi || 4} Sets</span>
-            </div>
-
-            <div className="recovery-station-body">
-              <div className="station-stat-row">
-                <span>Target: <strong>{lrdiTarget} Sets</strong></span>
-                <span>Solved: <strong>{lrdiSolved}</strong></span>
-              </div>
-
-              <div className="station-mini-track">
-                <div className="station-mini-fill" style={{ width: `${lrdiPct}%` }} />
-              </div>
-
-              <div className="station-stepper-row">
-                <button
-                  type="button"
-                  className="station-stepper-btn dec"
-                  onClick={() => handleIncrementDrill('lrdi', -1)}
-                  title="Decrease 1 set"
-                  aria-label="-1 Set"
-                >
-                  -1
-                </button>
-                <button
-                  type="button"
-                  className="station-stepper-btn inc primary-pill"
-                  onClick={() => handleIncrementDrill('lrdi', 1)}
-                  title="Solve 1 set"
-                  aria-label="+1 Set"
-                >
-                  +1 Set
-                </button>
-                <button
-                  type="button"
-                  className="station-stepper-btn inc boost"
-                  onClick={() => handleIncrementDrill('lrdi', 2)}
-                  title="Solve 2 sets"
-                  aria-label="+2 Sets"
-                >
-                  +2 Sets
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* VARC Station */}
-          <div className="recovery-station-card varc">
-            <div className="recovery-station-header">
-              <div className="station-title-wrap">
-                <div className="station-icon-bullet">
-                  <Icons.BookOpen size={13} />
-                </div>
-                <span className="station-name">VARC Reading</span>
-              </div>
-              <span className="station-deficit">-{bottleneckWeekData?.deficitVarc || 4} RCs</span>
-            </div>
-
-            <div className="recovery-station-body">
-              <div className="station-stat-row">
-                <span>Target: <strong>{varcTarget} RCs</strong></span>
-                <span>Solved: <strong>{varcSolved}</strong></span>
-              </div>
-
-              <div className="station-mini-track">
-                <div className="station-mini-fill" style={{ width: `${varcPct}%` }} />
-              </div>
-
-              <div className="station-stepper-row">
-                <button
-                  type="button"
-                  className="station-stepper-btn dec"
-                  onClick={() => handleIncrementDrill('varc', -1)}
-                  title="Decrease 1 RC"
-                  aria-label="-1 RC"
-                >
-                  -1
-                </button>
-                <button
-                  type="button"
-                  className="station-stepper-btn inc primary-pill"
-                  onClick={() => handleIncrementDrill('varc', 1)}
-                  title="Solve 1 RC"
-                  aria-label="+1 RC"
-                >
-                  +1 RC
-                </button>
-                <button
-                  type="button"
-                  className="station-stepper-btn inc boost"
-                  onClick={() => handleIncrementDrill('varc', 2)}
-                  title="Solve 2 RCs"
-                  aria-label="+2 RCs"
-                >
-                  +2 RCs
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Lower 2-Column Matrix */}
-      <div className="recovery-lower-grid">
-        {/* Left: Concept Mastery Checklist + Next Radar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Concept Checklist */}
-          <div className="recovery-checklist-card">
-            <div className="recovery-checklist-header">
-              <div className="recovery-checklist-title-wrap">
-                <Icons.CheckCircle size={18} color="#10b981" />
-                <h4>Prerequisite Concept Mastery Checklist</h4>
-              </div>
-              <span className="recovery-checklist-count">
-                {completedSubtopics.length} of {subtopicItems.length || 12} Concepts Mastered
-              </span>
-            </div>
-
-            <p className="recovery-checklist-note">
-              Tick each foundational concept as you review the core lecture or notes:
-            </p>
-
-            <div className="recovery-subtopics-list">
-              {subtopicItems.map((subtopic, sIdx) => {
-                const isDone = completedSubtopics.includes(subtopic);
-                return (
-                  <button
-                    key={subtopic || sIdx}
-                    type="button"
-                    className={`recovery-subtopic-item ${isDone ? 'done' : ''}`}
-                    onClick={() => handleToggleSubtopic(subtopic)}
-                  >
-                    <div className={`recovery-subtopic-check ${isDone ? 'checked' : ''}`}>
-                      {isDone ? <Icons.Check size={12} strokeWidth={2.5} /> : null}
-                    </div>
-                    <span className="recovery-subtopic-text">{subtopic}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Locked Next Step Radar */}
-          <div className="recovery-locked-card">
-            <div className="recovery-locked-icon-wrap">
-              <Icons.Lock size={18} />
-            </div>
-            <div>
-              <span className="recovery-locked-tag">NEXT IN LINE (PAUSED)</span>
-              <h4 className="recovery-locked-title">
-                {propActiveMonth || 'Month 1'} • {propActiveWeek || 'Current Week'} Regular Syllabus
-              </h4>
-              <p className="recovery-locked-desc">
-                Upcoming roadmap topics will automatically reactivate as soon as your {bottleneckWeek} prerequisite quota is cleared.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Recovery Mode Selector Cockpit */}
-        <div className="recovery-strategy-card">
-          <div className="recovery-strategy-header">
-            <div className="recovery-section-badge strategy">
-              <Icons.Zap size={20} />
-            </div>
-            <div>
-              <h3 className="recovery-section-title" style={{ fontSize: '16px' }}>Recovery Mode</h3>
-              <p className="recovery-section-subtitle">Choose your catch-up protocol</p>
-            </div>
-          </div>
-
-          <div className="recovery-strategies-list">
-            {/* Strategy 1: Catch-Up Blitz */}
-            <div
-              role="button"
-              tabIndex={0}
-              className={`recovery-strategy-option ${activeStrategy === 'catch_up_blitz' ? 'selected' : ''}`}
+              className={`ledger-strategy-card ${activeStrategy === 'catch_up_blitz' ? 'selected' : ''}`}
               onClick={() => handleSwitchStrategy('catch_up_blitz')}
             >
-              <div className="strategy-option-radio">
-                <span className="radio-dot" />
+              <div className="ledger-strategy-top">
+                <span className="ledger-strategy-name">Daily Spread (+18 QA/day)</span>
+                <span className="ledger-active-badge">ACTIVE</span>
               </div>
-              <div className="strategy-option-info">
-                <div className="strategy-top-row">
-                  <span className="strategy-title">7-Day Catch-Up Micro-Blitz</span>
-                  <div className="strategy-badges-cluster">
-                    {activeStrategy === 'catch_up_blitz' ? (
-                      <span className="strategy-chip active">ACTIVE</span>
-                    ) : (
-                      <span className="strategy-chip recommended">RECOMMENDED</span>
-                    )}
-                  </div>
-                </div>
-                <p className="strategy-desc">
-                  Distributes +18 QA, +4 DILR across your upcoming 7 days to eliminate this backlog without slowing roadmap.
-                </p>
-              </div>
-            </div>
+              <p className="ledger-strategy-desc">
+                Distributes remaining drills across 7 upcoming days without altering roadmap.
+              </p>
+            </button>
 
-            {/* Strategy 2: Weekend Sprint */}
-            <div
-              role="button"
-              tabIndex={0}
-              className={`recovery-strategy-option ${activeStrategy === 'weekend_sprint' ? 'selected' : ''}`}
-              onClick={() => handleSwitchStrategy('weekend_sprint')}
-            >
-              <div className="strategy-option-radio">
-                <span className="radio-dot" />
-              </div>
-              <div className="strategy-option-info">
-                <div className="strategy-top-row">
-                  <span className="strategy-title">Weekend Recovery Sprint</span>
-                  {activeStrategy === 'weekend_sprint' && (
-                    <span className="strategy-chip active">ACTIVE</span>
-                  )}
-                </div>
-                <p className="strategy-desc">
-                  Protects weekdays. Loads Saturday and Sunday with concentrated 4-hour deep practice blocks.
-                </p>
-              </div>
-            </div>
-
-            {/* Strategy 3: Schedule Shift */}
-            <div
-              role="button"
-              tabIndex={0}
-              className={`recovery-strategy-option ${activeStrategy === 'schedule_shift' ? 'selected' : ''}`}
-              onClick={() => handleSwitchStrategy('schedule_shift')}
-            >
-              <div className="strategy-option-radio">
-                <span className="radio-dot" />
-              </div>
-              <div className="strategy-option-info">
-                <div className="strategy-top-row">
-                  <span className="strategy-title">Extend Schedule (+1 Buffer Week)</span>
-                  {activeStrategy === 'schedule_shift' && (
-                    <span className="strategy-chip active">ACTIVE</span>
-                  )}
-                </div>
-                <p className="strategy-desc">
-                  Freezes progression and grants 7 dedicated days to clear this backlog before advancing.
-                </p>
-              </div>
-            </div>
-
-            {/* Strategy 4: High-Yield Pareto Triage */}
-            <div
-              role="button"
-              tabIndex={0}
-              className={`recovery-strategy-option ${activeStrategy === 'pareto_triage' ? 'selected' : ''}`}
-              onClick={() => handleSwitchStrategy('pareto_triage')}
-            >
-              <div className="strategy-option-radio">
-                <span className="radio-dot" />
-              </div>
-              <div className="strategy-option-info">
-                <div className="strategy-top-row">
-                  <span className="strategy-title">Pareto 80/20 High-Yield Triage</span>
-                  {activeStrategy === 'pareto_triage' && (
-                    <span className="strategy-chip active">ACTIVE</span>
-                  )}
-                </div>
-                <p className="strategy-desc">
-                  Compresses backlog by 50%. Focuses exclusively on top exam-weighted questions.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Offline Clearance Action */}
-          <div className="recovery-override-box">
             <button
               type="button"
-              className="recovery-override-btn"
-              onClick={() => handleSwitchStrategy('mark_complete')}
+              className={`ledger-strategy-card ${activeStrategy === 'weekend_sprint' ? 'selected' : ''}`}
+              onClick={() => handleSwitchStrategy('weekend_sprint')}
             >
-              <Icons.CheckCircle size={15} />
-              <span>I already completed this offline (Clear Deficit)</span>
+              <div className="ledger-strategy-top">
+                <span className="ledger-strategy-name">Weekend Focus</span>
+                {activeStrategy === 'weekend_sprint' && <span className="ledger-active-badge">ACTIVE</span>}
+              </div>
+              <p className="ledger-strategy-desc">
+                Allocates 4-hour practice blocks on Saturday and Sunday.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              className={`ledger-strategy-card ${activeStrategy === 'schedule_shift' ? 'selected' : ''}`}
+              onClick={() => handleSwitchStrategy('schedule_shift')}
+            >
+              <div className="ledger-strategy-top">
+                <span className="ledger-strategy-name">Add 1 Buffer Week</span>
+                {activeStrategy === 'schedule_shift' && <span className="ledger-active-badge">ACTIVE</span>}
+              </div>
+              <p className="ledger-strategy-desc">
+                Pauses regular syllabus progression for 7 days to clear this backlog.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              className={`ledger-strategy-card ${activeStrategy === 'pareto_triage' ? 'selected' : ''}`}
+              onClick={() => handleSwitchStrategy('pareto_triage')}
+            >
+              <div className="ledger-strategy-top">
+                <span className="ledger-strategy-name">High-Yield Questions Only</span>
+                {activeStrategy === 'pareto_triage' && <span className="ledger-active-badge">ACTIVE</span>}
+              </div>
+              <p className="ledger-strategy-desc">
+                Prioritizes high-weightage CAT questions first.
+              </p>
             </button>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

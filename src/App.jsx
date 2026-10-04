@@ -2608,17 +2608,12 @@ export default function App() {
             <DockItem 
               active={activeTab === 'recovery'} 
               onClick={() => setActiveTab('recovery')} 
-              ariaLabel="Backlog Recovery Cockpit"
+              ariaLabel="Backlog Recovery"
               tooltipTitle="Backlog Recovery"
-              tooltipTag={`${overallBacklog.totalDeficitDrills} DEFICIT Qs`}
-              className="dock-item-backlog-pulse"
+              tooltipTag={`${overallBacklog.totalDeficitDrills} PENDING Qs`}
+              className="dock-item-backlog"
             >
-              <div className="dock-backlog-icon-wrap">
-                <Icons.Zap size={20} color={activeTab === 'recovery' ? '#f59e0b' : '#fbbf24'} />
-                <span className="dock-backlog-deficit-badge" title={`${overallBacklog.totalDeficitDrills} backlog questions pending`}>
-                  {overallBacklog.totalDeficitDrills > 99 ? '99+' : overallBacklog.totalDeficitDrills}
-                </span>
-              </div>
+              <Icons.Zap size={20} color={activeTab === 'recovery' ? '#f59e0b' : '#94a3b8'} />
             </DockItem>
           )}
 
@@ -2627,21 +2622,9 @@ export default function App() {
             onClick={() => setActiveTab('daily')} 
             ariaLabel="Daily Drills"
             tooltipTitle="Daily Drills"
-            tooltipTag={todayObjectivesTelemetry.left === 0 ? "ALL CONQUERED" : `${todayObjectivesTelemetry.total} OBJS • ${todayObjectivesTelemetry.left} LEFT`}
+            tooltipTag={todayObjectivesTelemetry.left === 0 ? "ALL COMPLETED" : `${todayObjectivesTelemetry.total} OBJS • ${todayObjectivesTelemetry.left} LEFT`}
           >
-            <div className="dock-drills-icon-wrap">
-              <Icons.Drills />
-              {todayObjectivesTelemetry.left > 0 ? (
-                <span 
-                  className="dock-drills-left-badge" 
-                  title={`${todayObjectivesTelemetry.total} objectives: ${todayObjectivesTelemetry.left} left today`}
-                >
-                  {todayObjectivesTelemetry.left}
-                </span>
-              ) : (
-                <span className="dock-drills-done-dot" title="All daily quotas conquered!" />
-              )}
-            </div>
+            <Icons.Drills />
           </DockItem>
 
           <DockItem 
@@ -2732,39 +2715,9 @@ export default function App() {
               <div className="brand-square-glyph" />
               <span className="brand-logo-text">CATALYZE</span>
             </button>
-
-            <div className="cyber-header-divider desktop-only" aria-hidden="true" />
-
-            <div className="cyber-protocol-badge desktop-only">
-              <span className="cyber-pulse-dot" />
-              <span className="cyber-page-name" key={activeTab}>
-                {activeTab === 'dashboard' ? 'DASHBOARD' : activeTab === 'terminal' ? 'CAT TERMINAL' : activeTab === 'recovery' ? 'BACKLOG RECOVERY' : activeTab === 'lounge' ? 'LEADERBOARD (SOON)' : activeTab === 'timeline' ? 'STUDY PLAN' : activeTab === 'timer' ? 'FOCUS SANCTUARY' : activeTab === 'daily' ? 'DAILY DRILLS' : activeTab === 'mocks' ? 'MOCK TESTS' : activeTab === 'achievements' ? 'ACHIEVEMENTS' : activeTab === 'errors' ? 'ERROR LOG' : activeTab === 'profile' ? 'PROFILE' : activeTab === 'settings' ? 'SETTINGS' : 'DASHBOARD'}
-              </span>
-            </div>
           </div>
 
           <div className="header-stats cyber-bento-cluster">
-            {/* Optional Top Bar Quick Dual Theme Flip */}
-            {showTopBarThemeSwitch && (
-              <GooeyThemeSwitch
-                compact={true}
-                currentTheme={theme}
-                onSelectTheme={handleSelectTheme}
-                locked={true}
-              />
-            )}
-
-            {/* Release Notes & System Updates Pill */}
-            <button 
-              type="button" 
-              className="header-patch-notes-btn"
-              onClick={() => setIsPatchNotesOpen(true)}
-              title="Inspect What's New, Security Hardening & System Updates"
-            >
-              <span className="header-patch-pulse-dot" />
-              <span>v1.0.88</span>
-            </button>
-
             {/* Unique Animated Flame & Floating Embers Streak Pill */}
             <AnimatedStreakBadge streak={activeStreak} />
 
@@ -3011,7 +2964,7 @@ export default function App() {
         aria-label="Mobile Navigation"
         style={{ display: activeTab === 'terminal' ? 'none' : undefined }}
       >
-        <Dock direction="horizontal" magnification={1.25} distance={80} baseItemSize={44} className="mobile-dock-wrap">
+        <Dock direction="horizontal" magnification={1} distance={0} baseItemSize={40} className="mobile-dock-wrap">
           <DockItem 
             active={activeTab === 'dashboard'} 
             onClick={() => setActiveTab('dashboard')} 
@@ -3019,7 +2972,7 @@ export default function App() {
             tooltipTitle="Home"
             className="mobile-dock-btn"
           >
-            <Icons.Home size={22} />
+            <Icons.Home size={20} />
           </DockItem>
 
           <DockItem 
@@ -3029,7 +2982,7 @@ export default function App() {
             tooltipTitle="Drills"
             className="mobile-dock-btn"
           >
-            <Icons.Drills size={22} />
+            <Icons.Drills size={20} />
           </DockItem>
 
           {overallBacklog.hasBacklog && (
@@ -3040,7 +2993,7 @@ export default function App() {
               tooltipTitle="Recovery"
               className="mobile-dock-btn mobile-dock-backlog-btn"
             >
-              <Icons.Zap size={22} color={activeTab === 'recovery' ? '#f59e0b' : '#fbbf24'} />
+              <Icons.Zap size={20} color={activeTab === 'recovery' ? '#f59e0b' : '#fbbf24'} />
               <span className="mobile-dock-backlog-dot" />
             </DockItem>
           )}
@@ -3052,7 +3005,7 @@ export default function App() {
             tooltipTitle="Leaderboard (Soon)"
             className="mobile-dock-btn"
           >
-            <Icons.Trophy size={22} />
+            <Icons.Trophy size={20} />
           </DockItem>
 
           <DockItem 
@@ -3062,7 +3015,7 @@ export default function App() {
             tooltipTitle="Timer"
             className={`mobile-dock-btn ${(timerState?.isRunning || timerState?.isPaused) ? 'timer-is-active' : ''}`}
           >
-            <Icons.Timer size={22} />
+            <Icons.Timer size={20} />
             {(timerState?.isRunning || timerState?.isPaused) && <span className="nav-timer-live-pip"></span>}
           </DockItem>
 
@@ -3073,7 +3026,7 @@ export default function App() {
             tooltipTitle="Mocks"
             className="mobile-dock-btn"
           >
-            <Icons.Mocks size={22} />
+            <Icons.Mocks size={20} />
           </DockItem>
 
           <DockItem 
@@ -3083,7 +3036,7 @@ export default function App() {
             tooltipTitle="Menu"
             className="mobile-dock-btn"
           >
-            <Icons.Menu size={22} />
+            <Icons.Menu size={20} />
           </DockItem>
         </Dock>
       </nav>
@@ -3161,18 +3114,7 @@ export default function App() {
         </Suspense>
       )}
 
-      {/* Premium Theme VIP Code Redemption Modal */}
-      {isRedeemModalOpen && (
-        <Suspense fallback={null}>
-          <ThemeRedeemModal
-            isOpen={isRedeemModalOpen}
-            onClose={() => setIsRedeemModalOpen(false)}
-            preselectedThemeId={redeemPreselectTheme}
-            unlockedThemes={unlockedThemes}
-            onThemeUnlocked={handleThemeUnlocked}
-          />
-        </Suspense>
-      )}
+
 
 
 

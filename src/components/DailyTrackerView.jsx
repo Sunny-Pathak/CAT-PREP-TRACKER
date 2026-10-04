@@ -435,10 +435,10 @@ function DailyTrackerView({
         <div className="minimal-header-left">
           <div className="minimal-tag">
             <span className="minimal-ping" />
-            <span>DAILY QUOTA DISPATCH</span>
+            <span>DAILY PREPARATION</span>
           </div>
           <h1 className="minimal-title">
-            DAILY DRILLS <span className="minimal-title-italic">& Telemetry</span>
+            DAILY DRILLS
           </h1>
         </div>
 
@@ -668,7 +668,6 @@ function DailyTrackerView({
                         setEffectiveDayName('Monday');
                       }}
                       title="Jump to Week 1 initial foundation exercises"
-                      style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.35)' }}
                     >
                       <Icons.ArrowRight size={12} />
                       <span>Go to Week 1 Initial Drills</span>
@@ -680,9 +679,8 @@ function DailyTrackerView({
                       className="guidance-outline-btn guidance-backlog-btn"
                       onClick={onNavigateToBacklog}
                       title="Open dedicated Backlog Recovery Cockpit"
-                      style={{ color: '#fbbf24', borderColor: 'rgba(251, 191, 36, 0.4)' }}
                     >
-                      <Icons.Zap size={13} color="#fbbf24" />
+                      <Icons.Zap size={13} />
                       <span>Backlog Recovery Tab &rarr;</span>
                     </button>
                   )}
@@ -747,7 +745,7 @@ function DailyTrackerView({
                 )}
               </div>
               <span className="day-syllabus-subtitle">
-                {activeMonth} • {activeWeek} Syllabus Quotas {activeWeekPlan?.phase ? `• ${activeWeekPlan.phase.split(':')[0]}` : ''}
+                {activeMonth} • {activeWeek} Syllabus Targets {activeWeekPlan?.phase ? `• ${activeWeekPlan.phase.split(':')[0]}` : ''}
               </span>
             </div>
 
@@ -837,7 +835,7 @@ function DailyTrackerView({
                       type="button"
                       className="daily-backlog-resolve-action-btn"
                       onClick={onNavigateToBacklog}
-                      title="Open Backlog Recovery Cockpit"
+                      title="Open Backlog Recovery"
                     >
                       <Icons.Zap size={13} />
                       <span>Clear in Recovery Mode</span>
@@ -1330,7 +1328,7 @@ function DailyTrackerView({
           
           {/* Daily Focus Summary Card */}
           <div className="telemetry-summary-card">
-            <span className="side-card-tag">TELEMETRY OVERVIEW</span>
+            <span className="side-card-tag">DAILY STUDY HOURS</span>
             
             <div className="side-hours-row">
               <div className="hours-block">

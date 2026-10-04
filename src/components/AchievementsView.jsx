@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icons } from './AspirantIcons';
 import GlareHoverCard from './GlareHoverCard';
-import CubesCanvas from './CubesCanvas';
 import PrestigeBadgeEmblem from './PrestigeBadgeEmblem';
 
 export default function AchievementsView({
@@ -20,13 +19,13 @@ export default function AchievementsView({
   const isGrandmaster = unlockedCount === totalBadges && totalBadges > 0;
   const completionPercent = Math.round((unlockedCount / totalBadges) * 100);
 
-  // Prestige Rank Calculation
+  // Prestige Rank Calculation (Academic & Aspirant Milestones)
   const getPrestigeRank = (count, total) => {
-    if (count === total && total > 0) return { title: 'Omni Grandmaster', tier: 'Pinnacle Master', color: '#eab308' };
-    if (count >= Math.round(total * 0.75)) return { title: 'Elite Tactician', tier: 'Diamond Tier', color: '#38bdf8' };
-    if (count >= Math.round(total * 0.45)) return { title: 'Discipline Master', tier: 'Gold Tier', color: '#10b981' };
-    if (count >= 1) return { title: 'Rising Aspirant', tier: 'Silver Tier', color: '#818cf8' };
-    return { title: 'Novice Aspirant', tier: 'Bronze Tier', color: '#94a3b8' };
+    if (count === total && total > 0) return { title: 'CATalyze Scholar', tier: 'Mastery Tier', color: '#eab308' };
+    if (count >= Math.round(total * 0.75)) return { title: 'Advanced Aspirant', tier: 'Distinction Tier', color: '#38bdf8' };
+    if (count >= Math.round(total * 0.45)) return { title: 'Disciplined Aspirant', tier: 'Focus Tier', color: '#10b981' };
+    if (count >= 1) return { title: 'Active Aspirant', tier: 'Foundational Tier', color: '#818cf8' };
+    return { title: 'Candidate Aspirant', tier: 'Orientation Tier', color: '#94a3b8' };
   };
 
   const currentRank = getPrestigeRank(unlockedCount, totalBadges);
@@ -36,7 +35,7 @@ export default function AchievementsView({
     : badges.filter(b => b.category === activeCategory);
 
   const CATEGORIES = [
-    { id: 'ALL', label: 'All Badges', count: totalBadges },
+    { id: 'ALL', label: 'All Milestones', count: totalBadges },
     { id: 'streak', label: 'Consistency & Streaks', count: badges.filter(b => b.category === 'streak').length },
     { id: 'solved', label: 'Drills & Question Solving', count: badges.filter(b => b.category === 'solved').length },
     { id: 'mock', label: 'Mock Test Mastery', count: badges.filter(b => b.category === 'mock').length }
@@ -45,18 +44,9 @@ export default function AchievementsView({
   return (
     <div className="achievements-page-container fade-in">
       
-      {/* Top Prestige Hero Banner with ReactBits Interactive Cubes Canvas */}
+      {/* Top Prestige Hero Banner */}
       <div className={`achievements-hero-card ${isGrandmaster ? 'is-grandmaster' : ''}`}>
         <div className="hero-backdrop-glow" style={{ '--rank-color': currentRank.color }} />
-        
-        {/* Interactive 3D Cubes Matrix Background */}
-        <CubesCanvas 
-          themeColor={currentRank.color}
-          cubeSize={18}
-          gap={12}
-          maxElevation={22}
-          proximity={130}
-        />
         
         <div className="hero-content-split">
           <div className="hero-rank-info">
@@ -69,15 +59,15 @@ export default function AchievementsView({
             </h1>
             <p className="hero-rank-subtitle">
               {isGrandmaster 
-                ? "Legendary status achieved. You have unlocked all consistency, drill, and mock milestones!"
-                : `Unlock custom perks and prestigious achievement badges by maintaining streaks, solving questions, and completing mocks.`}
+                ? "Full milestone mastery achieved across consistency, problem-solving volume, and mock benchmarks."
+                : "Earn milestones across study consistency, problem-solving volume, and mock test execution."}
             </p>
 
             <div className="hero-progress-group">
               <div className="hero-progress-labels">
                 <span className="progress-status-label">Mastery Progress</span>
                 <span className="progress-count-label" style={{ color: currentRank.color }}>
-                  {unlockedCount} of {totalBadges} Badges Unlocked ({completionPercent}%)
+                  {unlockedCount} of {totalBadges} Milestones Completed ({completionPercent}%)
                 </span>
               </div>
               <div className="hero-progress-track">
@@ -94,7 +84,7 @@ export default function AchievementsView({
             </div>
           </div>
 
-          {/* Grandmaster Crown Emblem Display */}
+          {/* Grandmaster Scholar Emblem Display */}
           <div className="hero-emblem-showcase">
             <div className={`grandmaster-crest-bubble ${isGrandmaster ? 'unlocked-crest' : 'locked-crest'}`}>
               <div className="crest-icon-wrap">
@@ -103,7 +93,7 @@ export default function AchievementsView({
               {isGrandmaster && <div className="crest-shine-ring" />}
             </div>
             <div className="crest-caption">
-              {isGrandmaster ? 'Grandmaster Crest Unlocked' : `Grandmaster Crest (${unlockedCount}/${totalBadges})`}
+              {isGrandmaster ? 'Scholar Crest Unlocked' : `Scholar Crest (${unlockedCount}/${totalBadges})`}
             </div>
           </div>
         </div>
@@ -164,13 +154,13 @@ export default function AchievementsView({
                       </span>
                     ) : (
                       <span className="status-tag-locked">
-                        Locked
+                        {badge.currentValue > 0 ? `${progressPct}%` : 'Locked'}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Title & Perk */}
+                {/* Title & Milestone Metric */}
                 <div className="card-info-block">
                   <h3 className="badge-card-title">{badge.name}</h3>
                   <div className="badge-card-perk" style={{ color: badge.color }}>
@@ -243,7 +233,7 @@ export default function AchievementsView({
             <div className="detail-modal-body">
               <div className="detail-status-banner" style={{ background: selectedBadge.isUnlocked ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.05)' }}>
                 <span style={{ fontWeight: 800, color: selectedBadge.isUnlocked ? '#22c55e' : '#94a3b8' }}>
-                  {selectedBadge.isUnlocked ? 'Achievement Unlocked & Active on Profile' : 'In Progress — Keep preparing to unlock'}
+                  {selectedBadge.isUnlocked ? 'Milestone Completed' : 'In Progress — Keep preparing'}
                 </span>
               </div>
 
@@ -280,7 +270,7 @@ export default function AchievementsView({
                     else onNavigateToTab('daily');
                   }}
                 >
-                  Start Practicing Now
+                  Open Practice
                 </button>
               )}
             </div>

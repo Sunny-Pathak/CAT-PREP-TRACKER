@@ -113,14 +113,15 @@ export function DockItem({
 
     const delta = Math.abs(mousePos - itemCenter);
 
-    if (delta < distance) {
-      // Cosine bell-curve falloff
-      const factor = Math.cos((delta / distance) * (Math.PI / 2));
-      const targetScale = 1 + (magnification - 1) * Math.pow(factor, 1.5);
-      setScale(targetScale);
-    } else {
+    if (magnification <= 1 || delta >= distance) {
       setScale(1);
+      return;
     }
+
+    // Cosine bell-curve falloff
+    const factor = Math.cos((delta / distance) * (Math.PI / 2));
+    const targetScale = 1 + (magnification - 1) * Math.pow(factor, 1.5);
+    setScale(targetScale);
   }, [mousePos, direction, magnification, distance]);
 
   return (
@@ -135,9 +136,9 @@ export function DockItem({
       onBlur={() => setIsHovered(false)}
       aria-label={ariaLabel || tooltipTitle}
       style={{
-        width: baseItemSize,
-        height: baseItemSize,
-        transform: `scale(${scale})`,
+        width: direction === 'horizontal' ? undefined : baseItemSize,
+        height: direction === 'horizontal' ? undefined : baseItemSize,
+        transform: scale !== 1 ? `scale(${scale})` : undefined,
         transition: mousePos !== null ? 'transform 0.1s ease-out' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         transformOrigin: direction === 'vertical' ? 'left center' : 'center bottom',
         zIndex: scale > 1.05 || isHovered ? 20 : 1,

@@ -645,11 +645,11 @@ export default function ProfileView({
         <div className="settings-header-left">
           <div className="settings-title-cluster">
             <div className="settings-header-icon-box profile-icon-box" aria-hidden="true">
-              <Icons.User size={22} color="var(--accent-color, #38bdf8)" />
+              <Icons.User size={22} color="#ffffff" />
             </div>
             <div>
               <h1 className="profile-hero-headline minimal-headline">
-                ASPIRANT <span className="profile-hero-italic">Profile</span>
+                ASPIRANT PROFILE
               </h1>
               <p className="settings-hero-subtitle">
                 Manage candidate identity, study statistics, peer network, and cloud sync.
@@ -669,7 +669,7 @@ export default function ProfileView({
               type="button" 
               className="settings-status-pill is-local"
               onClick={() => setIsAuthModalOpen(true)}
-              style={{ cursor: 'pointer', border: '1px solid rgba(251, 191, 36, 0.4)' }}
+              style={{ cursor: 'pointer' }}
             >
               <span className="settings-status-dot" />
               <span>Local Mode · Sign In</span>

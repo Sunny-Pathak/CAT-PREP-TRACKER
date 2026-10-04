@@ -3171,7 +3171,7 @@ export default function App() {
         aria-label="Mobile Navigation"
         style={{ display: activeTab === 'terminal' ? 'none' : undefined }}
       >
-        <Dock direction="horizontal" magnification={1.25} distance={80} baseItemSize={44} className="mobile-dock-wrap">
+        <Dock direction="horizontal" magnification={1} distance={0} baseItemSize={40} className="mobile-dock-wrap">
           <DockItem 
             active={activeTab === 'dashboard'} 
             onClick={() => setActiveTab('dashboard')} 
@@ -3179,7 +3179,7 @@ export default function App() {
             tooltipTitle="Home"
             className="mobile-dock-btn"
           >
-            <Icons.Home size={22} />
+            <Icons.Home size={20} />
           </DockItem>
 
           <DockItem 
@@ -3189,7 +3189,7 @@ export default function App() {
             tooltipTitle="Drills"
             className="mobile-dock-btn"
           >
-            <Icons.Drills size={22} />
+            <Icons.Drills size={20} />
           </DockItem>
 
           {overallBacklog.hasBacklog && (
@@ -3200,7 +3200,7 @@ export default function App() {
               tooltipTitle="Recovery"
               className="mobile-dock-btn mobile-dock-backlog-btn"
             >
-              <Icons.Zap size={22} color={activeTab === 'recovery' ? '#f59e0b' : '#fbbf24'} />
+              <Icons.Zap size={20} color={activeTab === 'recovery' ? '#f59e0b' : '#fbbf24'} />
               <span className="mobile-dock-backlog-dot" />
             </DockItem>
           )}
@@ -3212,7 +3212,7 @@ export default function App() {
             tooltipTitle="Leaderboard"
             className="mobile-dock-btn"
           >
-            <Icons.Trophy size={22} />
+            <Icons.Trophy size={20} />
           </DockItem>
 
           <DockItem 
@@ -3222,7 +3222,7 @@ export default function App() {
             tooltipTitle="Timer"
             className={`mobile-dock-btn ${(timerState?.isRunning || timerState?.isPaused) ? 'timer-is-active' : ''}`}
           >
-            <Icons.Timer size={22} />
+            <Icons.Timer size={20} />
             {(timerState?.isRunning || timerState?.isPaused) && <span className="nav-timer-live-pip"></span>}
           </DockItem>
 
@@ -3233,7 +3233,7 @@ export default function App() {
             tooltipTitle="Mocks"
             className="mobile-dock-btn"
           >
-            <Icons.Mocks size={22} />
+            <Icons.Mocks size={20} />
           </DockItem>
 
           <DockItem 
@@ -3243,7 +3243,7 @@ export default function App() {
             tooltipTitle="Shop"
             className="mobile-dock-btn"
           >
-            <Icons.Shop size={22} />
+            <Icons.Shop size={20} />
           </DockItem>
 
           <DockItem 
@@ -3253,7 +3253,7 @@ export default function App() {
             tooltipTitle="Menu"
             className="mobile-dock-btn"
           >
-            <Icons.Menu size={22} />
+            <Icons.Menu size={20} />
           </DockItem>
         </Dock>
       </nav>

@@ -421,11 +421,11 @@ describe('Adaptive Study Progress Engine & Quota Recovery Suite', () => {
     );
 
     // Hero banner and clearance meter are visible
-    expect(screen.getByText(/ACTIVE BACKLOG RECOVERY COCKPIT/i)).toBeDefined();
-    expect(screen.getByText(/Prerequisite Mastery Clearance/i)).toBeDefined();
+    expect(screen.getByText(/FOUNDATION CATCH-UP/i)).toBeDefined();
+    expect(screen.getByText(/Recovery Progress/i)).toBeDefined();
 
-    // Priority 1 bottleneck station is prominent
-    expect(screen.getByText(/PRIORITY 1: COMPLETE THESE TOPICS FIRST/i)).toBeDefined();
+    // Priority bottleneck station is prominent
+    expect(screen.getByText(/Month 1 · Week 1 Drills/i)).toBeDefined();
 
     // Clicking quick stepper (+5 Qs) calls onUpdateDayMetric
     const plusFiveButtons = screen.getAllByRole('button', { name: /\+5 Qs/i });
@@ -434,7 +434,7 @@ describe('Adaptive Study Progress Engine & Quota Recovery Suite', () => {
     expect(onUpdateDayMetric).toHaveBeenCalled();
 
     // Switching recovery strategy invokes onApplyPlan
-    const weekendSprintPill = screen.getByRole('button', { name: /Weekend Recovery Sprint/i });
+    const weekendSprintPill = screen.getByRole('button', { name: /Weekend Focus/i });
     fireEvent.click(weekendSprintPill);
     expect(onApplyPlan).toHaveBeenCalledWith('weekend_sprint', expect.anything(), expect.anything());
   });
@@ -455,7 +455,7 @@ describe('Adaptive Study Progress Engine & Quota Recovery Suite', () => {
     );
 
     expect(screen.getByText(/All Clear — Zero Active Backlogs/i)).toBeDefined();
-    expect(screen.getByText(/Your preparation is 100% on schedule/i)).toBeDefined();
+    expect(screen.getByText(/Your preparation is on schedule/i)).toBeDefined();
     expect(screen.getByRole('button', { name: /Start Week 1 Daily Drills/i })).toBeDefined();
   });
 

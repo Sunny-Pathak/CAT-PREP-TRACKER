@@ -197,21 +197,14 @@ export default function AdaptiveWeekReviewModal({
         <div className="checkpoint-header">
           <div className="checkpoint-header-left">
             <div className="checkpoint-icon-badge">
-              <Icons.Target size={20} color="#38bdf8" />
+              <Icons.Target size={20} color="#ffffff" />
             </div>
             <div className="checkpoint-title-wrap">
               <div className="checkpoint-title-row">
                 <h3 className="checkpoint-title">
                   Adaptive Syllabus Checkpoint
                 </h3>
-                <span 
-                  className="checkpoint-status-tag"
-                  style={{
-                    backgroundColor: `${badgeColor}22`,
-                    color: badgeColor,
-                    border: `1px solid ${badgeColor}44`
-                  }}
-                >
+                <span className="checkpoint-status-tag">
                   {statusBadge}
                 </span>
               </div>
@@ -250,24 +243,12 @@ export default function AdaptiveWeekReviewModal({
                 </span>
               </div>
 
-              <div 
-                className="checkpoint-cockpit-persona-pill"
-                style={{
-                  borderColor: `${behaviorDiagnosis.archetype.color}55`,
-                  background: `${behaviorDiagnosis.archetype.color}15`
-                }}
-              >
-                <PersonaIcon size={14} color={behaviorDiagnosis.archetype.color} />
-                <span style={{ color: behaviorDiagnosis.archetype.color, fontWeight: 800 }}>
+              <div className="checkpoint-cockpit-persona-pill">
+                <PersonaIcon size={14} color="#cbd5e1" />
+                <span style={{ color: '#ffffff', fontWeight: 700 }}>
                   {behaviorDiagnosis.diagnosticTitle}
                 </span>
-                <span 
-                  className="checkpoint-persona-chip-tag"
-                  style={{
-                    background: `${behaviorDiagnosis.archetype.color}33`,
-                    color: behaviorDiagnosis.archetype.color
-                  }}
-                >
+                <span className="checkpoint-persona-chip-tag">
                   {behaviorDiagnosis.archetype.badge}
                 </span>
               </div>
@@ -323,10 +304,10 @@ export default function AdaptiveWeekReviewModal({
             </div>
           </div>
 
-          {/* Section 2: AI Spotlight Recommended Solution */}
+          {/* Section 2: Recommended Solution */}
           <div className="checkpoint-spotlight-wrapper">
             <div className="checkpoint-options-section-label">
-              AI Tailored Recommendation:
+              Suggested Recovery Plan:
             </div>
 
             <div 
@@ -335,22 +316,16 @@ export default function AdaptiveWeekReviewModal({
               <div className="checkpoint-spotlight-top-tag">
                 <div className="checkpoint-spotlight-badge">
                   <Icons.Zap size={12} />
-                  <span>RECOMMENDED FOR YOUR STUDY PATTERN</span>
+                  <span>RECOMMENDED PLAN</span>
                 </div>
-                <span className="checkpoint-spotlight-category" style={{ color: spotlightOption.accentColor }}>
+                <span className="checkpoint-spotlight-category">
                   {spotlightOption.category}
                 </span>
               </div>
 
               <div className="checkpoint-spotlight-title-row">
                 <div className="checkpoint-spotlight-title-left">
-                  <div 
-                    className="checkpoint-spotlight-icon-box"
-                    style={{
-                      background: `${spotlightOption.accentColor}22`,
-                      color: spotlightOption.accentColor
-                    }}
-                  >
+                  <div className="checkpoint-spotlight-icon-box">
                     <spotlightOption.icon size={18} />
                   </div>
                   <div>

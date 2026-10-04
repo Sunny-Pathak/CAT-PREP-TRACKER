@@ -480,159 +480,33 @@ export default function SettingsView({
               </div>
             </div>
 
-            {/* Quick Switch Controls Grid: 2 Equal Columns for Dual Flip & Top Bar Pin */}
-            <div className="settings-quick-switch-grid">
-              <div className="settings-quick-control-item">
-                <GooeyThemeSwitch 
-                  currentTheme={currentTheme}
-                  onSelectTheme={onSelectTheme}
-                  locked={true}
-                />
-              </div>
-
-              <div className="settings-topbar-toggle-card">
-                <div className="topbar-toggle-meta">
-                  <div className="topbar-toggle-icon">
-                    <Icons.Layers size={16} />
-                  </div>
-                  <div className="topbar-toggle-text">
-                    <div className="topbar-toggle-title">
-                      Pin Quick Theme Switch to Top Bar
-                    </div>
-                    <div className="topbar-toggle-desc">
-                      Show the compact dual-theme toggle directly in the top navigation cluster.
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className={`topbar-toggle-pill-btn ${showTopBarThemeSwitch ? 'is-active' : ''}`}
-                  onClick={() => onToggleTopBarThemeSwitch(!showTopBarThemeSwitch)}
-                  aria-pressed={showTopBarThemeSwitch}
-                >
-                  {showTopBarThemeSwitch ? 'Pinned to Top' : 'Off'}
-                </button>
-              </div>
-            </div>
           </div>
 
-          {/* Complete 21-Theme Gallery Grid */}
+          {/* Single Default Theme Card */}
           <div className="settings-sub-panel">
             <div className="sub-panel-header">
               <div>
-                <h3 className="sub-panel-title">Visual Palette Gallery</h3>
-                <p className="sub-panel-subtitle">Click any theme card to preview and switch system accents in real-time.</p>
+                <h3 className="sub-panel-title">Default Visual Theme</h3>
+                <p className="sub-panel-subtitle">The workspace is locked to the official Catalyze Obsidian Dark palette with silk dither texture for focused studying.</p>
               </div>
-              <button 
-                type="button" 
-                className="vip-gallery-link-btn"
-                onClick={() => onOpenRedeemModal()}
-              >
-                <span>Theme Status & Perks</span>
-                <Icons.ArrowRight size={13} />
-              </button>
             </div>
 
-            <div className="themes-gallery-cards-grid">
-              {THEMES.map((th) => {
-                const isActive = currentTheme === th.id;
-                const IconComp = th.IconComponent;
-                const isUnlocked = isThemeUnlocked(th.id, unlockedThemes);
-                const isPrem = th.isPremium;
-                const isJustSelected = justSelectedId === th.id;
-
-                return (
-                  <div
-                    key={th.id}
-                    className={`theme-card-tile ${isActive ? 'active' : ''} ${isPrem && !isUnlocked ? 'locked' : ''} ${isJustSelected ? 'just-selected' : ''}`}
-                    onClick={(e) => handleThemeCardClick(e, th.id, isPrem, isUnlocked, th.colors[3])}
-                    onMouseMove={handleCardMouseMove}
-                    style={{
-                      '--theme-accent': th.colors[3],
-                      '--theme-bg': th.colors[0]
-                    }}
-                  >
-                    <div className="theme-card-sheen" />
-                    <div className="theme-card-head">
-                      <div className="theme-card-icon-wrap" style={{ color: th.colors[3], background: th.colors[0] }}>
-                        <IconComp />
-                      </div>
-                      <div className="theme-card-badges">
-                        {isActive && (
-                          <span className="theme-active-tag">
-                            <Icons.Check size={10} /> Active
-                          </span>
-                        )}
-                        {isPrem && !isUnlocked && (
-                          <span className="theme-vip-tag">
-                            <Icons.Lock size={10} /> VIP
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="theme-card-meta">
-                      <span className="theme-title">{th.name}</span>
-                    </div>
-
-                    <div className="theme-card-palette-row">
-                      {th.colors.map((c, i) => (
-                        <span key={i} className="mini-color-dot" style={{ backgroundColor: c }} />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="theme-card-tile active" style={{ maxWidth: '340px', cursor: 'default' }}>
+              <div className="theme-card-head">
+                <div className="theme-card-icon-wrap" style={{ color: '#ffffff', background: '#09090b' }}>
+                  <Icons.Moon size={18} />
+                </div>
+                <div className="theme-card-badges">
+                  <span className="theme-active-tag">
+                    <Icons.Check size={10} /> Active Default
+                  </span>
+                </div>
+              </div>
+              <div className="theme-card-meta">
+                <span className="theme-title">Catalyze Obsidian Dark</span>
+              </div>
             </div>
           </div>
-
-          {/* VIP Secret Code Redemption Console */}
-          <div className="settings-sub-panel redeem-console-panel">
-            <div className="sub-panel-header">
-              <div>
-                <h3 className="sub-panel-title">
-                  <AnimatedSparkleIcon size={14} color="#38bdf8" />
-                  <span>VIP Theme Code Redemption Console</span>
-                </h3>
-                <p className="sub-panel-subtitle">
-                  Unlock secret cyberpunk gradients (e.g. <code>SUNSET-MAGENTA</code> or <code>PREMIUM-ALL</code>).
-                </p>
-              </div>
-            </div>
-
-            <form className="vip-code-form" onSubmit={handleInlineRedeem}>
-              <div className="vip-input-wrap">
-                <Icons.Key size={14} className="vip-key-icon" />
-                <input
-                  type="text"
-                  placeholder="Enter secret theme redemption code..."
-                  value={inlineCode}
-                  onChange={(e) => setInlineCode(e.target.value.toUpperCase())}
-                  className="vip-code-input"
-                  spellCheck="false"
-                />
-              </div>
-              <button 
-                type="submit" 
-                className="vip-submit-btn"
-                disabled={inlineLoading || !inlineCode.trim()}
-              >
-                {inlineLoading ? 'Verifying...' : 'Unlock VIP Theme'}
-              </button>
-            </form>
-
-            {inlineMsg.text && (
-              <div className={`vip-status-banner ${inlineMsg.type}`}>
-                {inlineMsg.type === 'success' ? (
-                  <AnimatedShieldCheckIcon size={14} color="#34d399" />
-                ) : (
-                  <Icons.Close size={14} />
-                )}
-                <span>{inlineMsg.text}</span>
-              </div>
-            )}
-          </div>
-
         </div>
       )}
 
