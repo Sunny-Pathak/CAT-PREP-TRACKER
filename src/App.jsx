@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { loadState, saveState, exportStateAsFile, getInitialState, mergeTrackerStates, validateAndSanitizeBackup } from './utils/storage';
+import { encryptBackupData, decryptBackupData, downloadEncryptedBlob } from './utils/cryptoBackup';
 import { 
   auth, 
   isFirebaseConfigured, 
@@ -1739,6 +1740,32 @@ export default function App() {
     });
   };
 
+  // 3b. Update Day Drill Tags (Tap-to-tag metadata)
+  const updateDayTags = (month, weekName, dayName, subject, tags) => {
+    setState(prev => {
+      const updatedTracker = { ...prev.tracker };
+      const monthWeeks = updatedTracker[month] || [];
+
+      updatedTracker[month] = monthWeeks.map(week => {
+        if (week.week === weekName) {
+          const updatedDays = week.days.map(day => {
+            if (day.day === dayName) {
+              return {
+                ...day,
+                [`${subject}Tags`]: tags
+              };
+            }
+            return day;
+          });
+          return { ...week, days: updatedDays };
+        }
+        return week;
+      });
+
+      return { ...prev, tracker: updatedTracker, lastUpdated: Date.now() };
+    });
+  };
+
   // 3b. Reset all 7 days of a specific week back to uncompleted/0 (non-destructive clean state)
   const resetWeekMetrics = (month, weekName) => {
     setState(prev => {
@@ -1924,6 +1951,53 @@ export default function App() {
   // Export progress data
   const handleExport = () => {
     exportStateAsFile(state);
+  };
+
+  // Zero-Knowledge Encrypted Export (AES-GCM 256-bit with PBKDF2)
+  const handleExportEncrypted = async (passphrase) => {
+    try {
+      const blob = await encryptBackupData(state, passphrase);
+      downloadEncryptedBlob(blob);
+      triggerDemoNotification("Encrypted Backup Downloaded", "Zero-Knowledge AES-GCM backup exported safely.");
+    } catch (err) {
+      alert("Export failed: " + (err?.message || "Encryption error"));
+      throw err;
+    }
+  };
+
+  // Zero-Knowledge Encrypted Import
+  const handleImportEncrypted = async (file, passphrase) => {
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      throw new Error("Backup file exceeds 15MB limit.");
+    }
+    const buffer = await file.arrayBuffer();
+    const decryptedJson = await decryptBackupData(buffer, passphrase);
+    const sanitized = validateAndSanitizeBackup(decryptedJson);
+    const saved = saveState(sanitized);
+    setState(saved);
+    if (saved.settings?.theme) {
+      setTheme(saved.settings.theme);
+    }
+    setHasUnsyncedCloudChanges(true);
+    triggerDemoNotification("Backup Decrypted & Restored", "All daily drills, syllabus milestones, and mock scores hydrated.");
+  };
+
+  // Toggle Quota Rollover Mode
+  const handleSelectQuotaRolloverMode = (mode) => {
+    setState(prev => {
+      const nextSettings = {
+        ...prev.settings,
+        quotaRolloverMode: mode
+      };
+      const nextState = {
+        ...prev,
+        settings: nextSettings,
+        lastUpdated: Date.now()
+      };
+      saveState(nextState);
+      return nextState;
+    });
   };
 
   // Import backup data with strict validation, schema normalization & prototype pollution defense
@@ -2217,6 +2291,7 @@ export default function App() {
     let finalNotes = timerState.sessionNotes || '';
     let questionsSolved = undefined;
     let markCompleted = undefined;
+    let finalSubject = timerState.subject;
 
     if (typeof overrideOptions === 'string') {
       finalNotes = overrideOptions;
@@ -2224,6 +2299,7 @@ export default function App() {
       if (typeof overrideOptions.notes === 'string') finalNotes = overrideOptions.notes;
       if (typeof overrideOptions.questionsSolved === 'number') questionsSolved = overrideOptions.questionsSolved;
       if (typeof overrideOptions.markCompleted === 'boolean') markCompleted = overrideOptions.markCompleted;
+      if (typeof overrideOptions.subject === 'string' && overrideOptions.subject) finalSubject = overrideOptions.subject;
     }
 
     const now = new Date();
@@ -2250,7 +2326,7 @@ export default function App() {
       startTime: startTimeStr,
       endTime: endTimeStr,
       durationMinutes: elapsedMins,
-      subject: timerState.subject,
+      subject: finalSubject,
       mode: timerState.mode,
       visualTheme: timerState.visualTheme,
       notes: finalNotes,
@@ -2262,7 +2338,7 @@ export default function App() {
     addStudySession(sessionObj);
 
     // Notify the user visually that their study session was logged to daily drills
-    const subjTitle = timerState.subject || 'Study';
+    const subjTitle = finalSubject || 'Study';
     const questionsMsg = typeof questionsSolved === 'number' && questionsSolved > 0
       ? ` (${questionsSolved} ${subjTitle.toLowerCase() === 'lrdi' ? 'sets' : subjTitle.toLowerCase() === 'varc' ? 'RCs' : 'questions'} logged)`
       : '';
@@ -2817,6 +2893,7 @@ export default function App() {
               setActiveDayName={setActiveDayName}
               updateDayMetric={updateDayMetric}
               updateDayNotes={updateDayNotes}
+              updateDayTags={updateDayTags}
               resetWeekMetrics={resetWeekMetrics}
               resetDayMetrics={resetDayMetrics}
               updateDayCustomTarget={updateDayCustomTarget}
@@ -2827,6 +2904,8 @@ export default function App() {
               onRecordDayProgress={() => handleRecordDayProgress(false)}
               onOpenCheckpoint={handleOpenCheckpoint}
               onNavigateToBacklog={() => setActiveTab('recovery')}
+              onApplyPlan={handleApplyRecoveryPlan}
+              onSelectQuotaRolloverMode={handleSelectQuotaRolloverMode}
               hasBacklog={overallBacklog.hasBacklog}
               overallBacklog={overallBacklog}
             />
@@ -2952,6 +3031,10 @@ export default function App() {
               lastSyncedTimeStr={lastSyncedTimeStr}
               hasUnsyncedCloudChanges={hasUnsyncedCloudChanges}
               onTriggerManualSync={handleTriggerManualSync}
+              onExportEncrypted={handleExportEncrypted}
+              onImportEncrypted={handleImportEncrypted}
+              quotaRolloverMode={state.settings?.quotaRolloverMode || 'strict'}
+              onSelectQuotaRolloverMode={handleSelectQuotaRolloverMode}
             />
           )}
           </Suspense>

@@ -49,4 +49,29 @@ describe('storage - Offline & Local State Merging', () => {
     expect(merged.mocks[0].status).toBe('Taken');
     expect(merged.mocks[0].totalScore).toBe(95);
   });
+
+  it('merges lrdiTags, varcTags, and quotaRolloverMode setting non-destructively', () => {
+    const local = getInitialState();
+    const cloud = getInitialState();
+
+    local.settings.quotaRolloverMode = 'rollover';
+    local.tracker['Month 1'][0].days[0].lrdiTags = [
+      { id: 'tag_1', setNumber: 1, pace: '<12 min', outcome: 'Solved Clean' }
+    ];
+    cloud.tracker['Month 1'][0].days[0].lrdiTags = [
+      { id: 'tag_2', setNumber: 2, pace: '15-20 min', outcome: 'Needed 1 Hint' }
+    ];
+    cloud.tracker['Month 1'][0].days[0].varcTags = [
+      { id: 'rc_1', rcNumber: 1, genre: 'Philosophy' }
+    ];
+
+    const merged = mergeTrackerStates(local, cloud);
+    expect(merged.settings.quotaRolloverMode).toBe('rollover');
+
+    const monday = merged.tracker['Month 1'][0].days[0];
+    expect(monday.lrdiTags).toHaveLength(2);
+    expect(monday.varcTags).toHaveLength(1);
+    expect(monday.varcTags[0].genre).toBe('Philosophy');
+  });
 });
+

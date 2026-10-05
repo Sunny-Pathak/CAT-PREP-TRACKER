@@ -9,6 +9,7 @@ import {
 } from '../data/catSyllabusRoadmap';
 import { playGamingAchievementSound } from '../utils/audioUtils';
 import SmoothCaretInput from './animations/SmoothCaretInput';
+import { tactileClick } from '../utils/gsapAnimations';
 
 export default function TimelineView({ 
   state, 
@@ -30,6 +31,21 @@ export default function TimelineView({
 
   // Inspect drawer/modal for a specific week
   const [inspectedWeekIdx, setInspectedWeekIdx] = useState(null);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef(null);
+
+  // Close status dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target)) {
+        setStatusDropdownOpen(false);
+      }
+    }
+    if (statusDropdownOpen) {
+      document.addEventListener('pointerdown', handleClickOutside);
+    }
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
+  }, [statusDropdownOpen]);
 
   // Animation Refs
   const phaseSegmentedRef = useRef(null);
@@ -643,26 +659,66 @@ export default function TimelineView({
               </div>
 
               <div className="drawer-header-right">
-                <select
-                  value={inspectedWeekData.status}
-                  onChange={(e) => handleStatusSelect(inspectedWeekData.week, e.target.value)}
-                  className={`drawer-status-select ${
-                    inspectedWeekData.status === 'Completed'
-                      ? 'completed'
-                      : inspectedWeekData.status === 'In Progress'
-                      ? 'in-progress'
-                      : 'not-started'
-                  }`}
-                >
-                  <option value="Not Started">Not Started</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                </select>
+                {/* Custom Obsidian Glass Status Dropdown (Zero native select slop) */}
+                <div className="drawer-status-dropdown-wrap" ref={statusDropdownRef}>
+                  <button
+                    type="button"
+                    className={`drawer-custom-status-btn ${
+                      inspectedWeekData.status === 'Completed'
+                        ? 'completed'
+                        : inspectedWeekData.status === 'In Progress'
+                        ? 'in-progress'
+                        : 'not-started'
+                    }`}
+                    onClick={(e) => {
+                      tactileClick(e);
+                      setStatusDropdownOpen(prev => !prev);
+                    }}
+                    title="Change syllabus completion status"
+                    aria-expanded={statusDropdownOpen}
+                  >
+                    <span className={`status-dot ${
+                      inspectedWeekData.status === 'Completed'
+                        ? 'completed'
+                        : inspectedWeekData.status === 'In Progress'
+                        ? 'in-progress'
+                        : 'not-started'
+                    }`} />
+                    <span>{inspectedWeekData.status}</span>
+                    <Icons.ChevronDown size={11} className={`status-chevron ${statusDropdownOpen ? 'open' : ''}`} />
+                  </button>
+
+                  {statusDropdownOpen && (
+                    <div className="drawer-status-popover">
+                      {['Not Started', 'In Progress', 'Completed'].map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          className={`status-popover-item ${inspectedWeekData.status === opt ? 'active' : ''}`}
+                          onClick={(e) => {
+                            tactileClick(e);
+                            handleStatusSelect(inspectedWeekData.week, opt);
+                            setStatusDropdownOpen(false);
+                          }}
+                        >
+                          <span className={`status-dot ${
+                            opt === 'Completed' ? 'completed' : opt === 'In Progress' ? 'in-progress' : 'not-started'
+                          }`} />
+                          <span>{opt}</span>
+                          {inspectedWeekData.status === opt && <Icons.Check size={12} className="status-item-check" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 <button
                   type="button"
                   className="drawer-close-btn"
-                  onClick={() => setInspectedWeekIdx(null)}
+                  onClick={(e) => {
+                    tactileClick(e);
+                    setInspectedWeekIdx(null);
+                  }}
                   title="Close Inspector"
                 >
                   <Icons.Close size={18} />
@@ -806,7 +862,10 @@ export default function TimelineView({
               <button
                 type="button"
                 className="drawer-secondary-btn"
-                onClick={() => setInspectedWeekIdx(null)}
+                onClick={(e) => {
+                  tactileClick(e);
+                  setInspectedWeekIdx(null);
+                }}
               >
                 Close
               </button>
@@ -815,11 +874,12 @@ export default function TimelineView({
                   type="button"
                   className="drawer-secondary-btn"
                   style={{
-                    backgroundColor: 'rgba(139, 92, 246, 0.14)',
-                    borderColor: 'rgba(168, 85, 247, 0.38)',
+                    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                    borderColor: 'rgba(168, 85, 247, 0.35)',
                     color: '#c084fc'
                   }}
-                  onClick={() => {
+                  onClick={(e) => {
+                    tactileClick(e);
                     const match = inspectedWeekData.week.match(/Month (\d+):\s+Week (\d+)/i);
                     const monthKey = match ? `Month ${match[1]}` : 'Month 1';
                     const relativeWeek = match ? `Week ${((parseInt(match[2], 10) - 1) % 4) + 1}` : 'Week 1';
@@ -833,7 +893,8 @@ export default function TimelineView({
               <button
                 type="button"
                 className="drawer-primary-jump-btn"
-                onClick={() => {
+                onClick={(e) => {
+                  tactileClick(e);
                   setInspectedWeekIdx(null);
                   onWeekClick(inspectedWeekData.week);
                 }}

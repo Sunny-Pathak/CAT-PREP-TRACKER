@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Icons } from './AspirantIcons';
 import AvatarRenderer from './AvatarRenderer';
+import { tactileClick } from '../utils/gsapAnimations';
 
 export default function HeaderProfileDropdown({
   user,
@@ -81,6 +82,7 @@ export default function HeaderProfileDropdown({
         type="button"
         className={`header-profile-trigger-btn minimal-trigger ${isOpen ? 'active' : ''}`}
         onClick={(e) => {
+          tactileClick(e);
           e.stopPropagation();
           setIsOpen(prev => !prev);
         }}

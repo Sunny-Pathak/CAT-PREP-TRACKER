@@ -18,8 +18,10 @@ import {
   AnimatedFlameIcon 
 } from './AnimatedUiIcons';
 import { playSoftZenChime } from '../utils/audioUtils';
+import { tactileClick } from '../utils/gsapAnimations';
 import AnimatedChip from './AnimatedChip';
 import GooeyThemeSwitch from './GooeyThemeSwitch';
+import EncryptedBackupModal from './EncryptedBackupModal';
 import { 
   getAllExams, 
   getActiveExamConfig, 
@@ -54,7 +56,11 @@ export default function SettingsView({
   syncStatus = 'saved',
   lastSyncedTimeStr = '',
   hasUnsyncedCloudChanges = false,
-  onTriggerManualSync = async () => {}
+  onTriggerManualSync = async () => {},
+  onExportEncrypted,
+  onImportEncrypted,
+  quotaRolloverMode = 'strict',
+  onSelectQuotaRolloverMode = () => {}
 }) {
   // Navigation Category Tab ('themes' | 'typography' | 'schedule' | 'cloud' | 'exam')
   const [activeTab, setActiveTab] = useState('themes');
@@ -95,6 +101,12 @@ export default function SettingsView({
   const [timelineHorizon, setTimelineHorizon] = useState(() => {
     return (typeof window !== 'undefined' && localStorage.getItem('catalyze_timeline_horizon')) || '16_weeks';
   });
+
+  // Zero-Knowledge Encrypted Backup Modal State
+  const [isEncryptedModalOpen, setIsEncryptedModalOpen] = useState(false);
+  const [encryptedModalMode, setEncryptedModalMode] = useState('export');
+  const [selectedEncryptedFile, setSelectedEncryptedFile] = useState(null);
+  const encryptedFileInputRef = React.useRef(null);
 
   const handleSelectTimeline = (hId) => {
     setTimelineHorizon(hId);
@@ -638,9 +650,13 @@ export default function SettingsView({
       {/* ========================================================
           CATEGORY 3: SCHEDULE & SOUNDS
          ======================================================== */}
+      {/* ========================================================
+          CATEGORY 3: SCHEDULE & SOUNDS
+         ======================================================== */}
       {activeTab === 'schedule' && (
         <div className="settings-pane-content fade-in">
           
+          {/* 1. Preparation Baseline Schedule */}
           <div className="settings-sub-panel">
             <div className="sub-panel-header">
               <div>
@@ -661,13 +677,13 @@ export default function SettingsView({
 
                 <div className="schedule-telemetry-pills">
                   {daysElapsed !== null && (
-                    <div className="sched-pill">
-                      <AnimatedFlameIcon size={14} />
+                    <div className="sched-pill" style={{ background: 'rgba(255, 255, 255, 0.04)', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
+                      <span style={{ color: '#f59e0b', fontSize: '13px', lineHeight: 1 }}>•</span>
                       <span>{daysElapsed} Days Since Start</span>
                     </div>
                   )}
-                  <div className="sched-pill highlight">
-                    <Icons.Target size={14} />
+                  <div className="sched-pill highlight" style={{ background: 'rgba(168, 85, 247, 0.1)', borderColor: 'rgba(168, 85, 247, 0.3)', color: '#d8b4fe' }}>
+                    <Icons.Target size={13} />
                     <span>CAT Target Window</span>
                   </div>
                 </div>
@@ -675,11 +691,153 @@ export default function SettingsView({
             </div>
           </div>
 
-          {/* Audio Feedback & Sanctuary Chimes */}
-          <div className="settings-sub-panel">
+          {/* 2. Preparation Timeline & Pacing Horizon (Rich Feature) */}
+          <div className="settings-sub-panel" style={{ marginTop: '20px' }}>
             <div className="sub-panel-header">
               <div>
-                <h3 className="sub-panel-title">Zen Audio & Ambient Chimes</h3>
+                <h3 className="sub-panel-title">Preparation Timeline &amp; Pacing Horizon</h3>
+                <p className="sub-panel-subtitle">Calibrate how much time you have before exam day to automatically scale daily drill quotas.</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginTop: '12px' }}>
+              {TIMELINE_HORIZONS.map((h) => {
+                const isSel = timelineHorizon === h.id;
+                return (
+                  <div
+                    key={h.id}
+                    onClick={(e) => {
+                      tactileClick(e);
+                      handleSelectTimeline(h.id);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    style={{
+                      cursor: 'pointer',
+                      padding: '14px',
+                      background: isSel ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                      border: `1px solid ${isSel ? 'rgba(168, 85, 247, 0.48)' : 'rgba(255, 255, 255, 0.08)'}`,
+                      borderRadius: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '5px',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      boxShadow: isSel ? '0 0 16px rgba(168, 85, 247, 0.15)' : 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: isSel ? '#f3e8ff' : 'var(--text-primary, #ffffff)' }}>
+                        {h.name}
+                      </span>
+                      <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9.5px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', color: isSel ? '#d8b4fe' : '#94a3b8', background: isSel ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255, 255, 255, 0.05)' }}>
+                        {h.badge}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: isSel ? '#e9d5ff' : 'var(--text-secondary, #94a3b8)', fontWeight: 600 }}>
+                      {h.dailyHours} hrs / day • {h.durationWeeks} Weeks
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px', lineHeight: 1.35 }}>
+                      {h.description}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 3. Daily Quota Tracking & Rollover Mode Selector */}
+          <div className="settings-sub-panel" style={{ marginTop: '20px' }}>
+            <div className="sub-panel-header">
+              <div>
+                <h3 className="sub-panel-title">Daily Quota Tracking &amp; Rollover Mode</h3>
+                <p className="sub-panel-subtitle">Calibrate how unfinished daily drills behave across your weekly preparation cycle.</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px', marginTop: '10px' }}>
+              <div 
+                onClick={(e) => {
+                  tactileClick(e);
+                  onSelectQuotaRolloverMode && onSelectQuotaRolloverMode('strict');
+                }}
+                style={{
+                  padding: '16px',
+                  borderRadius: '14px',
+                  cursor: 'pointer',
+                  background: quotaRolloverMode === 'strict' ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                  border: quotaRolloverMode === 'strict' ? '1.5px solid rgba(168, 85, 247, 0.48)' : '1px solid rgba(255, 255, 255, 0.08)',
+                  boxShadow: quotaRolloverMode === 'strict' ? '0 0 16px rgba(168, 85, 247, 0.12)' : 'none',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: quotaRolloverMode === 'strict' ? '#f3e8ff' : '#e2e8f0' }}>
+                    Strict Mode (Default)
+                  </span>
+                  {quotaRolloverMode === 'strict' && <Icons.Check size={16} color="#c084fc" />}
+                </div>
+                <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', lineHeight: 1.5 }}>
+                  Unfinished daily quotas reset cleanly to 0 at midnight. Every morning begins with a fresh, guilt-free slate.
+                </p>
+              </div>
+
+              <div 
+                onClick={(e) => {
+                  tactileClick(e);
+                  onSelectQuotaRolloverMode && onSelectQuotaRolloverMode('rollover');
+                }}
+                style={{
+                  padding: '16px',
+                  borderRadius: '14px',
+                  cursor: 'pointer',
+                  background: quotaRolloverMode === 'rollover' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                  border: quotaRolloverMode === 'rollover' ? '1.5px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
+                  boxShadow: quotaRolloverMode === 'rollover' ? '0 0 16px rgba(245, 158, 11, 0.1)' : 'none',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: quotaRolloverMode === 'rollover' ? '#fef3c7' : '#e2e8f0' }}>
+                    Rollover Mode (Study Debt)
+                  </span>
+                  {quotaRolloverMode === 'rollover' && <Icons.Check size={16} color="#fbbf24" />}
+                </div>
+                <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', lineHeight: 1.5 }}>
+                  Incomplete daily drills calculate a manageable backlog buffer stored in your Weekend Catch-up Bank for review.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Weekly Mock & Review Cadence */}
+          <div className="settings-sub-panel" style={{ marginTop: '20px' }}>
+            <div className="sub-panel-header">
+              <div>
+                <h3 className="sub-panel-title">Weekly Mock &amp; Review Cadence</h3>
+                <p className="sub-panel-subtitle">Dedicated days designated for full-length mock simulation and mistake analysis.</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginTop: '10px' }}>
+              <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#c084fc', letterSpacing: '0.06em' }}>Primary Mock Test Day</span>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#f4f4f5', marginTop: '4px' }}>Sunday (Full 2-Hour Simulation)</div>
+                <p style={{ margin: '4px 0 0 0', fontSize: '10.5px', color: '#94a3b8' }}>High-fidelity exam conditions followed by section percentile review.</p>
+              </div>
+
+              <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#fbbf24', letterSpacing: '0.06em' }}>Buffer &amp; Catch-Up Day</span>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#f4f4f5', marginTop: '4px' }}>Saturday (Backlog Clearance)</div>
+                <p style={{ margin: '4px 0 0 0', fontSize: '10.5px', color: '#94a3b8' }}>Revisit mistake cards, revise weak subtopics, and clear rollover quota debt.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Audio Feedback & Sanctuary Chimes */}
+          <div className="settings-sub-panel" style={{ marginTop: '20px' }}>
+            <div className="sub-panel-header">
+              <div>
+                <h3 className="sub-panel-title">Zen Audio &amp; Ambient Chimes</h3>
                 <p className="sub-panel-subtitle">Audio feedback when study sprints complete or timer milestones are unlocked.</p>
               </div>
             </div>
@@ -697,7 +855,10 @@ export default function SettingsView({
               <button 
                 type="button" 
                 className="audio-preview-btn"
-                onClick={() => playSoftZenChime(0.35)}
+                onClick={(e) => {
+                  tactileClick(e);
+                  playSoftZenChime(0.35);
+                }}
               >
                 <Icons.Play size={13} />
                 <span>Test Zen Chime</span>
@@ -719,7 +880,10 @@ export default function SettingsView({
                 <button 
                   type="button" 
                   className="audio-preview-btn secondary"
-                  onClick={onTriggerNotification}
+                  onClick={(e) => {
+                    tactileClick(e);
+                    onTriggerNotification();
+                  }}
                 >
                   <Icons.Bell size={13} />
                   <span>Trigger Demo Toast</span>
@@ -1006,63 +1170,174 @@ export default function SettingsView({
               </div>
             </div>
 
-            <div className="portability-cards-grid">
-              {/* Export Card */}
-              <div className="portability-action-card">
-                <div className="port-card-top">
-                  <div className="port-icon-wrap export">
-                    <Icons.Download size={18} />
+            <div style={{
+              background: 'rgba(18, 18, 24, 0.75)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '20px 24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#38bdf8'
+                  }}>
+                    <Icons.Shield size={20} />
                   </div>
                   <div>
-                    <span className="port-card-title">Export JSON Backup</span>
-                    <span className="port-card-desc">Download complete preparation state into an offline portable file.</span>
+                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>
+                      Secure Local Backup
+                    </h4>
+                    <p style={{ margin: '3px 0 0 0', fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }}>
+                      Save an encrypted copy of your drills, timers, and test percentiles directly to your device.
+                    </p>
                   </div>
                 </div>
-                <button type="button" className="port-btn export" onClick={onExport}>
-                  <Icons.Download size={13} />
-                  <span>Export Backup</span>
-                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEncryptedModalMode('export');
+                      setIsEncryptedModalOpen(true);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '9px 16px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #0284c7, #2563eb)',
+                      color: '#ffffff',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 14px rgba(2, 132, 199, 0.25)',
+                      transition: 'all 0.18s ease'
+                    }}
+                  >
+                    <Icons.Download size={13} />
+                    <span>Download Backup</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => encryptedFileInputRef.current?.click()}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '9px 16px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: 'rgba(255, 255, 255, 0.85)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.18s ease'
+                    }}
+                  >
+                    <Icons.Upload size={13} />
+                    <span>Restore Backup</span>
+                  </button>
+
+                  <input
+                    type="file"
+                    ref={encryptedFileInputRef}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setSelectedEncryptedFile(file);
+                      setEncryptedModalMode('import');
+                      setIsEncryptedModalOpen(true);
+                      e.target.value = '';
+                    }}
+                    style={{ display: 'none' }}
+                    accept=".enc,.json"
+                  />
+                  <input type="file" ref={fileInputRef} onChange={onImport} style={{ display: 'none' }} accept=".json" />
+                </div>
               </div>
 
-              {/* Import Card */}
-              <div className="portability-action-card">
-                <div className="port-card-top">
-                  <div className="port-icon-wrap import">
-                    <Icons.RefreshCw size={18} />
-                  </div>
-                  <div>
-                    <span className="port-card-title">Restore from File</span>
-                    <span className="port-card-desc">Restore previously saved preparation logs from a JSON snapshot.</span>
-                  </div>
-                </div>
-                <button 
-                  type="button" 
-                  className="port-btn import"
-                  onClick={() => fileInputRef.current?.click()}
+              {/* Developer options inline link */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingTop: '12px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                fontSize: '11px',
+                color: 'rgba(255, 255, 255, 0.4)'
+              }}>
+                <span>Zero-knowledge client-side encryption (AES-256-GCM)</span>
+                <button
+                  type="button"
+                  onClick={onExport}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    textDecoration: 'underline'
+                  }}
+                  title="Export raw JSON without encryption"
                 >
-                  <Icons.RefreshCw size={13} />
-                  <span>Restore Snapshot</span>
-                </button>
-                <input type="file" ref={fileInputRef} onChange={onImport} style={{ display: 'none' }} accept=".json" />
-              </div>
-
-              {/* Danger Zone: Reset Card */}
-              <div className="portability-action-card danger">
-                <div className="port-card-top">
-                  <div className="port-icon-wrap reset">
-                    <Icons.Trash2 size={18} />
-                  </div>
-                  <div>
-                    <span className="port-card-title">Reset All Progress</span>
-                    <span className="port-card-desc">Clear ticks, solved question metrics, and restore original CAT defaults.</span>
-                  </div>
-                </div>
-                <button type="button" className="port-btn reset" onClick={onReset}>
-                  <Icons.Trash2 size={13} />
-                  <span>Reset Progress</span>
+                  Export unencrypted JSON
                 </button>
               </div>
             </div>
+
+            {/* Danger Zone: Discrete Progress Reset */}
+            <div style={{
+              marginTop: '16px',
+              padding: '12px 18px',
+              borderRadius: '10px',
+              background: 'rgba(239, 68, 68, 0.03)',
+              border: '1px solid rgba(239, 68, 68, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#f87171' }}>Reset Progress</span>
+                <span style={{ display: 'block', fontSize: '11px', color: 'rgba(255, 255, 255, 0.45)' }}>Clear all logged drills and restore original syllabus defaults.</span>
+              </div>
+              <button
+                type="button"
+                onClick={onReset}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  color: '#f87171',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  cursor: 'pointer'
+                }}
+              >
+                Reset Progress
+              </button>
+            </div>
+
 
             {/* Release Notes & System Updates Hub Banner */}
             <div className="settings-patch-notes-banner">
@@ -1343,6 +1618,15 @@ export default function SettingsView({
         </div>
       )}
 
+      {/* Zero-Knowledge Encrypted Backup Modal */}
+      <EncryptedBackupModal
+        isOpen={isEncryptedModalOpen}
+        mode={encryptedModalMode}
+        onClose={() => setIsEncryptedModalOpen(false)}
+        onExportConfirm={(passphrase) => onExportEncrypted && onExportEncrypted(passphrase)}
+        onImportConfirm={(file, passphrase) => onImportEncrypted && onImportEncrypted(file, passphrase)}
+        selectedFile={selectedEncryptedFile}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AnimatedFlameIcon } from './AnimatedUiIcons';
+import { tactileClick } from '../utils/gsapAnimations';
 
 /**
  * AnimatedStreakBadge - Luxury Unique Flame & Floating Embers Streak Component
@@ -17,17 +18,17 @@ function AnimatedStreakBadge({ streak = 0, totalDays = 112 }) {
       className="animated-streak-badge-container"
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
-      onClick={() => setShowTooltip(prev => !prev)}
+      onClick={(e) => {
+        tactileClick(e);
+        setShowTooltip(prev => !prev);
+      }}
       role="button"
       tabIndex={0}
       title={`${streak}-day active study streak`}
     >
-      {/* Ambient Pulsing Glow Backdrop */}
-      <div className="streak-ambient-glow" />
-
       {/* Living Animated Flame Graphic */}
       <div className="streak-flame-wrapper">
-        <AnimatedFlameIcon size={18} />
+        <AnimatedFlameIcon size={14} color="#f59e0b" />
       </div>
 
       {/* Streak Number & Label */}

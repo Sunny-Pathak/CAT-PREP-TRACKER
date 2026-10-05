@@ -166,3 +166,32 @@ export function triggerThemeWave() {
     }
   );
 }
+
+/**
+ * Snappy tactile button press / spring punch animation.
+ * Scales down instantaneously and snaps back with an energetic spring recoil curve.
+ * Triggers subtle Web Audio haptic click sound by default.
+ * @param {HTMLElement|React.SyntheticEvent} targetOrEvent
+ * @param {object} options
+ */
+export function tactileClick(targetOrEvent, { scale = 0.93, duration = 0.26, sound = true } = {}) {
+  const el = targetOrEvent?.currentTarget || targetOrEvent?.target || targetOrEvent;
+  if (!el || !el.style) return;
+  
+  if (sound) {
+    try {
+      import('./audioUtils').then(m => m.playSoftClick && m.playSoftClick()).catch(() => {});
+    } catch (_e) {}
+  }
+
+  gsap.fromTo(
+    el,
+    { scale },
+    {
+      scale: 1,
+      duration,
+      ease: 'back.out(2.8)',
+      overwrite: 'auto'
+    }
+  );
+}

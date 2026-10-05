@@ -4,6 +4,7 @@ import SmoothCaretInput from './animations/SmoothCaretInput';
 import AnimatedInputBar from './AnimatedInputBar';
 import StackedChips from './StackedChips';
 import MistakeLogModal from './MistakeLogModal';
+import { tactileClick } from '../utils/gsapAnimations';
 import {
   getStoredMistakes,
   saveStoredMistakes,
@@ -210,49 +211,66 @@ export default function ErrorLogView({ state, onDayClick, onOpenTimer }) {
           </div>
 
           <div className="minimal-hero-actions">
-            {onOpenTimer && (
-              <button
-                type="button"
-                className="minimal-btn-primary"
-                onClick={onOpenTimer}
-                title="Enter Zen Study Sanctuary directly"
-              >
-                <Icons.Clock size={14} />
-                <span>Zen Study Space</span>
-                <span className="btn-arrow">↗</span>
-              </button>
-            )}
-
-            {/* Reacticx Stacked Chips for Note Card Creation & Scratchpad Toggle */}
-            <StackedChips
-              onCreateNote={(subject) => {
-                if (subject) {
-                  setEditingCard({
-                    subject: subject,
-                    title: '',
-                    content: '',
-                    takeawayRule: '',
-                    source: '',
-                    tags: []
-                  });
-                } else {
-                  setEditingCard(null);
-                }
+            {/* Primary Action: Direct New Note Card Creation */}
+            <button
+              type="button"
+              className="minimal-btn-primary"
+              onClick={(e) => {
+                tactileClick(e);
+                setEditingCard(null);
                 setIsModalOpen(true);
               }}
-              onToggleScratchpad={() => setShowScratchpad(prev => !prev)}
-              isScratchpadOpen={showScratchpad}
-            />
+              title="Create a new study note or error reflection card"
+            >
+              <Icons.Plus size={14} />
+              <span>New Note Card</span>
+            </button>
 
+            {/* Quick Scratchpad Disk Vault Toggle */}
+            <button
+              type="button"
+              className={`minimal-btn-secondary ${showScratchpad ? 'active' : ''}`}
+              onClick={(e) => {
+                tactileClick(e);
+                setShowScratchpad(prev => !prev);
+              }}
+              title="Toggle disk scratchpad"
+            >
+              <Icons.FileText size={14} />
+              <span>{showScratchpad ? 'Hide Scratchpad' : 'Scratchpad'}</span>
+            </button>
+
+            {/* Export Markdown */}
             <button
               type="button"
               className="minimal-btn-secondary"
-              onClick={handleExportMarkdown}
+              onClick={(e) => {
+                tactileClick(e);
+                handleExportMarkdown();
+              }}
               title="Download notes as printable Markdown"
             >
               <Icons.Download size={14} />
               <span>Export (.md)</span>
             </button>
+
+            {/* Secondary navigation to Zen Timer */}
+            {onOpenTimer && (
+              <button
+                type="button"
+                className="minimal-btn-secondary"
+                onClick={(e) => {
+                  tactileClick(e);
+                  onOpenTimer();
+                }}
+                title="Enter Zen Study Sanctuary directly"
+                style={{ opacity: 0.8 }}
+              >
+                <Icons.Clock size={13} />
+                <span>Zen Study Space</span>
+                <span className="btn-arrow" style={{ fontSize: '11px' }}>↗</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -274,7 +292,7 @@ export default function ErrorLogView({ state, onDayClick, onOpenTimer }) {
           <div className="horizon-divider"></div>
           <div className="horizon-stat-item">
             <span className="horizon-stat-lbl">HARD DRIVE PERSISTENCE</span>
-            <span className="horizon-stat-val" style={{ color: 'var(--accent-color, #38bdf8)', fontSize: '14px' }}>
+            <span className="horizon-stat-val" style={{ color: 'var(--accent-color, #c084fc)', fontSize: '13px', fontWeight: 600 }}>
               Protected Local Storage
             </span>
           </div>
@@ -326,7 +344,10 @@ export default function ErrorLogView({ state, onDayClick, onOpenTimer }) {
                 type="button"
                 className={selectedSubject === s ? 'minimal-btn-primary' : 'minimal-btn-secondary'}
                 style={{ padding: '7px 14px', fontSize: '12px', borderRadius: 'var(--radius-sm)' }}
-                onClick={() => setSelectedSubject(s)}
+                onClick={(e) => {
+                  tactileClick(e);
+                  setSelectedSubject(s);
+                }}
               >
                 <span>{s}</span>
               </button>
@@ -399,24 +420,39 @@ export default function ErrorLogView({ state, onDayClick, onOpenTimer }) {
             className="empty-state"
             style={{
               gridColumn: '1 / -1',
-              padding: '48px 24px',
+              padding: '54px 24px',
               textAlign: 'center',
-              background: 'var(--bg-secondary)',
+              background: 'rgba(255, 255, 255, 0.02)',
               borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)'
+              border: '1px solid rgba(255, 255, 255, 0.08)'
             }}
           >
-            <div style={{ color: 'var(--accent-color, #38bdf8)', marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>
-              <Icons.BookOpen size={28} />
+            <div style={{ color: '#a855f7', marginBottom: '14px', display: 'flex', justifyContent: 'center' }}>
+              <Icons.BookOpen size={32} />
             </div>
-            <h4 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <h4 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {cards.length === 0 ? 'Your Study Vault is Empty' : 'No matching notes found'}
             </h4>
-            <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <p style={{ margin: '0 0 20px', fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '420px', marginLeft: 'auto', marginRight: 'auto', lineHeight: '1.5' }}>
               {cards.length === 0
-                ? 'Click "New Note Card" above to record your first formula, key takeaway, or tricky question.'
+                ? 'Record tricky question traps, mental models, or key formulas to review before mocks.'
                 : 'Try adjusting your search query or section filter.'}
             </p>
+            {cards.length === 0 && (
+              <button
+                type="button"
+                className="minimal-btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}
+                onClick={(e) => {
+                  tactileClick(e);
+                  setEditingCard(null);
+                  setIsModalOpen(true);
+                }}
+              >
+                <Icons.Plus size={15} />
+                <span>Create Your First Note Card</span>
+              </button>
+            )}
           </div>
         )}
       </div>

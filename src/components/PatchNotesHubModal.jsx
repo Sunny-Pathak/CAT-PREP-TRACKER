@@ -144,7 +144,7 @@ export default function PatchNotesHubModal({
           <div className="blueprint-id-cluster">
             <span className="blueprint-tag">SPEC • SYSTEM LOG</span>
             <span className="blueprint-version-tag">
-              <AnimatedSparkleIcon size={11} color="#38bdf8" />
+              <AnimatedSparkleIcon size={11} color="#c084fc" />
               <span>BUILD v{activePatch.version}</span>
             </span>
             <span className="blueprint-date">{activePatch.releaseDate}</span>
@@ -246,7 +246,7 @@ export default function PatchNotesHubModal({
         <div className={`blueprint-waveform-module ${liveTelemetry.isTesting ? 'measuring-active' : ''} ${liveTelemetry.justFinished ? 'measuring-complete' : ''}`}>
           <div className="waveform-header">
             <div className="waveform-title-row">
-              <AnimatedLightningIcon size={13} color="var(--accent-color, #38bdf8)" />
+              <AnimatedLightningIcon size={13} color="#c084fc" />
               <span className="waveform-title">LIVE SYSTEM TELEMETRY & LATENCY BENCHMARK</span>
               <span className="waveform-time">[{liveTelemetry.lastTested}]</span>
             </div>

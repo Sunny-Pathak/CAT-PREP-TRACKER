@@ -20,6 +20,7 @@ import { getActiveExamConfig } from '../config/examConfig';
 import SmoothCaretInput from './animations/SmoothCaretInput';
 import SmoothCaretTextarea from './animations/SmoothCaretTextarea';
 import { calculateWeekProgress, calculateOverallBacklog } from '../utils/adaptiveStudyEngine';
+import { tactileClick } from '../utils/gsapAnimations';
 
 function DailyTrackerView({ 
   state, 
@@ -40,6 +41,9 @@ function DailyTrackerView({
   onRecordDayProgress,
   onOpenCheckpoint,
   onNavigateToBacklog,
+  onApplyPlan,
+  onSelectQuotaRolloverMode,
+  updateDayTags,
   hasBacklog = false,
   overallBacklog = null
 }) {
@@ -263,6 +267,7 @@ function DailyTrackerView({
   // Handle drill completion toggle with sound
   const handleToggleDrill = (month, weekName, dayName, subject, isCompleted, e) => {
     if (isWeekLockedByBacklog) return;
+    if (e) tactileClick(e);
     const targetCompleted = !isCompleted;
 
     if (targetCompleted) {
@@ -326,13 +331,134 @@ function DailyTrackerView({
     return base;
   };
 
-  const handleStepQty = (month, weekName, dayName, subject, currentVal, delta) => {
+  // Selected Day Data
+  const selectedDay = useMemo(() => {
+    return activeWeekDays.find(d => d.day === effectiveDayName) || activeWeekDays[0] || {};
+  }, [activeWeekDays, effectiveDayName]);
+
+  const [activeTagPopover, setActiveTagPopover] = useState(null); // { subject: 'lrdi' | 'varc', num: number, pace?: string, outcome?: string }
+
+  const handleStepQty = (month, weekName, dayName, subject, currentVal, delta, clickEvent) => {
+    if (clickEvent) tactileClick(clickEvent);
     if (isWeekLockedByBacklog) return;
     const current = parseInt(currentVal) || 0;
     const nextVal = Math.max(0, current + delta);
     const target = getSubjectTarget(subject, selectedDay);
     const isCompleted = nextVal >= target;
     updateDayMetric(month, weekName, dayName, subject, isCompleted, nextVal);
+
+    // If user tapped increment (+) on DILR or VARC, trigger non-blocking inline tag popover
+    if (delta > 0) {
+      if (subject === 'lrdi') {
+        setActiveTagPopover({ subject: 'lrdi', setNum: nextVal, pace: '<12 min', outcome: 'Solved Clean' });
+      } else if (subject === 'varc') {
+        setActiveTagPopover({ subject: 'varc', rcNum: nextVal });
+      }
+    } else {
+      setActiveTagPopover(null);
+    }
+  };
+
+  const handleSaveLrdiTag = (pace, outcome) => {
+    if (!activeTagPopover || activeTagPopover.subject !== 'lrdi') return;
+    const newTag = {
+      id: 'tag_' + Date.now(),
+      setNumber: activeTagPopover.setNum || (Number(selectedDay.lrdiCount) || 1),
+      pace: pace || activeTagPopover.pace || '<12 min',
+      outcome: outcome || activeTagPopover.outcome || 'Solved Clean',
+      timestamp: Date.now()
+    };
+    const currentTags = selectedDay.lrdiTags || [];
+    const updatedTags = [...currentTags, newTag];
+    if (updateDayTags) {
+      updateDayTags(activeMonth, activeWeek, selectedDay.day, 'lrdi', updatedTags);
+    }
+    setActiveTagPopover(null);
+  };
+
+  const handleRemoveLrdiTag = (tagId) => {
+    const currentTags = selectedDay.lrdiTags || [];
+    const updatedTags = currentTags.filter(t => t.id !== tagId);
+    if (updateDayTags) {
+      updateDayTags(activeMonth, activeWeek, selectedDay.day, 'lrdi', updatedTags);
+    }
+  };
+
+  const handleSaveVarcTag = (genre) => {
+    if (!activeTagPopover || activeTagPopover.subject !== 'varc') return;
+    const newTag = {
+      id: 'rc_' + Date.now(),
+      rcNumber: activeTagPopover.rcNum || (Number(selectedDay.varcCount) || 1),
+      genre: genre || 'Philosophy',
+      timestamp: Date.now()
+    };
+    const currentTags = selectedDay.varcTags || [];
+    const updatedTags = [...currentTags, newTag];
+    if (updateDayTags) {
+      updateDayTags(activeMonth, activeWeek, selectedDay.day, 'varc', updatedTags);
+    }
+    setActiveTagPopover(null);
+  };
+
+  const handleRemoveVarcTag = (tagId) => {
+    const currentTags = selectedDay.varcTags || [];
+    const updatedTags = currentTags.filter(t => t.id !== tagId);
+    if (updateDayTags) {
+      updateDayTags(activeMonth, activeWeek, selectedDay.day, 'varc', updatedTags);
+    }
+  };
+
+  // Study Debt & Rollover Mode Calculation
+  const quotaRolloverMode = state?.settings?.quotaRolloverMode || 'strict';
+  const studyDebt = useMemo(() => {
+    if (quotaRolloverMode !== 'rollover') {
+      return { hasDebt: false, qDeficit: 0, lrdiDeficit: 0, varcDeficit: 0, total: 0 };
+    }
+    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const currentDayIdx = Math.max(0, dayOrder.indexOf(selectedDay.day));
+
+    let qDef = 0;
+    let lrdiDef = 0;
+    let varcDef = 0;
+
+    // Check previous days in this week
+    for (let i = 0; i < currentDayIdx; i++) {
+      const dName = dayOrder[i];
+      const dayObj = activeWeekDays.find(d => d.day === dName);
+      if (dayObj) {
+        const qTarget = getSubjectTarget('quant', dayObj);
+        const lTarget = getSubjectTarget('lrdi', dayObj);
+        const vTarget = getSubjectTarget('varc', dayObj);
+
+        qDef += Math.max(0, qTarget - (Number(dayObj.quantCount) || 0));
+        lrdiDef += Math.max(0, lTarget - (Number(dayObj.lrdiCount) || 0));
+        varcDef += Math.max(0, vTarget - (Number(dayObj.varcCount) || 0));
+      }
+    }
+
+    // Gentle psychological ceiling: prevent demoralizing runaway backlogs (cap each at 1.5x daily quota)
+    const cappedQDef = Math.min(qDef, 27);
+    const cappedLDef = Math.min(lrdiDef, 6);
+    const cappedVDef = Math.min(varcDef, 6);
+
+    const total = cappedQDef + cappedLDef + cappedVDef;
+    return {
+      hasDebt: total > 0,
+      qDeficit: cappedQDef,
+      lrdiDeficit: cappedLDef,
+      varcDeficit: cappedVDef,
+      total
+    };
+  }, [quotaRolloverMode, selectedDay.day, activeWeekDays]);
+
+  const [debtForgiven, setDebtForgiven] = useState(false);
+
+  useEffect(() => {
+    setDebtForgiven(false);
+  }, [selectedDay.day, activeWeek, activeMonth]);
+
+  const handleForgiveDebt = () => {
+    setDebtForgiven(true);
   };
 
   const handleDirectQtyChange = (month, weekName, dayName, subject, val) => {
@@ -342,11 +468,6 @@ function DailyTrackerView({
     const isCompleted = qty >= target;
     updateDayMetric(month, weekName, dayName, subject, isCompleted, qty);
   };
-
-  // Selected Day Data
-  const selectedDay = useMemo(() => {
-    return activeWeekDays.find(d => d.day === effectiveDayName) || activeWeekDays[0] || {};
-  }, [activeWeekDays, effectiveDayName]);
 
   const selectedDayDate = getCalculatedDateForTrackerDay(activeMonth, activeWeek, selectedDay.day, startDateStr);
   const selectedDayDateFormatted = formatDateMonthDay(selectedDayDate);
@@ -381,7 +502,10 @@ function DailyTrackerView({
       prevCompletedCountRef.current < totalDayQuotas &&
       selectedCompletedCount === totalDayQuotas
     ) {
-      setShowCelebrationModal(true);
+      // Play rewarding victory fanfare quietly without intrusive modal popup
+      try {
+        playGamingAchievementSound(0.035);
+      } catch (_e) {}
     }
     prevCompletedCountRef.current = selectedCompletedCount;
   }, [selectedCompletedCount, totalDayQuotas, selectedDay.day]);
@@ -453,7 +577,10 @@ function DailyTrackerView({
           <button 
             type="button" 
             className={`minimal-btn outline adaptive-pacing-btn ${isWeekLockedByBacklog ? 'is-backlog-locked' : ''}`}
-            onClick={() => onOpenCheckpoint && onOpenCheckpoint(activeMonth, activeWeek, globalWeekNum)}
+            onClick={(e) => {
+              tactileClick(e);
+              if (onOpenCheckpoint) onOpenCheckpoint(activeMonth, activeWeek, globalWeekNum);
+            }}
             title={isWeekLockedByBacklog ? `Week is paused: ${blockingBacklog?.weekKey || 'Prerequisite'} backlog pending` : "Review weekly syllabus progress, deficits, and recovery plans"}
             style={{
               borderColor: isWeekLockedByBacklog ? 'rgba(248, 113, 113, 0.4)' : (currentWeekProgress.badgeColor ? `${currentWeekProgress.badgeColor}55` : undefined),
@@ -475,7 +602,10 @@ function DailyTrackerView({
             <button 
               type="button" 
               className="minimal-btn outline reset-week-trigger-btn"
-              onClick={() => setResetModal({ isOpen: true, type: 'week' })}
+              onClick={(e) => {
+                tactileClick(e);
+                setResetModal({ isOpen: true, type: 'week' });
+              }}
               title={`Reset completed drills for ${activeWeek}`}
             >
               <Icons.RotateCcw size={12} />
@@ -483,23 +613,13 @@ function DailyTrackerView({
             </button>
           )}
 
-          {onRecordDayProgress && (
-            <button 
-              type="button" 
-              className="minimal-btn outline"
-              onClick={onRecordDayProgress}
-              disabled={syncStatus === 'syncing'}
-              title="Save day progress snapshot"
-            >
-              <Icons.Save size={13} />
-              <span>Record</span>
-            </button>
-          )}
-
           <button 
             type="button" 
             className="minimal-btn accent"
-            onClick={handleJumpToToday}
+            onClick={(e) => {
+              tactileClick(e);
+              handleJumpToToday();
+            }}
             title="Jump to today's active day"
           >
             <Icons.Zap size={13} />
@@ -724,7 +844,10 @@ function DailyTrackerView({
                   <button
                     type="button"
                     className="day-reset-inline-btn"
-                    onClick={() => setResetModal({ isOpen: true, type: 'day' })}
+                    onClick={(e) => {
+                      tactileClick(e);
+                      setResetModal({ isOpen: true, type: 'day' });
+                    }}
                     title={`Reset ${selectedDay.day} drills to 0`}
                     style={{
                       display: 'inline-flex',
@@ -743,6 +866,7 @@ function DailyTrackerView({
                     <span>Reset Day</span>
                   </button>
                 )}
+
               </div>
               <span className="day-syllabus-subtitle">
                 {activeMonth} • {activeWeek} Syllabus Targets {activeWeekPlan?.phase ? `• ${activeWeekPlan.phase.split(':')[0]}` : ''}
@@ -846,6 +970,128 @@ function DailyTrackerView({
             </div>
           )}
 
+          {/* Quota Rollover / Study Debt Mode: Refined Obsidian Telemetry Strip */}
+          {quotaRolloverMode === 'rollover' && (
+            studyDebt.hasDebt && !debtForgiven ? (
+              <div className="weekend-catchup-bank-card animate-fade-in" style={{
+                marginBottom: '16px',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                background: 'rgba(18, 18, 24, 0.75)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                backdropFilter: 'blur(10px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Icons.Shield size={14} color="#38bdf8" />
+                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255, 255, 255, 0.9)' }}>
+                      WEEKEND SPRINT BUFFER
+                    </span>
+                    <span className="font-mono" style={{ fontSize: '10px', fontWeight: 700, background: 'rgba(56, 189, 248, 0.14)', color: '#38bdf8', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                      +{studyDebt.total} BACKLOG
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    {studyDebt.qDeficit > 0 && (
+                      <span className="font-mono" style={{ fontSize: '10.5px', color: 'rgba(255, 255, 255, 0.75)', background: 'rgba(255, 255, 255, 0.04)', padding: '2px 7px', borderRadius: '5px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        QA <strong style={{ color: '#38bdf8' }}>+{studyDebt.qDeficit}</strong>
+                      </span>
+                    )}
+                    {studyDebt.lrdiDeficit > 0 && (
+                      <span className="font-mono" style={{ fontSize: '10.5px', color: 'rgba(255, 255, 255, 0.75)', background: 'rgba(255, 255, 255, 0.04)', padding: '2px 7px', borderRadius: '5px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        DILR <strong style={{ color: '#c084fc' }}>+{studyDebt.lrdiDeficit}</strong>
+                      </span>
+                    )}
+                    {studyDebt.varcDeficit > 0 && (
+                      <span className="font-mono" style={{ fontSize: '10.5px', color: 'rgba(255, 255, 255, 0.75)', background: 'rgba(255, 255, 255, 0.04)', padding: '2px 7px', borderRadius: '5px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        VARC <strong style={{ color: '#34d399' }}>+{studyDebt.varcDeficit}</strong>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  {onNavigateToBacklog && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        tactileClick(e);
+                        onNavigateToBacklog();
+                      }}
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(56, 189, 248, 0.14)',
+                        color: '#38bdf8',
+                        border: '1px solid rgba(56, 189, 248, 0.35)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <Icons.Zap size={11} />
+                      <span>Allocate to Weekend Sprint</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      tactileClick(e);
+                      handleForgiveDebt();
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      background: 'transparent',
+                      color: 'rgba(255, 255, 255, 0.5)',
+                      border: '1px solid transparent',
+                      cursor: 'pointer',
+                      transition: 'color 0.15s ease'
+                    }}
+                    title="Clear backlog buffer"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="weekend-catchup-bank-card animate-fade-in" style={{
+                marginBottom: '16px',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                background: 'rgba(18, 18, 24, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Icons.Shield size={13} color="#34d399" />
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.85)' }}>
+                    WEEKEND BUFFER · <strong style={{ color: '#34d399' }}>0 BACKLOG</strong>
+                  </span>
+                </div>
+                <span className="font-mono" style={{ fontSize: '10.5px', color: 'rgba(255, 255, 255, 0.45)' }}>
+                  Syllabus paced on schedule
+                </span>
+              </div>
+            )
+          )}
+
           {/* The 3 Drill Cards */}
           <div className={`drills-stack ${selectedDayIsPrior ? 'prior-day-blurred' : ''} ${isWeekLockedByBacklog ? 'backlog-locked-stack' : ''}`}>
             {isWeekLockedByBacklog && (
@@ -932,7 +1178,7 @@ function DailyTrackerView({
                     <button 
                       type="button"
                       className="step-btn"
-                      onClick={() => handleStepQty(activeMonth, activeWeek, selectedDay.day, 'quant', selectedDay.quantCount, -1)}
+                      onClick={(e) => handleStepQty(activeMonth, activeWeek, selectedDay.day, 'quant', selectedDay.quantCount, -1, e)}
                     >
                       -
                     </button>
@@ -946,7 +1192,7 @@ function DailyTrackerView({
                     <button 
                       type="button"
                       className="step-btn"
-                      onClick={() => handleStepQty(activeMonth, activeWeek, selectedDay.day, 'quant', selectedDay.quantCount, 1)}
+                      onClick={(e) => handleStepQty(activeMonth, activeWeek, selectedDay.day, 'quant', selectedDay.quantCount, 1, e)}
                     >
                       +
                     </button>
@@ -1031,7 +1277,7 @@ function DailyTrackerView({
                     <button 
                       type="button"
                       className="step-btn"
-                      onClick={() => handleStepQty(activeMonth, activeWeek, selectedDay.day, 'lrdi', selectedDay.lrdiCount, -1)}
+                      onClick={(e) => handleStepQty(activeMonth, activeWeek, selectedDay.day, 'lrdi', selectedDay.lrdiCount, -1, e)}
                     >
                       -
                     </button>
@@ -1045,14 +1291,170 @@ function DailyTrackerView({
                     <button 
                       type="button"
                       className="step-btn"
-                      onClick={() => handleStepQty(activeMonth, activeWeek, selectedDay.day, 'lrdi', selectedDay.lrdiCount, 1)}
+                      onClick={(e) => handleStepQty(activeMonth, activeWeek, selectedDay.day, 'lrdi', selectedDay.lrdiCount, 1, e)}
                     >
                       +
                     </button>
                   </div>
                 </div>
               </div>
-            </div>
+
+              {/* DILR Tap-to-Tag Inline Popover */}
+              {activeTagPopover?.subject === 'lrdi' && (
+                <div className="drill-tag-popover animate-fade-in" style={{
+                  marginTop: '10px',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  background: '#0d1526',
+                  border: '1px solid rgba(168, 85, 247, 0.4)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(168, 85, 247, 0.15)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#c084fc' }}>
+                      Tag DILR Set #{activeTagPopover.setNum || selectedDay.lrdiCount || 1} Details:
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => setActiveTagPopover(null)}
+                      style={{ fontSize: '12px', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                      title="Dismiss"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Pace Selection */}
+                  <div>
+                    <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Pace:</span>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {['<12 min', '12-15 min', '15-20 min', '20+ min'].map(p => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setActiveTagPopover(prev => ({ ...prev, pace: p }))}
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            padding: '3px 8px',
+                            borderRadius: '5px',
+                            background: activeTagPopover.pace === p ? 'rgba(168, 85, 247, 0.3)' : 'rgba(255, 255, 255, 0.05)',
+                            color: activeTagPopover.pace === p ? '#f3e8ff' : '#cbd5e1',
+                            border: activeTagPopover.pace === p ? '1px solid #c084fc' : '1px solid rgba(255, 255, 255, 0.1)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Outcome Selection */}
+                  <div>
+                    <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Outcome:</span>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {['Solved Clean', 'Needed 1 Hint', 'Trapped / Read Solution'].map(o => (
+                        <button
+                          key={o}
+                          type="button"
+                          onClick={() => {
+                            setActiveTagPopover(prev => ({ ...prev, outcome: o }));
+                            handleSaveLrdiTag(activeTagPopover.pace || '<12 min', o);
+                          }}
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            padding: '3px 8px',
+                            borderRadius: '5px',
+                            background: activeTagPopover.outcome === o ? 'rgba(52, 211, 153, 0.3)' : 'rgba(255, 255, 255, 0.05)',
+                            color: activeTagPopover.outcome === o ? '#d1fae5' : '#cbd5e1',
+                            border: activeTagPopover.outcome === o ? '1px solid #34d399' : '1px solid rgba(255, 255, 255, 0.1)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {o}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Logged DILR Tags Ribbon (only rendered when tags exist) */}
+              {(selectedDay.lrdiTags || []).length > 0 && (
+                <div className="drill-tags-ribbon" style={{
+                  marginTop: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                  paddingTop: '6px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                  width: '100%'
+                }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      tactileClick(e);
+                      setActiveTagPopover({ subject: 'lrdi', setNum: selectedDay.lrdiCount || 1, pace: '<12 min', outcome: 'Solved Clean' });
+                    }}
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      background: 'rgba(168, 85, 247, 0.15)',
+                      color: '#c084fc',
+                      border: '1px solid rgba(168, 85, 247, 0.3)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}
+                    title="Tag DILR set pace and outcome"
+                  >
+                    <Icons.Tag size={10} />
+                    <span>+ Tag Set</span>
+                  </button>
+
+                {(selectedDay.lrdiTags || []).map(tag => (
+                  <span
+                    key={tag.id}
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      background: 'rgba(168, 85, 247, 0.12)',
+                      color: '#d8b4fe',
+                      border: '1px solid rgba(168, 85, 247, 0.25)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span>Set {tag.setNumber}: {tag.pace} • {tag.outcome}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        tactileClick(e);
+                        handleRemoveLrdiTag(tag.id);
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, fontSize: '11px', lineHeight: 1 }}
+                      title="Remove tag"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
 
             {/* VARC DRILL */}
             <div className={`drill-item-card varc ${selectedDay.varcCompleted ? 'done' : ''} ${Boolean(selectedDay.catchUpActive && selectedDay.catchUpVarc > 0) ? 'has-catch-up' : ''}`}>
@@ -1130,7 +1532,7 @@ function DailyTrackerView({
                     <button 
                       type="button"
                       className="step-btn"
-                      onClick={() => handleStepQty(activeMonth, activeWeek, selectedDay.day, 'varc', selectedDay.varcCount, -1)}
+                      onClick={(e) => handleStepQty(activeMonth, activeWeek, selectedDay.day, 'varc', selectedDay.varcCount, -1, e)}
                     >
                       -
                     </button>
@@ -1144,13 +1546,136 @@ function DailyTrackerView({
                     <button 
                       type="button" 
                       className="step-btn"
-                      onClick={() => handleStepQty(activeMonth, activeWeek, selectedDay.day, 'varc', selectedDay.varcCount, 1)}
+                      onClick={(e) => handleStepQty(activeMonth, activeWeek, selectedDay.day, 'varc', selectedDay.varcCount, 1, e)}
                     >
                       +
                     </button>
                   </div>
                 </div>
               </div>
+
+              {/* VARC Tap-to-Tag Inline Popover */}
+              {activeTagPopover?.subject === 'varc' && (
+                <div className="drill-tag-popover animate-fade-in" style={{
+                  marginTop: '10px',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  background: '#0d1526',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(16, 185, 129, 0.15)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#34d399' }}>
+                      1-Click Genre Tag for RC #{activeTagPopover.rcNum || selectedDay.varcCount || 1}:
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => setActiveTagPopover(null)}
+                      style={{ fontSize: '12px', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                      title="Dismiss"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                    {['Philosophy', 'Economics/Finance', 'Sociology', 'Science/Tech', 'Literature'].map(genre => (
+                      <button
+                        key={genre}
+                        type="button"
+                        onClick={() => handleSaveVarcTag(genre)}
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 600,
+                          padding: '3px 8px',
+                          borderRadius: '5px',
+                          background: 'rgba(52, 211, 153, 0.15)',
+                          color: '#a7f3d0',
+                          border: '1px solid rgba(52, 211, 153, 0.3)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {genre}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Logged VARC Tags Ribbon (only rendered when tags exist) */}
+              {(selectedDay.varcTags || []).length > 0 && (
+                <div className="drill-tags-ribbon" style={{
+                  marginTop: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                  paddingTop: '6px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                  width: '100%'
+                }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      tactileClick(e);
+                      setActiveTagPopover({ subject: 'varc', rcNum: selectedDay.varcCount || 1 });
+                    }}
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      background: 'rgba(52, 211, 153, 0.15)',
+                      color: '#34d399',
+                      border: '1px solid rgba(52, 211, 153, 0.3)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}
+                    title="Tag RC passage genre"
+                  >
+                    <Icons.Tag size={10} />
+                    <span>+ Tag Genre</span>
+                  </button>
+
+                  {(selectedDay.varcTags || []).map(tag => (
+                    <span
+                      key={tag.id}
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        padding: '2px 7px',
+                        borderRadius: '4px',
+                        background: 'rgba(52, 211, 153, 0.12)',
+                        color: '#a7f3d0',
+                        border: '1px solid rgba(52, 211, 153, 0.25)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <span>RC {tag.rcNumber}: {tag.genre}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          tactileClick(e);
+                          handleRemoveVarcTag(tag.id);
+                        }}
+                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, fontSize: '11px', lineHeight: 1 }}
+                        title="Remove tag"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* CUSTOM OBJECTIVE DRILL (Rendered if user added it, otherwise show "+ Add Custom Objective" button) */}

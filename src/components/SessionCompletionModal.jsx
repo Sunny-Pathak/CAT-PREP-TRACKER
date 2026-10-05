@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { stripEmojis } from '../utils/textUtils';
 import SmoothCaretInput from './animations/SmoothCaretInput';
+import { tactileClick } from '../utils/gsapAnimations';
 
 // Helper to extract numeric target from target strings like "Solve 18 Quant Questions"
 export const parseTargetNumber = (targetStr, fallback = 18) => {
@@ -27,9 +28,20 @@ export default function SessionCompletionModal({
     initialNotes = ''
   } = safeSessionData;
 
-  const cleanSubject = stripEmojis(subject || 'General');
-  const subjKey = cleanSubject.toLowerCase().trim();
-  const isDrillSubject = ['quant', 'lrdi', 'varc'].includes(subjKey);
+  const [activeSubject, setActiveSubject] = useState(() => stripEmojis(subject || 'Quant'));
+  const [hasChangedSubject, setHasChangedSubject] = useState(false);
+  const cleanSubject = activeSubject;
+
+  useEffect(() => {
+    if (sessionData?.subject) {
+      setActiveSubject(stripEmojis(sessionData.subject || 'Quant'));
+      setHasChangedSubject(false);
+    }
+  }, [sessionData?.subject, isOpen]);
+
+  const rawSubjKey = (activeSubject || 'general').toLowerCase().trim();
+  const subjKey = rawSubjKey === 'qa' ? 'quant' : (rawSubjKey === 'dilr' ? 'lrdi' : rawSubjKey);
+  const isDrillSubject = ['quant', 'lrdi', 'varc', 'custom'].includes(subjKey);
 
   // Determine subject units and fallbacks
   const { unitName, defaultDailyTarget, defaultWeeklyTarget } = useMemo(() => {
@@ -39,8 +51,11 @@ export default function SessionCompletionModal({
     if (subjKey === 'varc') {
       return { unitName: 'RCs', defaultDailyTarget: 4, defaultWeeklyTarget: 24 };
     }
+    if (subjKey === 'custom') {
+      return { unitName: todayDay?.customUnit || 'Tasks', defaultDailyTarget: todayDay?.customTargetQty || 1, defaultWeeklyTarget: (todayDay?.customTargetQty || 1) * 6 };
+    }
     return { unitName: 'Questions', defaultDailyTarget: 18, defaultWeeklyTarget: 108 };
-  }, [subjKey]);
+  }, [subjKey, todayDay?.customUnit, todayDay?.customTargetQty]);
 
   // Extract Daily and Weekly Quota info
   const {
@@ -66,6 +81,10 @@ export default function SessionCompletionModal({
       target = parseTargetNumber(todayDay.varcTarget, defaultDailyTarget);
       todaySolved = todayDay.varcCount || 0;
       alreadyDone = Boolean(todayDay.varcCompleted);
+    } else if (subjKey === 'custom') {
+      target = Number(todayDay.customTargetQty) || defaultDailyTarget;
+      todaySolved = todayDay.customCount || 0;
+      alreadyDone = Boolean(todayDay.customCompleted);
     }
 
     // Weekly metrics
@@ -81,6 +100,9 @@ export default function SessionCompletionModal({
       } else if (subjKey === 'varc') {
         weekTargetTotal += parseTargetNumber(d.varcTarget, defaultDailyTarget);
         weekSolvedTotal += (d.varcCount || 0);
+      } else if (subjKey === 'custom') {
+        weekTargetTotal += (Number(d.customTargetQty) || defaultDailyTarget);
+        weekSolvedTotal += (d.customCount || 0);
       }
     });
 
@@ -139,11 +161,15 @@ export default function SessionCompletionModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onConfirm({
+    const payload = {
       notes: sessionNotes,
       questionsSolved: isDrillSubject ? Math.max(0, questionsSolved) : 0,
       markCompleted: isDrillSubject ? markCompleted : false
-    });
+    };
+    if (hasChangedSubject) {
+      payload.subject = activeSubject;
+    }
+    onConfirm(payload);
   };
 
   if (!isOpen || !sessionData) return null;
@@ -156,7 +182,7 @@ export default function SessionCompletionModal({
         <div className="session-modal-head">
           <div className="session-modal-head-left">
             <span className={`session-subject-badge ${subjKey}`}>
-              {cleanSubject}
+              {activeSubject}
             </span>
             <span className="session-duration-tag">
               {durationMinutes}m focus {startTimeStr && endTimeStr ? `(${startTimeStr} - ${endTimeStr})` : ''}
@@ -176,8 +202,78 @@ export default function SessionCompletionModal({
         </div>
 
         <form onSubmit={handleSubmit} className="session-modal-body">
+          {/* Focus Timer Bridge: 1-Click Subject Allocation */}
+          <div style={{
+            marginBottom: '16px',
+            padding: '12px 14px',
+            borderRadius: '12px',
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.08)'
+          }}>
+            <span style={{
+              display: 'block',
+              fontSize: '11px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              color: 'rgba(255, 255, 255, 0.6)',
+              marginBottom: '8px'
+            }}>
+              Log these {durationMinutes} minutes to:
+            </span>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(5, 1fr)',
+              gap: '4px',
+              background: 'rgba(0, 0, 0, 0.35)',
+              padding: '3px',
+              borderRadius: '9px',
+              border: '1px solid rgba(255, 255, 255, 0.08)'
+            }}>
+              {[
+                { label: 'QA', subj: 'Quant' },
+                { label: 'DILR', subj: 'DILR' },
+                { label: 'VARC', subj: 'VARC' },
+                { label: 'Custom', subj: 'Custom' },
+                { label: 'General', subj: 'General' }
+              ].map(opt => {
+                const isSelected = activeSubject.toLowerCase() === opt.subj.toLowerCase() ||
+                  (opt.subj === 'Quant' && subjKey === 'quant') ||
+                  (opt.subj === 'DILR' && subjKey === 'lrdi') ||
+                  (opt.subj === 'Custom' && subjKey === 'custom') ||
+                  (opt.subj === 'General' && subjKey === 'general');
+                return (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={(e) => {
+                      tactileClick(e);
+                      setActiveSubject(opt.subj);
+                      setHasChangedSubject(true);
+                    }}
+                    style={{
+                      padding: '6px 2px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.14s cubic-bezier(0.16, 1, 0.3, 1)',
+                      background: isSelected ? 'rgba(168, 85, 247, 0.18)' : 'transparent',
+                      color: isSelected ? '#f3e8ff' : 'rgba(255, 255, 255, 0.65)',
+                      border: isSelected ? '1px solid rgba(168, 85, 247, 0.45)' : '1px solid transparent',
+                      boxShadow: isSelected ? '0 0 10px rgba(168, 85, 247, 0.2)' : 'none'
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <h2 id="session-modal-title" className="session-modal-title">
-            Log {cleanSubject} Output
+            Log {activeSubject} Output
           </h2>
 
           {/* DRILL SUBJECT: CLEAN PROGRESS STRIP */}
@@ -229,7 +325,10 @@ export default function SessionCompletionModal({
                     <button 
                       type="button" 
                       className="stepper-arrow-btn"
-                      onClick={() => handleStep(-1)}
+                      onClick={(e) => {
+                        tactileClick(e);
+                        handleStep(-1);
+                      }}
                       title="Decrease"
                     >
                       -
@@ -247,7 +346,10 @@ export default function SessionCompletionModal({
                     <button 
                       type="button" 
                       className="stepper-arrow-btn"
-                      onClick={() => handleStep(1)}
+                      onClick={(e) => {
+                        tactileClick(e);
+                        handleStep(1);
+                      }}
                       title="Increase"
                     >
                       +
@@ -261,7 +363,10 @@ export default function SessionCompletionModal({
                         key={idx}
                         type="button"
                         className={`clean-chip-btn ${questionsSolved === chip.val ? 'selected' : ''}`}
-                        onClick={() => setQuestionsSolved(chip.val)}
+                        onClick={(e) => {
+                          tactileClick(e);
+                          setQuestionsSolved(chip.val);
+                        }}
                       >
                         {chip.label}
                       </button>
@@ -276,7 +381,10 @@ export default function SessionCompletionModal({
                   type="checkbox"
                   className="clean-check-box"
                   checked={markCompleted}
-                  onChange={(e) => setUserToggledComplete(e.target.checked)}
+                  onChange={(e) => {
+                    tactileClick(e.target);
+                    setUserToggledComplete(e.target.checked);
+                  }}
                 />
                 <span className="clean-check-text">
                   Mark {cleanSubject} daily drill completed
@@ -308,13 +416,17 @@ export default function SessionCompletionModal({
             <button 
               type="button" 
               className="btn-secondary clean-foot-btn"
-              onClick={onClose}
+              onClick={(e) => {
+                tactileClick(e);
+                onClose();
+              }}
             >
               Resume
             </button>
             <button 
               type="submit" 
               className="btn-primary clean-foot-btn primary"
+              onClick={(e) => tactileClick(e)}
             >
               Save Session
             </button>

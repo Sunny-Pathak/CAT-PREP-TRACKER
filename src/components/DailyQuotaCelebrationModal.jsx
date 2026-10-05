@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { playObjectiveCompleteGameSound } from '../utils/audioUtils';
+import { tactileClick } from '../utils/gsapAnimations';
 
 /**
  * DailyQuotaCelebrationModal
@@ -214,7 +215,7 @@ export default function DailyQuotaCelebrationModal({
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            <span>Today Stamped at <strong>Level 4 Max Contribution</strong> • Discipline Secured!</span>
+            <span>Today Stamped at <strong>Level 4 Max Contribution</strong> • Streak Secured</span>
           </div>
         </div>
 
@@ -223,20 +224,15 @@ export default function DailyQuotaCelebrationModal({
           <button 
             type="button" 
             className="celebrate-claim-btn"
-            onClick={onClose}
+            onClick={(e) => {
+              tactileClick(e);
+              onClose();
+            }}
             autoFocus
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            <span>Continue Daily Discipline</span>
-          </button>
-
-          <button 
-            type="button" 
-            className="celebrate-sub-btn"
-            onClick={onClose}
-          >
             <span>Claim Victory & Continue</span>
           </button>
         </div>

@@ -30,7 +30,9 @@ export const getInitialState = () => {
         customCount: 0,
         notes: day.notes || "",
         studyHours: day.studyHours || 0,
-        sessions: day.sessions || []
+        sessions: day.sessions || [],
+        lrdiTags: day.lrdiTags || [],
+        varcTags: day.varcTags || []
       }))
     }));
   }
@@ -66,7 +68,8 @@ export const getInitialState = () => {
     settings: {
       theme: "dark", // default to dark mode for premium minimal feel
       startDate: defaultStartDate,
-      targetExam: "cat"
+      targetExam: "cat",
+      quotaRolloverMode: "strict"
     }
   };
 };
@@ -86,6 +89,9 @@ export const loadState = () => {
     }
     if (!parsed.settings.targetExam) {
       parsed.settings.targetExam = (typeof window !== 'undefined' && (localStorage.getItem('catalyze_target_exam') || localStorage.getItem('aspiranto_target_exam'))) || 'cat';
+    }
+    if (!parsed.settings.quotaRolloverMode) {
+      parsed.settings.quotaRolloverMode = 'strict';
     }
     if (!parsed.lastUpdated) {
       parsed.lastUpdated = Date.now();
@@ -158,6 +164,17 @@ export const mergeTrackerStates = (localState, cloudState) => {
           mergedNotes = `${mergedNotes}\n${cDay.notes}`.trim();
         }
 
+        // Tags merge: merge unique tag records by id
+        const lrdiTagsMap = new Map();
+        [...(lDay.lrdiTags || []), ...(cDay.lrdiTags || [])].forEach(t => {
+          if (t && (t.id || t.timestamp)) lrdiTagsMap.set(t.id || `${t.timestamp}_${t.setNumber}`, t);
+        });
+
+        const varcTagsMap = new Map();
+        [...(lDay.varcTags || []), ...(cDay.varcTags || [])].forEach(t => {
+          if (t && (t.id || t.timestamp)) varcTagsMap.set(t.id || `${t.timestamp}_${t.rcNumber}`, t);
+        });
+
         return {
           ...lDay,
           quantCompleted: Boolean(lDay.quantCompleted || cDay.quantCompleted),
@@ -180,7 +197,9 @@ export const mergeTrackerStates = (localState, cloudState) => {
           catchUpVarc: Number(lDay.catchUpVarc || cDay.catchUpVarc) || 0,
           studyHours: Math.max(Number(lDay.studyHours) || 0, Number(cDay.studyHours) || 0),
           notes: mergedNotes,
-          sessions: Array.from(sessionsMap.values())
+          sessions: Array.from(sessionsMap.values()),
+          lrdiTags: Array.from(lrdiTagsMap.values()),
+          varcTags: Array.from(varcTagsMap.values())
         };
       });
 
@@ -244,7 +263,8 @@ export const mergeTrackerStates = (localState, cloudState) => {
     settings: {
       ...(cloudState.settings || {}),
       ...(localState.settings || {}),
-      startDate: localState.settings?.startDate || cloudState.settings?.startDate || base.settings.startDate
+      startDate: localState.settings?.startDate || cloudState.settings?.startDate || base.settings.startDate,
+      quotaRolloverMode: localState.settings?.quotaRolloverMode || cloudState.settings?.quotaRolloverMode || 'strict'
     },
     lastUpdated: mergedLastUpdated
   };

@@ -169,4 +169,46 @@ describe('SessionCompletionModal & Quota Verification', () => {
       markCompleted: false
     });
   });
+
+  it('allows 1-click subject reallocation to VARC or custom subject', () => {
+    const onConfirm = vi.fn();
+    const todayDay = {
+      day: 'Monday',
+      varcTarget: 'Solve 4 RCs',
+      varcCount: 0,
+      varcCompleted: false
+    };
+
+    render(
+      <SessionCompletionModal
+        isOpen={true}
+        onClose={() => {}}
+        onConfirm={onConfirm}
+        sessionData={{
+          subject: 'Quant',
+          durationMinutes: 30,
+          startTimeStr: '11:00 AM',
+          endTimeStr: '11:30 AM',
+          initialNotes: 'Switched focus to verbal'
+        }}
+        todayDay={todayDay}
+        activeWeekDays={[todayDay]}
+        activeWeekName="Week 1"
+      />
+    );
+
+    // Click 1-click subject allocation button "VARC"
+    const varcBtn = screen.getByRole('button', { name: 'VARC' });
+    fireEvent.click(varcBtn);
+
+    const saveBtn = screen.getByText(/Save Session/i);
+    fireEvent.click(saveBtn);
+
+    expect(onConfirm).toHaveBeenCalledWith({
+      subject: 'VARC',
+      notes: 'Switched focus to verbal',
+      questionsSolved: 0,
+      markCompleted: false
+    });
+  });
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { stripEmojis } from '../utils/textUtils';
@@ -292,9 +292,10 @@ export default function StudyTimerView({
     setShowCompletionModal(true);
   };
 
-  const handleConfirmCompletion = ({ notes: finalNotes, questionsSolved, markCompleted }) => {
+  const handleConfirmCompletion = ({ subject: finalSubject, notes: finalNotes, questionsSolved, markCompleted }) => {
     setShowCompletionModal(false);
     onFinishTimer({
+      subject: finalSubject || currentSubject,
       notes: finalNotes,
       questionsSolved,
       markCompleted
@@ -339,6 +340,56 @@ export default function StudyTimerView({
       initialNotes: notes
     };
   }, [timerState, totalSeconds, secondsLeft, timerMode, currentSubject, notes]);
+
+  // Effective Pace Calculation (Minutes Logged ÷ Output Solved)
+  const effectivePace = useMemo(() => {
+    const rawSubj = (currentSubject || 'Quant').toLowerCase();
+    const isQuant = rawSubj.includes('quant') || rawSubj === 'qa';
+    const isLrdi = rawSubj.includes('lrdi') || rawSubj.includes('dilr');
+    const isVarc = rawSubj.includes('varc') || rawSubj.includes('rc');
+
+    const subjectSessions = todaySessions.filter(s => {
+      const sSubj = (s.subject || '').toLowerCase();
+      if (isQuant) return sSubj.includes('quant') || sSubj === 'qa';
+      if (isLrdi) return sSubj.includes('lrdi') || sSubj.includes('dilr');
+      if (isVarc) return sSubj.includes('varc');
+      return sSubj === rawSubj;
+    });
+
+    const totalMins = subjectSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+    let solvedCount = 0;
+    let unitLabel = 'Q';
+
+    if (isQuant) {
+      solvedCount = todayDay?.quantCount || 0;
+      unitLabel = 'Q';
+    } else if (isLrdi) {
+      solvedCount = todayDay?.lrdiCount || 0;
+      unitLabel = 'set';
+    } else if (isVarc) {
+      solvedCount = todayDay?.varcCount || 0;
+      unitLabel = 'RC';
+    } else {
+      solvedCount = todayDay?.customCount || 0;
+      unitLabel = todayDay?.customUnit || 'task';
+    }
+
+    if (solvedCount > 0 && totalMins > 0) {
+      const paceVal = (totalMins / solvedCount).toFixed(1);
+      return {
+        formatted: `${paceVal}m / ${unitLabel}`,
+        mins: totalMins,
+        solved: solvedCount,
+        hasPace: true
+      };
+    }
+    return {
+      formatted: isLrdi ? 'Target: ~15m/set' : isVarc ? 'Target: ~10m/RC' : 'Target: ~2m/Q',
+      mins: totalMins,
+      solved: solvedCount,
+      hasPace: false
+    };
+  }, [currentSubject, todaySessions, todayDay]);
 
   return (
     <div className={`study-timer-minimal-container monumental-sanctuary-root ${isZenFullscreen ? 'zen-fullscreen-mode' : ''}`}>
@@ -439,6 +490,28 @@ export default function StudyTimerView({
                   {currentSubject} Focus
                 </span>
                 {timerMode === 'stopwatch' && <span className="monumental-stopwatch-label">(Stopwatch)</span>}
+                {effectivePace?.hasPace && (
+                  <span 
+                    className="monumental-pace-pill active-pace"
+                    title="Effective Pace: Minutes Logged ÷ Solved Output"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      padding: '1px 7px',
+                      borderRadius: '999px',
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      color: '#38bdf8',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      marginTop: '3px'
+                    }}
+                  >
+                    <Icons.Zap size={9} color="#38bdf8" />
+                    <span>{effectivePace.formatted}</span>
+                  </span>
+                )}
               </div>
             </div>
           </ChronoTimerHUD>
@@ -641,9 +714,23 @@ export default function StudyTimerView({
               }}
               title="Toggle Today's Session Log"
             >
-              <span className="telemetry-value">Today: {todayTotalHours.toFixed(1)} hrs</span>
+              <span className="telemetry-value">
+                Today: {todayTotalHours >= 0.1 
+                  ? `${todayTotalHours.toFixed(1)} hrs` 
+                  : todaySessions.length > 0 
+                  ? `${Math.round(todaySessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0))}m` 
+                  : '0.0 hrs'}
+              </span>
               <span className="telemetry-sep">·</span>
               <span className="telemetry-count">{todaySessions.length} sessions</span>
+              {effectivePace?.hasPace && (
+                <>
+                  <span className="telemetry-sep">·</span>
+                  <span className="telemetry-pace" style={{ color: '#38bdf8', fontWeight: 600 }}>
+                    {currentSubject} Pace: {effectivePace.formatted}
+                  </span>
+                </>
+              )}
               <span className={`telemetry-arrow ${isHistoryExpanded ? 'open' : ''}`}>▾</span>
             </button>
           </div>
