@@ -1,6 +1,7 @@
 import defaultData from '../data/unified_data.json';
 import { getMondayOfWeek, formatDateISO } from './dateUtils';
 import { sanitizeObjectForPrototypePollution } from './textUtils';
+import { getAdjustedDailyQuotas } from '../config/examConfig';
 
 const STORAGE_KEY = 'cat_prep_tracker_state_v1';
 
@@ -69,6 +70,11 @@ export const getInitialState = () => {
       theme: "dark", // default to dark mode for premium minimal feel
       startDate: defaultStartDate,
       targetExam: "cat",
+      timelineHorizon: "16_weeks",
+      aspirantPersona: "working_professional",
+      dailyHoursGoal: 3.0,
+      dailyQuotas: { quant: 12, lrdi: 3, varc: 3 },
+      activityHours: { concept: 0.8, practice: 1.6, analysis: 0.6 },
       quotaRolloverMode: "strict"
     }
   };
@@ -89,6 +95,32 @@ export const loadState = () => {
     }
     if (!parsed.settings.targetExam) {
       parsed.settings.targetExam = (typeof window !== 'undefined' && (localStorage.getItem('catalyze_target_exam') || localStorage.getItem('aspiranto_target_exam'))) || 'cat';
+    }
+    if (!parsed.settings.timelineHorizon) {
+      parsed.settings.timelineHorizon = (typeof window !== 'undefined' && localStorage.getItem('catalyze_timeline_horizon')) || '16_weeks';
+    }
+    if (!parsed.settings.aspirantPersona) {
+      parsed.settings.aspirantPersona = (typeof window !== 'undefined' && localStorage.getItem('catalyze_aspirant_persona')) || 'working_professional';
+    }
+    if (!parsed.settings.dailyQuotas || !parsed.settings.dailyHoursGoal || !parsed.settings.activityHours) {
+      const computedQuotas = getAdjustedDailyQuotas(
+        parsed.settings.targetExam,
+        parsed.settings.timelineHorizon,
+        parsed.settings.aspirantPersona
+      );
+      if (!parsed.settings.dailyHoursGoal) {
+        parsed.settings.dailyHoursGoal = computedQuotas.dailyHours;
+      }
+      if (!parsed.settings.dailyQuotas) {
+        parsed.settings.dailyQuotas = {
+          quant: computedQuotas.quant,
+          lrdi: computedQuotas.lrdi,
+          varc: computedQuotas.varc
+        };
+      }
+      if (!parsed.settings.activityHours) {
+        parsed.settings.activityHours = computedQuotas.activityHours;
+      }
     }
     if (!parsed.settings.quotaRolloverMode) {
       parsed.settings.quotaRolloverMode = 'strict';

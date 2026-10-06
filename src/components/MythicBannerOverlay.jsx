@@ -18,6 +18,12 @@ export default function MythicBannerOverlay({ bannerId }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return; // Guard for non-canvas environments (e.g. JSDOM in tests)
 
+    // Respect reduced motion preferences to conserve battery and eliminate visual motion sickness
+    const prefersReducedMotion = typeof window !== 'undefined' && 
+      window.matchMedia && 
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
     let animId = 0;
     let width = 0;
     let height = 0;

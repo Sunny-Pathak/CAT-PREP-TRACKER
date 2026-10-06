@@ -4,7 +4,6 @@ import { Icons } from './AspirantIcons';
 import DitherBackground from './DitherBackground';
 import SmoothCaretInput from './animations/SmoothCaretInput';
 import AnimatedSelect from './animations/AnimatedSelect';
-import LiquidMetalLogo from './LiquidMetalLogo';
 import { stripEmojis } from '../utils/textUtils';
 import './AuthScreen.css';
 
@@ -220,8 +219,8 @@ export default function AuthScreen({ onAuthSuccess, onContinueAsGuest, theme }) 
         {/* Header */}
         <div className="clean-auth-header">
           <div className="clean-brand-row">
-            <LiquidMetalLogo size={24} />
-            <span className="clean-brand-name">CATalyze</span>
+            <div className="brand-square-glyph" />
+            <span className="clean-brand-name">CATALYZE</span>
           </div>
 
           <h1 className="clean-auth-title">

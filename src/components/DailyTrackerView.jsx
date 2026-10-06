@@ -50,6 +50,23 @@ function DailyTrackerView({
   const { tracker, settings } = state;
   const startDateStr = settings?.startDate;
 
+  const dailyHoursGoal = useMemo(() => {
+    return Number(settings?.dailyHoursGoal) || 
+      (typeof window !== 'undefined' && Number(localStorage.getItem('catalyze_daily_hours_goal'))) || 
+      4.0;
+  }, [settings?.dailyHoursGoal]);
+
+  const activityHours = useMemo(() => {
+    if (settings?.activityHours) return settings.activityHours;
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('catalyze_activity_hours');
+        return saved ? JSON.parse(saved) : null;
+      } catch { return null; }
+    }
+    return null;
+  }, [settings?.activityHours]);
+
   const examConfig = useMemo(() => getActiveExamConfig(settings?.targetExam || 'cat'), [settings?.targetExam]);
   const secQuant = examConfig.sections[0] || { shortName: 'QUANT', name: 'Quantitative Aptitude', unit: 'Qs' };
   const secLrdi = examConfig.sections[1] || { shortName: 'DILR', name: 'Data Interpretation & LR', unit: 'Sets' };
@@ -309,9 +326,12 @@ function DailyTrackerView({
     if (subj === 'custom') {
       return Math.max(1, Number(dayObj?.customTargetQty) || 1);
     }
+    const calibratedQuota = settings?.dailyQuotas?.[subj];
     const targetStr = dayObj?.[`${subj}Target`];
     const match = targetStr ? targetStr.match(/\d+/) : null;
-    let base = match ? parseInt(match[0], 10) : (subj === 'quant' ? 18 : 4);
+    let base = calibratedQuota !== undefined && calibratedQuota !== null
+      ? Number(calibratedQuota)
+      : (match ? parseInt(match[0], 10) : (subj === 'quant' ? 18 : 4));
 
     if (dayObj?.catchUpActive) {
       if (subj === 'quant' && (dayObj.catchUpQuant || 0) > 0) {
@@ -1168,7 +1188,9 @@ function DailyTrackerView({
                   <span className="drill-target-text" title={selectedDay.quantTarget}>
                     {selectedDay.catchUpActive && (selectedDay.catchUpQuant || 0) > 0
                       ? `Solve ${quantTargetQty} Quant Questions (${quantTargetQty - selectedDay.catchUpQuant} Base + ${selectedDay.catchUpQuant} Backlog Boost)`
-                      : (selectedDay.quantTarget || `Solve ${quantTargetQty} ${secQuant.name} Questions`)}
+                      : (settings?.targetExam === 'cat' || !settings?.targetExam
+                          ? (selectedDay.quantTarget ? selectedDay.quantTarget.replace(/\d+/, quantTargetQty) : `Solve ${quantTargetQty} Quant Questions`)
+                          : `Solve ${quantTargetQty} ${secQuant.cardTitle || secQuant.name}`)}
                   </span>
                 </div>
 
@@ -1267,7 +1289,9 @@ function DailyTrackerView({
                   <span className="drill-target-text" title={selectedDay.lrdiTarget}>
                     {selectedDay.catchUpActive && (selectedDay.catchUpLrdi || 0) > 0
                       ? `Solve ${lrdiTargetQty} LRDI Sets (${lrdiTargetQty - selectedDay.catchUpLrdi} Base + ${selectedDay.catchUpLrdi} Backlog Boost)`
-                      : (selectedDay.lrdiTarget || `Solve ${lrdiTargetQty} ${secLrdi.name} Sets`)}
+                      : (settings?.targetExam === 'cat' || !settings?.targetExam
+                          ? (selectedDay.lrdiTarget ? selectedDay.lrdiTarget.replace(/\d+/, lrdiTargetQty) : `Solve ${lrdiTargetQty} LRDI Sets`)
+                          : `Solve ${lrdiTargetQty} ${secLrdi.cardTitle || secLrdi.name}`)}
                   </span>
                 </div>
 
@@ -1522,7 +1546,9 @@ function DailyTrackerView({
                   <span className="drill-target-text" title={selectedDay.varcTarget}>
                     {selectedDay.catchUpActive && (selectedDay.catchUpVarc || 0) > 0
                       ? `Solve ${varcTargetQty} Reading Comprehensions (${varcTargetQty - selectedDay.catchUpVarc} Base + ${selectedDay.catchUpVarc} Backlog Boost)`
-                      : (selectedDay.varcTarget || `Solve ${varcTargetQty} ${secVarc.name} Exercises`)}
+                      : (settings?.targetExam === 'cat' || !settings?.targetExam
+                          ? (selectedDay.varcTarget ? selectedDay.varcTarget.replace(/\d+/, varcTargetQty) : `Solve ${varcTargetQty} Reading Comprehensions`)
+                          : `Solve ${varcTargetQty} ${secVarc.cardTitle || secVarc.name}`)}
                   </span>
                 </div>
 
@@ -1861,7 +1887,7 @@ function DailyTrackerView({
                 <span className="hours-lbl">Hours Studied</span>
               </div>
               <div className="hours-target-block">
-                <span className="target-num">4.0h</span>
+                <span className="target-num">{dailyHoursGoal.toFixed(1)}h</span>
                 <span className="target-lbl">Daily Quota</span>
               </div>
             </div>
@@ -1870,9 +1896,19 @@ function DailyTrackerView({
             <div className="clean-progress-track">
               <div 
                 className="clean-progress-fill"
-                style={{ width: `${Math.min(100, Math.round(((selectedDay.studyHours || 0) / 4) * 100))}%` }}
+                style={{ width: `${Math.min(100, Math.round(((selectedDay.studyHours || 0) / dailyHoursGoal) * 100))}%` }}
               />
             </div>
+
+            {activityHours && (
+              <div className="side-card-activity-chips font-mono">
+                <span className="act-item" title="Theory & Concepts">Theory {activityHours.concept}h</span>
+                <span className="act-sep">/</span>
+                <span className="act-item" title="Drill Practice">Drills {activityHours.practice}h</span>
+                <span className="act-sep">/</span>
+                <span className="act-item" title="Mock & Error Analysis">Analysis {activityHours.analysis}h</span>
+              </div>
+            )}
 
             {totalMins > 0 && (
               <div className="subject-time-distribution">

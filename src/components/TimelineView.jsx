@@ -7,6 +7,11 @@ import {
   CAT_MILESTONES, 
   WEEKLY_SYLLABUS_DETAILS 
 } from '../data/catSyllabusRoadmap';
+import { 
+  getActiveExamConfig, 
+  getTimelineHorizon, 
+  getAdjustedDailyQuotas 
+} from '../config/examConfig';
 import { playGamingAchievementSound } from '../utils/audioUtils';
 import SmoothCaretInput from './animations/SmoothCaretInput';
 import { tactileClick } from '../utils/gsapAnimations';
@@ -18,7 +23,15 @@ export default function TimelineView({
   onWeekClick,
   onOpenCheckpoint
 }) {
-  const { studyPlan = [] } = state;
+  const { studyPlan = [], settings = {} } = state || {};
+  const targetExam = settings.targetExam || (typeof window !== 'undefined' && (localStorage.getItem('catalyze_target_exam') || localStorage.getItem('aspiranto_target_exam'))) || 'cat';
+  const examConfig = useMemo(() => getActiveExamConfig(targetExam), [targetExam]);
+  const activeHorizonId = settings.timelineHorizon || (typeof window !== 'undefined' && localStorage.getItem('catalyze_timeline_horizon')) || '16_weeks';
+  const activeHorizon = useMemo(() => getTimelineHorizon(activeHorizonId), [activeHorizonId]);
+  const persona = settings.aspirantPersona || (typeof window !== 'undefined' && localStorage.getItem('catalyze_aspirant_persona')) || 'working_professional';
+  const calibratedQuotas = useMemo(() => {
+    return settings.dailyQuotas || getAdjustedDailyQuotas(targetExam, activeHorizonId, persona);
+  }, [settings.dailyQuotas, targetExam, activeHorizonId, persona]);
 
   // View Mode: 'cards' | 'roadmap' | 'table'
   const [viewMode, setViewMode] = useState(() => {
@@ -165,20 +178,82 @@ export default function TimelineView({
     }
   }, [viewMode]);
 
-  // Overall metrics
-  const totalWeeks = studyPlan.length || 16;
-  const completedWeeks = studyPlan.filter((w) => w.status === 'Completed').length;
-  const inProgressWeeks = studyPlan.filter((w) => w.status === 'In Progress').length;
-  const progressPercent = Math.round((completedWeeks / totalWeeks) * 100);
+  // Dynamic duration and phase boundaries from active calibrated horizon
+  const totalWeeks = activeHorizon.durationWeeks || studyPlan.length || 16;
+  const p1End = Math.max(1, Math.round(totalWeeks * 0.5));
+  const p2End = Math.max(p1End + 1, Math.round(totalWeeks * 0.75));
+
+  const dynamicPhases = useMemo(() => [
+    {
+      id: 'ALL',
+      name: `All Weeks (1–${totalWeeks})`,
+      shortName: 'Full Blueprint',
+      badge: `${totalWeeks} WEEKS`,
+      weeksRange: [1, totalWeeks],
+      color: '#8b5cf6'
+    },
+    {
+      id: 'PHASE 1',
+      name: 'Phase 1: Foundation & Core Concepts',
+      shortName: `Foundation (W1–${p1End})`,
+      badge: `WEEKS 1–${p1End}`,
+      weeksRange: [1, p1End],
+      color: '#8b5cf6',
+      summary: 'Master arithmetic essentials, algebra fundamentals, core LR arrangement types, and fundamental reading comprehension habits.'
+    },
+    {
+      id: 'PHASE 2',
+      name: 'Phase 2: Syllabus Completion & Sectionals',
+      shortName: `Sectionals (W${p1End + 1}–${p2End})`,
+      badge: `WEEKS ${p1End + 1}–${p2End}`,
+      weeksRange: [p1End + 1, p2End],
+      color: '#a855f7',
+      summary: 'Coordinate geometry, modern math, complex games/tournaments, missing data sets, and high-difficulty sectional test simulations.'
+    },
+    {
+      id: 'PHASE 3',
+      name: 'Phase 3: The Mock Marathon',
+      shortName: `Mock Marathon (W${p2End + 1}–${totalWeeks})`,
+      badge: `WEEKS ${p2End + 1}–${totalWeeks}`,
+      weeksRange: [p2End + 1, totalWeeks],
+      color: '#d946ef',
+      summary: 'Full-Length Mocks, intense error log diagnostics, set-selection discipline, and mental composure conditioning.'
+    }
+  ], [totalWeeks, p1End, p2End]);
+
+  // Dynamically slice or extend studyPlan to reflect the chosen horizon
+  const activeStudyPlan = useMemo(() => {
+    if (studyPlan.length >= totalWeeks) {
+      return studyPlan.slice(0, totalWeeks);
+    }
+    const extended = [...studyPlan];
+    for (let i = studyPlan.length + 1; i <= totalWeeks; i++) {
+      const isPhase2 = i <= p2End;
+      extended.push({
+        week: `Month ${Math.ceil(i / 4)}: Week ${i} - ${isPhase2 ? 'Advanced Sectionals & Problem Solving' : 'Mock Marathon & Peak Drills'}`,
+        phase: isPhase2 ? 'Phase 2: Syllabus Completion & Sectionals' : 'Phase 3: The Mock Marathon',
+        quantFocus: isPhase2 ? 'Advanced Quant & Mixed Problem Sets' : 'Full Sectional Mocks & Timed Drills',
+        lrdiFocus: isPhase2 ? 'Complex Multi-Constraint Sets & Caselets' : 'High-Yield Mock Sets & Speed Conditioning',
+        varcFocus: isPhase2 ? 'Advanced RCs & Critical Reasoning' : 'Sectional Reading Drills & Accuracy Calibration',
+        status: 'Not Started'
+      });
+    }
+    return extended;
+  }, [studyPlan, totalWeeks, p2End]);
+
+  // Overall metrics computed on activeStudyPlan
+  const completedWeeks = activeStudyPlan.filter((w) => w.status === 'Completed').length;
+  const inProgressWeeks = activeStudyPlan.filter((w) => w.status === 'In Progress').length;
+  const progressPercent = totalWeeks > 0 ? Math.round((completedWeeks / totalWeeks) * 100) : 0;
 
   // Active or next week
   const activeWeekNum = useMemo(() => {
-    const inProgIdx = studyPlan.findIndex(w => w.status === 'In Progress');
+    const inProgIdx = activeStudyPlan.findIndex(w => w.status === 'In Progress');
     if (inProgIdx !== -1) return inProgIdx + 1;
-    const notStartedIdx = studyPlan.findIndex(w => w.status === 'Not Started');
+    const notStartedIdx = activeStudyPlan.findIndex(w => w.status === 'Not Started');
     if (notStartedIdx !== -1) return notStartedIdx + 1;
     return 1;
-  }, [studyPlan]);
+  }, [activeStudyPlan]);
 
   // CAT Countdown calculation
   const catCountdownDays = useMemo(() => {
@@ -251,14 +326,14 @@ export default function TimelineView({
 
   // Filter study plan
   const filteredWeeks = useMemo(() => {
-    return studyPlan.filter((w, idx) => {
+    return activeStudyPlan.filter((w, idx) => {
       const weekNum = idx + 1;
 
       // Phase filter
       if (selectedPhase !== 'ALL') {
-        if (selectedPhase === 'PHASE 1' && (weekNum < 1 || weekNum > 8)) return false;
-        if (selectedPhase === 'PHASE 2' && (weekNum < 9 || weekNum > 12)) return false;
-        if (selectedPhase === 'PHASE 3' && (weekNum < 13 || weekNum > 16)) return false;
+        if (selectedPhase === 'PHASE 1' && (weekNum < 1 || weekNum > p1End)) return false;
+        if (selectedPhase === 'PHASE 2' && (weekNum <= p1End || weekNum > p2End)) return false;
+        if (selectedPhase === 'PHASE 3' && (weekNum <= p2End || weekNum > totalWeeks)) return false;
       }
 
       // Search query
@@ -284,12 +359,18 @@ export default function TimelineView({
 
       return true;
     });
-  }, [studyPlan, selectedPhase, searchQuery]);
+  }, [activeStudyPlan, selectedPhase, searchQuery, p1End, p2End, totalWeeks]);
 
-  const inspectedWeekData = inspectedWeekIdx !== null ? studyPlan[inspectedWeekIdx] : null;
+  const inspectedWeekData = inspectedWeekIdx !== null ? activeStudyPlan[inspectedWeekIdx] : null;
   const inspectedWeekNum = inspectedWeekIdx !== null ? inspectedWeekIdx + 1 : null;
   const inspectedSyllabus = inspectedWeekNum ? WEEKLY_SYLLABUS_DETAILS[inspectedWeekNum] : null;
   const inspectedMilestone = inspectedWeekNum ? CAT_MILESTONES[inspectedWeekNum] : null;
+
+  // Calibrated curriculum totals across active horizon
+  const prepDays = totalWeeks * 6;
+  const totalSec0 = Math.round(((calibratedQuotas.quant || 18) * prepDays) / 50) * 50;
+  const totalSec1 = Math.round(((calibratedQuotas.lrdi || 4) * prepDays) / 25) * 25;
+  const totalSec2 = Math.round(((calibratedQuotas.varc || 4) * prepDays) / 25) * 25;
 
   return (
     <div className="plan-expedition-container fade-in">
@@ -297,13 +378,13 @@ export default function TimelineView({
       <div className="plan-expedition-hero">
         <div className="expedition-hero-left">
           <div className="expedition-protocol-tag">
-            <span>STRATEGIC BLUEPRINT • 16-WEEK CURRICULUM</span>
+            <span>STRATEGIC BLUEPRINT • {activeHorizon.badge} · {totalWeeks}-WEEK CURRICULUM</span>
           </div>
           <h1 className="expedition-headline">
-            THE 16-WEEK ROADMAP
+            THE {totalWeeks}-WEEK ROADMAP
           </h1>
           <p className="expedition-lead-manifesto">
-            Curriculum progression from core foundation to exam peak: <strong>2,000+ Quant</strong> • <strong>400+ LRDI Sets</strong> • <strong>400+ RCs</strong>.
+            Curriculum progression from core foundation to exam peak: <strong>{totalSec0.toLocaleString()}+ {examConfig.sections[0]?.name || 'Quant'}</strong> • <strong>{totalSec1.toLocaleString()}+ {examConfig.sections[1]?.name || 'LRDI'}</strong> • <strong>{totalSec2.toLocaleString()}+ {examConfig.sections[2]?.name || 'VARC'}</strong>.
           </p>
         </div>
 
@@ -325,7 +406,7 @@ export default function TimelineView({
             </div>
             <div className="hud-footer-meta">
               <span>{progressPercent}% Completed</span>
-              <span>{catCountdownDays} Days to CAT</span>
+              <span>{catCountdownDays} Days to {examConfig.shortName || 'CAT'}</span>
             </div>
           </div>
         </div>
@@ -335,7 +416,7 @@ export default function TimelineView({
       <div className="expedition-nav-bar">
         <div ref={phaseSegmentedRef} className="expedition-phase-segmented">
           <div ref={phaseSliderRef} className="phase-indicator-pill" />
-          {CAT_PHASES.map((p) => {
+          {dynamicPhases.map((p) => {
             const isActive = selectedPhase === p.id;
             return (
               <button
@@ -409,7 +490,7 @@ export default function TimelineView({
         {viewMode === 'roadmap' ? (
           /* Visual Roadmap View */
           <RoadmapTimelineGraph
-            studyPlan={studyPlan}
+            studyPlan={activeStudyPlan}
             selectedPhase={selectedPhase}
             searchQuery={searchQuery}
             onSelectWeek={(weekIdx) => setInspectedWeekIdx(weekIdx)}
@@ -423,9 +504,9 @@ export default function TimelineView({
               <thead>
                 <tr>
                   <th style={{ width: '120px' }}>Week</th>
-                  <th>Quantitative Aptitude</th>
-                  <th>LRDI Sectionals</th>
-                  <th>VARC Focus</th>
+                  <th>{examConfig.sections[0]?.name || 'Quantitative Aptitude'}</th>
+                  <th>{examConfig.sections[1]?.name || 'LRDI Sectionals'}</th>
+                  <th>{examConfig.sections[2]?.name || 'VARC Focus'}</th>
                   <th style={{ width: '130px' }}>Status</th>
                   <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
                 </tr>
@@ -439,7 +520,7 @@ export default function TimelineView({
                   </tr>
                 ) : (
                   filteredWeeks.map((week) => {
-                    const globalIdx = studyPlan.findIndex((w) => w.week === week.week);
+                    const globalIdx = activeStudyPlan.findIndex((w) => w.week === week.week);
                     const weekNum = globalIdx + 1;
                     const milestone = CAT_MILESTONES[weekNum];
 
@@ -525,7 +606,7 @@ export default function TimelineView({
         ) : (
           <div ref={cardsGridRef} className="expedition-dossier-grid">
               {filteredWeeks.map((week) => {
-                const globalIdx = studyPlan.findIndex((w) => w.week === week.week);
+                const globalIdx = activeStudyPlan.findIndex((w) => w.week === week.week);
                 const weekNum = globalIdx + 1;
                 const syllabus = WEEKLY_SYLLABUS_DETAILS[weekNum];
                 const milestone = CAT_MILESTONES[weekNum];
@@ -537,7 +618,7 @@ export default function TimelineView({
 
                 const isCompleted = week.status === 'Completed';
                 const isInProgress = week.status === 'In Progress';
-                const phaseNum = weekNum <= 8 ? '1' : weekNum <= 12 ? '2' : '3';
+                const phaseNum = weekNum <= p1End ? '1' : weekNum <= p2End ? '2' : '3';
 
                 return (
                   <div
@@ -570,7 +651,7 @@ export default function TimelineView({
                     {/* Phase & Milestone Badges Row */}
                     <div className="dossier-meta-badges-row">
                       <span className={`dossier-phase-tag phase-${phaseNum}`}>
-                        {weekNum <= 8 ? 'Foundation' : weekNum <= 12 ? 'Sectionals' : 'Mock Marathon'}
+                        {weekNum <= p1End ? 'Foundation' : weekNum <= p2End ? 'Sectionals' : 'Mock Marathon'}
                       </span>
                       {milestone && (
                         <span className="dossier-milestone-flag" title={milestone.title}>
@@ -595,15 +676,15 @@ export default function TimelineView({
                     {/* Subject Roadmap Items */}
                     <div className="dossier-subjects-stack">
                       <div className="dossier-subject-item quant">
-                        <span className="dossier-sub-code qa">QA</span>
+                        <span className="dossier-sub-code qa">{examConfig.sections[0]?.shortName || 'QA'}</span>
                         <span className="dossier-sub-topic">{week.quantFocus}</span>
                       </div>
                       <div className="dossier-subject-item lrdi">
-                        <span className="dossier-sub-code lr">LR</span>
+                        <span className="dossier-sub-code lr">{examConfig.sections[1]?.shortName || 'LR'}</span>
                         <span className="dossier-sub-topic">{week.lrdiFocus}</span>
                       </div>
                       <div className="dossier-subject-item varc">
-                        <span className="dossier-sub-code va">VA</span>
+                        <span className="dossier-sub-code va">{examConfig.sections[2]?.shortName || 'VA'}</span>
                         <span className="dossier-sub-topic">{week.varcFocus}</span>
                       </div>
                     </div>
@@ -766,7 +847,7 @@ export default function TimelineView({
                   <div className="checklist-subject-group">
                     <div className="subject-group-header quant">
                       <Icons.Calculator size={14} />
-                      <h4>Quantitative Aptitude</h4>
+                      <h4>{examConfig.sections[0]?.name || 'Quantitative Aptitude'}</h4>
                     </div>
                     <div className="checklist-items-stack">
                       {inspectedSyllabus.quantSubtopics?.map((subtopic, sIdx) => {
@@ -789,7 +870,7 @@ export default function TimelineView({
                   <div className="checklist-subject-group">
                     <div className="subject-group-header lrdi">
                       <Icons.Puzzle size={14} />
-                      <h4>DILR Caselets & Puzzles</h4>
+                      <h4>{examConfig.sections[1]?.name || 'DILR Caselets & Puzzles'}</h4>
                     </div>
                     <div className="checklist-items-stack">
                       {inspectedSyllabus.lrdiSubtopics?.map((subtopic, sIdx) => {
@@ -812,7 +893,7 @@ export default function TimelineView({
                   <div className="checklist-subject-group">
                     <div className="subject-group-header varc">
                       <Icons.BookOpen size={14} />
-                      <h4>VARC & Reading Drills</h4>
+                      <h4>{examConfig.sections[2]?.name || 'VARC & Reading Drills'}</h4>
                     </div>
                     <div className="checklist-items-stack">
                       {inspectedSyllabus.varcSubtopics?.map((subtopic, sIdx) => {

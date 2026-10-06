@@ -44,6 +44,7 @@ import { calculateUserBadges } from './utils/badgeUtils';
 import CookieConsentBanner from './components/CookieConsentBanner';
 import CustomCursor from './components/CustomCursor';
 import LiquidIntroLoader from './components/LiquidIntroLoader';
+import { getAdjustedDailyQuotas, getTimelineHorizon } from './config/examConfig';
 
 // Code-split lazy views for high-performance initial bundle
 const TimelineView = lazy(() => import('./components/TimelineView'));
@@ -80,7 +81,6 @@ import {
 } from './utils/adaptiveStudyEngine';
 import { recordBehaviorTelemetry } from './utils/studyBehaviorEngine';
 import DitherBackground from './components/DitherBackground';
-import ClickSpark from './components/ClickSpark';
 import AnimatedStreakBadge from './components/AnimatedStreakBadge';
 import FocusTransitionPortal from './components/FocusTransitionPortal';
 import { Dock, DockItem } from './components/animations/Dock';
@@ -293,6 +293,9 @@ function ViewLoadingFallback({ theme }) {
 
 export default function App() {
   const [state, setState] = useState(() => loadState());
+  const activeTimelineHorizon = useMemo(() => {
+    return getTimelineHorizon(state.settings?.timelineHorizon || '16_weeks');
+  }, [state.settings?.timelineHorizon]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [theme, setTheme] = useState(state.settings?.theme || 'dark');
   const [showThemeToast, setShowThemeToast] = useState(false);
@@ -369,8 +372,11 @@ export default function App() {
           ...(prev.settings || {}),
           targetExam: data.targetExam,
           targetYear: data.targetYear,
+          timelineHorizon: data.timelineHorizon,
           dailyHoursGoal: data.dailyHoursGoal,
-          dailyQuotas: data.dailyQuotas
+          dailyQuotas: data.dailyQuotas,
+          aspirantPersona: data.aspirantPersona,
+          activityHours: data.activityHours
         };
         const updated = {
           ...prev,
@@ -387,11 +393,21 @@ export default function App() {
       localStorage.setItem('catalyze_target_exam', examId);
     } catch (e) {}
     setState(prev => {
+      const currentHorizon = prev.settings?.timelineHorizon || '16_weeks';
+      const currentPersona = prev.settings?.aspirantPersona || 'working_professional';
+      const adjQuotas = getAdjustedDailyQuotas(examId, currentHorizon, currentPersona);
       const updated = {
         ...prev,
         settings: {
           ...(prev.settings || {}),
-          targetExam: examId
+          targetExam: examId,
+          dailyHoursGoal: adjQuotas.dailyHours,
+          dailyQuotas: {
+            quant: adjQuotas.quant,
+            lrdi: adjQuotas.lrdi,
+            varc: adjQuotas.varc
+          },
+          activityHours: adjQuotas.activityHours
         }
       };
       saveState(updated);
@@ -2000,6 +2016,27 @@ export default function App() {
     });
   };
 
+  // Update Study Calibration Parameters (Profile, Timeline, Daily Hours, Activity Breakdown)
+  const handleUpdateStudyCalibration = useCallback(({ timelineHorizon, aspirantPersona, dailyHoursGoal, activityHours, dailyQuotas }) => {
+    setState(prev => {
+      const nextSettings = {
+        ...prev.settings,
+        ...(timelineHorizon ? { timelineHorizon } : {}),
+        ...(aspirantPersona ? { aspirantPersona } : {}),
+        ...(dailyHoursGoal !== undefined ? { dailyHoursGoal } : {}),
+        ...(activityHours ? { activityHours } : {}),
+        ...(dailyQuotas ? { dailyQuotas } : {})
+      };
+      const nextState = {
+        ...prev,
+        settings: nextSettings,
+        lastUpdated: Date.now()
+      };
+      saveState(nextState);
+      return nextState;
+    });
+  }, []);
+
   // Import backup data with strict validation, schema normalization & prototype pollution defense
   const handleImport = (e) => {
     const file = e.target.files?.[0];
@@ -2608,9 +2645,6 @@ export default function App() {
       {/* ReactBits Dither Background WebGL Shader (Fine silk grain ambient texture matching landing page depth) */}
       <DitherBackground activeTheme={theme} opacity={0.32} ditherSize={1.2} waveSpeed={0.25} disabled={activeTab === 'terminal'} />
 
-      {/* ReactBits ClickSpark Particle Burst Animation */}
-      <ClickSpark activeTheme={theme} />
-
       {/* Luxury Liquid Glow Custom Cursor with GSAP Physics */}
       <CustomCursor activeTheme={theme} activeTab={activeTab} />
 
@@ -2646,7 +2680,7 @@ export default function App() {
             onClick={() => setActiveTab('timeline')} 
             ariaLabel="Study Plan"
             tooltipTitle="Study Plan"
-            tooltipTag="16-WK CURRICULUM"
+            tooltipTag={`${activeTimelineHorizon.durationWeeks}-WK CURRICULUM`}
           >
             <Icons.Plan />
           </DockItem>
@@ -3035,6 +3069,11 @@ export default function App() {
               onImportEncrypted={handleImportEncrypted}
               quotaRolloverMode={state.settings?.quotaRolloverMode || 'strict'}
               onSelectQuotaRolloverMode={handleSelectQuotaRolloverMode}
+              timelineHorizon={state.settings?.timelineHorizon}
+              aspirantPersona={state.settings?.aspirantPersona}
+              dailyHoursGoal={state.settings?.dailyHoursGoal}
+              activityHours={state.settings?.activityHours}
+              onUpdateStudyCalibration={handleUpdateStudyCalibration}
             />
           )}
           </Suspense>

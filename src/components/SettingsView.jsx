@@ -60,7 +60,12 @@ export default function SettingsView({
   onExportEncrypted,
   onImportEncrypted,
   quotaRolloverMode = 'strict',
-  onSelectQuotaRolloverMode = () => {}
+  onSelectQuotaRolloverMode = () => {},
+  timelineHorizon: propTimelineHorizon,
+  aspirantPersona: propAspirantPersona,
+  dailyHoursGoal: propDailyHoursGoal,
+  activityHours: propActivityHours,
+  onUpdateStudyCalibration = () => {}
 }) {
   // Navigation Category Tab ('themes' | 'typography' | 'schedule' | 'cloud' | 'exam')
   const [activeTab, setActiveTab] = useState('themes');
@@ -97,9 +102,19 @@ export default function SettingsView({
     return (localStorage.getItem('catalyze_bold_boost') || localStorage.getItem('aspiranto_bold_boost')) === 'true';
   });
 
+  // Aspirant Persona State (Working Professional vs College Student)
+  const [selectedPersona, setSelectedPersona] = useState(() => {
+    return propAspirantPersona || (typeof window !== 'undefined' && localStorage.getItem('catalyze_aspirant_persona')) || 'college_student';
+  });
+
   // Timeline Horizon State (3 Months, 16 Weeks, 6 Months, 1 Year)
   const [timelineHorizon, setTimelineHorizon] = useState(() => {
-    return (typeof window !== 'undefined' && localStorage.getItem('catalyze_timeline_horizon')) || '16_weeks';
+    return propTimelineHorizon || (typeof window !== 'undefined' && localStorage.getItem('catalyze_timeline_horizon')) || '16_weeks';
+  });
+
+  // Daily Study Hours Goal Parameter
+  const [targetDailyHours, setTargetDailyHours] = useState(() => {
+    return Number(propDailyHoursGoal) || (typeof window !== 'undefined' && Number(localStorage.getItem('catalyze_daily_hours_goal'))) || 4.0;
   });
 
   // Zero-Knowledge Encrypted Backup Modal State
@@ -108,14 +123,95 @@ export default function SettingsView({
   const [selectedEncryptedFile, setSelectedEncryptedFile] = useState(null);
   const encryptedFileInputRef = React.useRef(null);
 
+  // Dynamic Activity Breakdown Computation
+  const activityBreakdown = React.useMemo(() => {
+    const isWorkingPro = selectedPersona === 'working_professional';
+    const activityDistribution = isWorkingPro
+      ? { concept: 0.25, analysis: 0.20 }
+      : { concept: 0.35, analysis: 0.20 };
+
+    const conceptHrs = Number((targetDailyHours * activityDistribution.concept).toFixed(1));
+    const analysisHrs = Number((targetDailyHours * activityDistribution.analysis).toFixed(1));
+    const practiceHrs = Number((targetDailyHours - conceptHrs - analysisHrs).toFixed(1));
+
+    return {
+      concept: conceptHrs,
+      practice: practiceHrs,
+      analysis: analysisHrs
+    };
+  }, [targetDailyHours, selectedPersona]);
+
+  const handleSelectPersona = (pId) => {
+    setSelectedPersona(pId);
+    const quotas = getAdjustedDailyQuotas(targetExam, timelineHorizon, pId);
+    setTargetDailyHours(quotas.dailyHours);
+    try {
+      localStorage.setItem('catalyze_aspirant_persona', pId);
+      localStorage.setItem('catalyze_daily_hours_goal', String(quotas.dailyHours));
+      localStorage.setItem('catalyze_activity_hours', JSON.stringify(quotas.activityHours));
+      playSoftZenChime(0.18);
+    } catch (e) {}
+
+    onUpdateStudyCalibration({
+      timelineHorizon,
+      aspirantPersona: pId,
+      dailyHoursGoal: quotas.dailyHours,
+      activityHours: quotas.activityHours,
+      dailyQuotas: { quant: quotas.quant, lrdi: quotas.lrdi, varc: quotas.varc }
+    });
+  };
+
   const handleSelectTimeline = (hId) => {
     setTimelineHorizon(hId);
+    const quotas = getAdjustedDailyQuotas(targetExam, hId, selectedPersona);
+    setTargetDailyHours(quotas.dailyHours);
     try {
       localStorage.setItem('catalyze_timeline_horizon', hId);
-      const quotas = getAdjustedDailyQuotas(targetExam, hId);
       localStorage.setItem('catalyze_daily_hours_goal', String(quotas.dailyHours));
+      localStorage.setItem('catalyze_activity_hours', JSON.stringify(quotas.activityHours));
       playSoftZenChime(0.15);
     } catch (e) {}
+
+    onUpdateStudyCalibration({
+      timelineHorizon: hId,
+      aspirantPersona: selectedPersona,
+      dailyHoursGoal: quotas.dailyHours,
+      activityHours: quotas.activityHours,
+      dailyQuotas: { quant: quotas.quant, lrdi: quotas.lrdi, varc: quotas.varc }
+    });
+  };
+
+  const handleAdjustHours = (delta) => {
+    const nextHours = Math.max(1.5, Math.min(10.0, Number((targetDailyHours + delta).toFixed(1))));
+    setTargetDailyHours(nextHours);
+
+    const isWorkingPro = selectedPersona === 'working_professional';
+    const activityDistribution = isWorkingPro
+      ? { concept: 0.25, analysis: 0.20 }
+      : { concept: 0.35, analysis: 0.20 };
+
+    const conceptHrs = Number((nextHours * activityDistribution.concept).toFixed(1));
+    const analysisHrs = Number((nextHours * activityDistribution.analysis).toFixed(1));
+    const practiceHrs = Number((nextHours - conceptHrs - analysisHrs).toFixed(1));
+
+    const updatedActivityHours = {
+      concept: conceptHrs,
+      practice: practiceHrs,
+      analysis: analysisHrs
+    };
+
+    try {
+      localStorage.setItem('catalyze_daily_hours_goal', String(nextHours));
+      localStorage.setItem('catalyze_activity_hours', JSON.stringify(updatedActivityHours));
+      playSoftZenChime(0.12);
+    } catch (e) {}
+
+    onUpdateStudyCalibration({
+      timelineHorizon,
+      aspirantPersona: selectedPersona,
+      dailyHoursGoal: nextHours,
+      activityHours: updatedActivityHours
+    });
   };
 
   // Dynamic theme switch animation states (Skiper UI / React Bits style)
@@ -696,13 +792,86 @@ export default function SettingsView({
             <div className="sub-panel-header">
               <div>
                 <h3 className="sub-panel-title">Preparation Timeline &amp; Pacing Horizon</h3>
-                <p className="sub-panel-subtitle">Calibrate how much time you have before exam day to automatically scale daily drill quotas.</p>
+                <p className="sub-panel-subtitle">Calibrate your operating persona, timeline horizon, and daily study hour parameters.</p>
               </div>
             </div>
 
+            {/* Operating Profile / Persona Selector */}
+            <div style={{ marginTop: '12px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, color: '#a855f7', letterSpacing: '0.08em', marginBottom: '8px', textTransform: 'uppercase' }} className="font-mono">
+                Aspirant Operating Profile
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+                <div
+                  onClick={(e) => {
+                    tactileClick(e);
+                    handleSelectPersona('working_professional');
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  style={{
+                    cursor: 'pointer',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    background: selectedPersona === 'working_professional' ? 'rgba(168, 85, 247, 0.14)' : 'rgba(255, 255, 255, 0.02)',
+                    border: `1px solid ${selectedPersona === 'working_professional' ? 'rgba(168, 85, 247, 0.48)' : 'rgba(255, 255, 255, 0.08)'}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff' }}>Working Professional</span>
+                    <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', color: '#c084fc', background: 'rgba(168, 85, 247, 0.2)' }} className="font-mono">
+                      ~2.5–3.5 H / D
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8' }}>
+                    Evenings &amp; weekends · Lean high-yield pacing
+                  </p>
+                </div>
+
+                <div
+                  onClick={(e) => {
+                    tactileClick(e);
+                    handleSelectPersona('college_student');
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  style={{
+                    cursor: 'pointer',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    background: selectedPersona === 'college_student' ? 'rgba(168, 85, 247, 0.14)' : 'rgba(255, 255, 255, 0.02)',
+                    border: `1px solid ${selectedPersona === 'college_student' ? 'rgba(168, 85, 247, 0.48)' : 'rgba(255, 255, 255, 0.08)'}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff' }}>Student / College Aspirant</span>
+                    <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', color: '#c084fc', background: 'rgba(168, 85, 247, 0.2)' }} className="font-mono">
+                      ~3.5–6.0 H / D
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8' }}>
+                    Full-time study · Comprehensive syllabus depth
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Preparation Horizon Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginTop: '12px' }}>
               {TIMELINE_HORIZONS.map((h) => {
                 const isSel = timelineHorizon === h.id;
+                const displayH = selectedPersona === 'working_professional' 
+                  ? Math.max(2.0, Number((h.dailyHours * 0.75).toFixed(1))) 
+                  : h.dailyHours;
+
                 return (
                   <div
                     key={h.id}
@@ -734,7 +903,7 @@ export default function SettingsView({
                       </span>
                     </div>
                     <div style={{ fontSize: '11px', color: isSel ? '#e9d5ff' : 'var(--text-secondary, #94a3b8)', fontWeight: 600 }}>
-                      {h.dailyHours} hrs / day • {h.durationWeeks} Weeks
+                      {displayH.toFixed(1)} hrs / day • {h.durationWeeks} Weeks
                     </div>
                     <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px', lineHeight: 1.35 }}>
                       {h.description}
@@ -742,6 +911,94 @@ export default function SettingsView({
                   </div>
                 );
               })}
+            </div>
+
+            {/* Parameter Adjustment: Daily Study Goal & Activity Distribution */}
+            <div style={{
+              marginTop: '14px',
+              padding: '14px 16px',
+              background: 'rgba(14, 10, 24, 0.45)',
+              border: '1px solid rgba(168, 85, 247, 0.22)',
+              borderRadius: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#ffffff' }}>Daily Study Goal Parameter</span>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8' }}>Fine-tune your daily target hours to dynamically calibrate quotas across dashboard.</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="font-mono">
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustHours(-0.5)}
+                    disabled={targetDailyHours <= 1.5}
+                    style={{
+                      padding: '4px 10px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      borderRadius: '6px',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: targetDailyHours <= 1.5 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    -0.5h
+                  </button>
+                  <span style={{ fontSize: '14px', fontWeight: 800, color: '#c084fc', minWidth: '95px', textAlign: 'center' }}>
+                    {targetDailyHours.toFixed(1)} hrs / day
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustHours(0.5)}
+                    disabled={targetDailyHours >= 10.0}
+                    style={{
+                      padding: '4px 10px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      borderRadius: '6px',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: targetDailyHours >= 10.0 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    +0.5h
+                  </button>
+                </div>
+              </div>
+
+              {/* Live Activity Breakdown Pill Strip */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '8px 12px',
+                background: 'rgba(139, 92, 246, 0.04)',
+                border: '1px dashed rgba(167, 139, 250, 0.18)',
+                borderRadius: '8px',
+                fontSize: '10.5px'
+              }} className="font-mono">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#a78bfa' }} />
+                  <span style={{ color: '#94a3b8' }}>THEORY</span>
+                  <span style={{ color: '#ffffff', fontWeight: 800 }}>{activityBreakdown.concept}h</span>
+                </div>
+                <span style={{ color: '#334155' }}>/</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#c084fc' }} />
+                  <span style={{ color: '#94a3b8' }}>DRILLS</span>
+                  <span style={{ color: '#ffffff', fontWeight: 800 }}>{activityBreakdown.practice}h</span>
+                </div>
+                <span style={{ color: '#334155' }}>/</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34d399' }} />
+                  <span style={{ color: '#94a3b8' }}>ANALYSIS</span>
+                  <span style={{ color: '#ffffff', fontWeight: 800 }}>{activityBreakdown.analysis}h</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1384,7 +1641,6 @@ export default function SettingsView({
                   <div className="sub-panel-header">
                     <div>
                       <h3 className="sub-panel-title">Active Preparation Target</h3>
-                      <p className="sub-panel-subtitle">Current examination curriculum and milestone tracking profile.</p>
                     </div>
                   </div>
                   <div 
@@ -1404,11 +1660,11 @@ export default function SettingsView({
                         </span>
                         <span className="spotlight-active-badge">
                           <Icons.Check size={11} />
-                          <span>Active Preparation Target</span>
+                          <span>Active</span>
                         </span>
                       </div>
                       <p className="spotlight-desc">
-                        {activeExam.targetAudience} • Default target year: {activeExam.defaultYear}
+                        {activeExam.targetAudience}
                       </p>
                     </div>
 

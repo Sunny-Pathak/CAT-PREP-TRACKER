@@ -21,43 +21,47 @@ export default function RoadmapTimelineGraph({
 
   const getWeekStatus = (week) => week?.status || 'Not Started';
 
+  const totalW = studyPlan.length || 16;
+  const p1End = Math.max(1, Math.round(totalW * 0.5));
+  const p2End = Math.max(p1End + 1, Math.round(totalW * 0.75));
+
   // Group weeks by Phase
-  const phase1Weeks = useMemo(() => studyPlan.slice(0, 8), [studyPlan]);
-  const phase2Weeks = useMemo(() => studyPlan.slice(8, 12), [studyPlan]);
-  const phase3Weeks = useMemo(() => studyPlan.slice(12, 16), [studyPlan]);
+  const phase1Weeks = useMemo(() => studyPlan.slice(0, p1End), [studyPlan, p1End]);
+  const phase2Weeks = useMemo(() => studyPlan.slice(p1End, p2End), [studyPlan, p1End, p2End]);
+  const phase3Weeks = useMemo(() => studyPlan.slice(p2End, totalW), [studyPlan, p2End, totalW]);
 
   const phases = useMemo(() => [
     {
       id: 'p1',
       phaseId: 'PHASE 1',
-      name: 'Phase 1: Foundation & Core Concepts',
+      name: `Phase 1: Foundation & Core Concepts (W1–${p1End})`,
       weeks: phase1Weeks,
       color: '#8b5cf6',
-      milestoneIndex: 8,
-      milestone: CAT_MILESTONES[8],
+      milestoneIndex: p1End,
+      milestone: CAT_MILESTONES[p1End] || CAT_MILESTONES[8],
       subtitle: 'Arithmetic Mastery • Seating Arrangements • Core Reading Habits'
     },
     {
       id: 'p2',
       phaseId: 'PHASE 2',
-      name: 'Phase 2: Syllabus Completion & Sectionals',
+      name: `Phase 2: Syllabus Completion & Sectionals (W${p1End + 1}–${p2End})`,
       weeks: phase2Weeks,
       color: '#a855f7',
-      milestoneIndex: 12,
-      milestone: CAT_MILESTONES[12],
+      milestoneIndex: p2End,
+      milestone: CAT_MILESTONES[p2End] || CAT_MILESTONES[12],
       subtitle: 'Modern Math • Advanced Tournaments • Time-Bound Sectionals'
     },
     {
       id: 'p3',
       phaseId: 'PHASE 3',
-      name: 'Phase 3: The Mock Marathon',
+      name: `Phase 3: The Mock Marathon (W${p2End + 1}–${totalW})`,
       weeks: phase3Weeks,
       color: '#d946ef',
-      milestoneIndex: 16,
-      milestone: CAT_MILESTONES[16],
-      subtitle: '30 Full Mocks • Rigorous Error Diagnostics • 99%ile Peak Readiness'
+      milestoneIndex: totalW,
+      milestone: CAT_MILESTONES[totalW] || CAT_MILESTONES[16],
+      subtitle: 'Full Mocks • Rigorous Error Diagnostics • Peak Exam Readiness'
     }
-  ], [phase1Weeks, phase2Weeks, phase3Weeks]);
+  ], [phase1Weeks, phase2Weeks, phase3Weeks, p1End, p2End, totalW]);
 
   // Dynamically filter phases based on active tab and search query
   const filteredPhases = useMemo(() => {

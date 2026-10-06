@@ -20,7 +20,6 @@ import AspirantProfileCard from './AspirantProfileCard';
 import StudyContributionHeatmap from './StudyContributionHeatmap';
 import { calculateUserBadges } from '../utils/badgeUtils';
 import { AVATAR_FRAMES, PROFILE_BANNERS, getEffectiveFrameId, getEffectiveBannerId } from '../data/cosmeticsData';
-import MythicBannerOverlay from './MythicBannerOverlay';
 import AnimatedChip from './AnimatedChip';
 import { Icons } from './AspirantIcons';
 import { 
@@ -38,8 +37,8 @@ import SmoothCaretTextarea from './animations/SmoothCaretTextarea';
 import { getLenis } from '../utils/smoothScroll';
 
 const BG_COLORS = [
-  '#38bdf8', '#818cf8', '#c084fc', '#f472b6', '#fb7185',
-  '#fb923c', '#fbbf24', '#34d399', '#2dd4bf', '#94a3b8'
+  '#8b5cf6', '#c084fc', '#a855f7', '#6366f1', '#3b82f6',
+  '#059669', '#d97706', '#f43f5e', '#64748b', '#f8fafc'
 ];
 
 const BANNER_THEMES = [
@@ -276,7 +275,6 @@ export default function ProfileView({
   const [profBio, setProfBio] = useState(userProfile?.bio || '');
   const [profTarget, setProfTarget] = useState(userProfile?.target || 'CAT (99.5+%ile • IIM-A Focus)');
   const [profLocation, setProfLocation] = useState(userProfile?.location || '');
-  const [editModalTab, setEditModalTab] = useState('avatar_frame');
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
 
@@ -307,34 +305,7 @@ export default function ProfileView({
     }
   }, [userProfile, userLevel]);
 
-  // Instant equip handlers that propagate immediately to profile card
-  const handleEquipFrame = (frameId, frameName) => {
-    setProfFrameId(frameId);
-    showToast(`Equipped ${frameName} frame!`);
-    try {
-      const saved = JSON.parse(localStorage.getItem('local_aspirant_cosmetics') || '{}');
-      saved.frameId = frameId;
-      localStorage.setItem('local_aspirant_cosmetics', JSON.stringify(saved));
-    } catch (e) {}
-    if (onUpdateProfile) {
-      onUpdateProfile({ frameId });
-    }
-  };
 
-  const handleEquipBanner = (bannerId, bannerName) => {
-    setProfBannerId(bannerId);
-    setProfBannerUrl('');
-    showToast(`Equipped ${bannerName} banner!`);
-    try {
-      const saved = JSON.parse(localStorage.getItem('local_aspirant_cosmetics') || '{}');
-      saved.bannerId = bannerId;
-      saved.bannerUrl = '';
-      localStorage.setItem('local_aspirant_cosmetics', JSON.stringify(saved));
-    } catch (e) {}
-    if (onUpdateProfile) {
-      onUpdateProfile({ bannerId, bannerUrl: '' });
-    }
-  };
 
   const handleSelectAvatarPreset = (avatarId, label) => {
     setProfAvatar(avatarId);
@@ -530,8 +501,8 @@ export default function ProfileView({
       if (onUpdateProfile) {
         await onUpdateProfile(updatedProfileData);
       }
-      setProfileSuccessMsg("Loadout & Profile updated!");
-      showToast("Loadout & profile saved successfully!");
+      setProfileSuccessMsg("Profile updated successfully!");
+      showToast("Profile saved successfully!");
       setTimeout(() => setIsEditModalOpen(false), 900);
     } catch (err) {
       console.error(err);
@@ -675,31 +646,21 @@ export default function ProfileView({
               <span>Local Mode · Sign In</span>
             </button>
           )}
-
-          <button
-            type="button"
-            className="settings-patch-btn profile-edit-cta-btn"
-            onClick={() => setIsEditModalOpen(true)}
-            title="Edit Candidate Identity & Avatar Loadout"
-          >
-            <Icons.Edit3 size={13} />
-            <span>Edit Loadout</span>
-          </button>
         </div>
       </div>
 
-      {/* SEGMENTED CATEGORY NAVIGATION BAR (Modeled cleanly like Settings menu using AnimatedChip) */}
+      {/* SEGMENTED CATEGORY NAVIGATION BAR */}
       <div className="settings-category-nav-bar animated-chips-wrapper profile-category-nav-bar">
         <AnimatedChip
           icon={() => <Icons.User size={14} />}
-          label="Aspirant Passport"
-          mobileLabel="Passport"
+          label="Aspirant Profile"
+          mobileLabel="Profile"
           active={activeSection === 'passport'}
           onClick={() => setActiveSection('passport')}
         />
 
         <AnimatedChip
-          icon={() => <AnimatedCrownIcon size={14} color="#ffd700" />}
+          icon={() => <AnimatedCrownIcon size={14} color="#c084fc" />}
           label="Achievements"
           mobileLabel="Badges"
           active={false}
@@ -854,7 +815,7 @@ export default function ProfileView({
 
             </div>
 
-            {/* RIGHT COLUMN: Prestige Armory & Battle Squad */}
+            {/* RIGHT COLUMN: Prestige Vault & Study Network */}
             <div className="tactical-lower-side-col">
               
               {/* Panel 3: Featured Achievements Showcase (User Customizable 3-4 Badges) */}
@@ -886,7 +847,7 @@ export default function ProfileView({
                   </div>
                 </div>
                 <p className="panel-explainer">
-                  Showcase of your best achievements and prestige medals pinned to your operative profile.
+                  Showcase of your best achievements and prestige medals pinned to your aspirant profile.
                 </p>
 
                 <div className="featured-showcase-rack">
@@ -916,19 +877,19 @@ export default function ProfileView({
                 </div>
               </div>
 
-              {/* Panel 4: Quick Peer Connect & Active Squad */}
+              {/* Panel 4: Quick Peer Connect & Active Network */}
               <div className="passport-glass-panel">
                 <div className="panel-top-title-row">
                   <div className="title-left">
                     <Icons.Users size={16} className="panel-ico" />
-                    <h3>Battle Squad ({friends.length})</h3>
+                    <h3>Study Network ({friends.length})</h3>
                   </div>
                   <button 
                     type="button" 
                     className="panel-link-btn"
                     onClick={() => setActiveSection('network')}
                   >
-                    Manage Squad →
+                    Manage Network →
                   </button>
                 </div>
                 <p className="panel-explainer">
@@ -1310,7 +1271,7 @@ export default function ProfileView({
 
             <div className="showcase-modal-body">
               <p className="showcase-modal-instruction">
-                Pick 3 or 4 of your proudest achievements to showcase on your operative profile card and career overview.
+                Pick 3 or 4 of your proudest achievements to showcase on your aspirant profile card and career overview.
                 <span className="showcase-selection-count font-mono">
                   {showcaseBadgeIds.length} / 4 PINNED
                 </span>
@@ -1391,91 +1352,12 @@ export default function ProfileView({
                 <Icons.Edit3 size={16} />
                 <h3>Edit Aspirant Profile</h3>
               </div>
-              <button type="button" className="modal-close-btn" onClick={() => setIsEditModalOpen(false)}>
+              <button type="button" className="modal-close-btn" onClick={() => setIsEditModalOpen(false)} aria-label="Close modal">
                 <Icons.Close size={16} />
               </button>
             </div>
 
-            {/* Modal Live Banner & Avatar Preview */}
-            <div className="modal-live-preview-card">
-              <div 
-                className={`live-preview-banner ${PROFILE_BANNERS.find(b => b.id === effectiveProfBannerId)?.overlayClass || ''}`}
-                style={{
-                  background: PROFILE_BANNERS.find(b => b.id === effectiveProfBannerId)?.bg || profBannerBg || 'linear-gradient(135deg, #0284c7 0%, #0f172a 100%)',
-                  backgroundImage: profBannerUrl ? `url(${profBannerUrl})` : undefined,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center'
-                }}
-              >
-                <MythicBannerOverlay bannerId={effectiveProfBannerId} />
-                <div className="live-preview-banner-tint" />
-                <span className="live-badge">
-                  <span className="live-badge-dot" />
-                  <span>LIVE PREVIEW</span>
-                </span>
-              </div>
-              <div className="live-preview-identity">
-                <div className="live-preview-avatar-wrap">
-                  <AvatarRenderer 
-                    avatar={profAvatar} 
-                    name={profName || 'Your Name'} 
-                    avatarBg={profAvatarBg} 
-                    frameId={effectiveProfFrameId}
-                    size={60} 
-                  />
-                </div>
-                <div className="live-preview-text">
-                  <div className="live-preview-row-title">
-                    <span className="live-name">{profName || 'Your Name'}</span>
-                    <span className="live-lvl-pill font-mono">
-                      LVL {userLevel} • {expProgress.milestoneTitle.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="live-preview-row-sub">
-                    <span className="live-target">{profTarget}</span>
-                    {profLocation && (
-                      <span className="live-location font-mono">• {profLocation}</span>
-                    )}
-                  </div>
-                  <div className="live-preview-exp-track">
-                    <div className="live-preview-exp-fill" style={{ width: `${expProgress.progressPercent}%` }} />
-                    <span className="live-preview-exp-label font-mono">
-                      {expProgress.expIntoLevel} / {expProgress.expNeededForNext} EXP to Level {userLevel + 1}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Sub-Tabs */}
-            <div className="modal-tabs-strip">
-              <button
-                type="button"
-                className={`modal-tab-pill ${editModalTab === 'avatar_frame' || editModalTab === 'appearance' ? 'active' : ''}`}
-                onClick={() => setEditModalTab('avatar_frame')}
-              >
-                <AnimatedSparkleIcon size={14} color="#38bdf8" />
-                <span>Avatar &amp; Frames</span>
-              </button>
-              <button
-                type="button"
-                className={`modal-tab-pill ${editModalTab === 'banners' ? 'active' : ''}`}
-                onClick={() => setEditModalTab('banners')}
-              >
-                <AnimatedRadarBeaconIcon size={14} color="#a855f7" />
-                <span>Animated Banners</span>
-              </button>
-              <button
-                type="button"
-                className={`modal-tab-pill ${editModalTab === 'identity' ? 'active' : ''}`}
-                onClick={() => setEditModalTab('identity')}
-              >
-                <Icons.User size={14} />
-                <span>Identity &amp; Goals</span>
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveProfile} className="modal-form-body">
+            <form onSubmit={handleSaveProfile} className="modal-form-body basic-profile-form">
               {profileSuccessMsg && (
                 <div className="form-success-banner">
                   <Icons.Check size={14} />
@@ -1483,384 +1365,240 @@ export default function ProfileView({
                 </div>
               )}
 
-              {/* TAB 1: AVATAR & FRAMES */}
-              {(editModalTab === 'avatar_frame' || editModalTab === 'appearance') && (
-                <div className="form-pane">
-                  {/* 1A. AVATAR SYMBOL & COLOR PALETTE */}
-                  <div className="edit-section-card">
-                    <div className="edit-section-header">
-                      <div className="edit-section-title font-mono">
-                        <Icons.User size={14} />
-                        <span>Avatar Symbol Preset &amp; Accent</span>
-                      </div>
-                      <span className="edit-section-hint font-mono">8 Presets • 10 Colors</span>
-                    </div>
+              {/* 1. Avatar & Photo Section */}
+              <div className="edit-section-card basic-avatar-section">
+                <div className="edit-section-header">
+                  <div className="edit-section-title font-mono">
+                    <Icons.User size={14} />
+                    <span>Profile Photo &amp; Avatar</span>
+                  </div>
+                  <span className="edit-section-hint font-mono">8 Presets • 10 Colors</span>
+                </div>
 
-                    <div className="avatar-photo-source-row" style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                      {user?.photoURL && (
-                        <button
-                          type="button"
-                          className={`avatar-source-btn ${profAvatar === user.photoURL ? 'selected' : ''}`}
-                          onClick={() => handleSelectGooglePhoto(user.photoURL)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '6px 12px',
-                            borderRadius: '8px',
-                            background: profAvatar === user.photoURL ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                            border: profAvatar === user.photoURL ? '1px solid var(--accent-color, #38bdf8)' : '1px solid rgba(255, 255, 255, 0.08)',
-                            color: '#ffffff',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
-                        >
-                          <img
-                            src={user.photoURL}
-                            alt="Google"
-                            referrerPolicy="no-referrer"
-                            crossOrigin="anonymous"
-                            style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }}
-                          />
-                          <span className="font-mono">Use Google Account Photo</span>
-                          {profAvatar === user.photoURL && <span className="preset-active-dot" style={{ position: 'static', marginLeft: 'auto' }} />}
-                        </button>
-                      )}
+                <div className="basic-avatar-header-row" style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                  <div className="basic-avatar-preview-wrap" style={{ flexShrink: 0 }}>
+                    <AvatarRenderer
+                      avatar={profAvatar}
+                      name={profName}
+                      avatarBg={profAvatarBg}
+                      size={54}
+                    />
+                  </div>
 
-                      <label
-                        className={`avatar-source-btn ${profAvatar && (profAvatar.startsWith('data:image') || profAvatar.startsWith('blob:')) ? 'selected' : ''}`}
+                  <div className="avatar-photo-source-row" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: 1 }}>
+                    {user?.photoURL && (
+                      <button
+                        type="button"
+                        className={`avatar-source-btn ${profAvatar === user.photoURL ? 'selected' : ''}`}
+                        onClick={() => handleSelectGooglePhoto(user.photoURL)}
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '8px',
                           padding: '6px 12px',
                           borderRadius: '8px',
-                          background: profAvatar && (profAvatar.startsWith('data:image') || profAvatar.startsWith('blob:')) ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                          border: profAvatar && (profAvatar.startsWith('data:image') || profAvatar.startsWith('blob:')) ? '1px solid var(--accent-color, #38bdf8)' : '1px solid rgba(255, 255, 255, 0.08)',
+                          background: profAvatar === user.photoURL ? 'rgba(192, 132, 252, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                          border: profAvatar === user.photoURL ? '1px solid #c084fc' : '1px solid rgba(255, 255, 255, 0.08)',
                           color: '#ffffff',
                           cursor: 'pointer',
                           fontSize: '12px'
                         }}
                       >
-                        <Icons.Upload size={14} />
-                        <span className="font-mono">Upload Photo</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleCustomAvatarUpload}
-                          style={{ display: 'none' }}
+                        <img
+                          src={user.photoURL}
+                          alt="Google"
+                          referrerPolicy="no-referrer"
+                          crossOrigin="anonymous"
+                          style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }}
                         />
-                      </label>
-                    </div>
+                        <span className="font-mono">Google Account Photo</span>
+                        {profAvatar === user.photoURL && <span className="preset-active-dot" style={{ position: 'static', marginLeft: 'auto' }} />}
+                      </button>
+                    )}
 
-                    <div className="avatar-preset-grid">
-                      {AVATAR_PRESETS.map((preset) => {
-                        const PresetIcon = preset.icon;
-                        const isSelected = profAvatar === preset.id;
-                        return (
-                          <button
-                            key={preset.id}
-                            type="button"
-                            className={`avatar-preset-tile ${isSelected ? 'selected' : ''}`}
-                            onClick={() => handleSelectAvatarPreset(preset.id, preset.label)}
-                          >
-                            <div 
-                              className="preset-icon-circle" 
-                              style={{ 
-                                backgroundColor: isSelected ? profAvatarBg : 'rgba(255, 255, 255, 0.05)',
-                                color: isSelected ? '#ffffff' : (preset.color || '#94a3b8')
-                              }}
-                            >
-                              <PresetIcon size={17} />
-                            </div>
-                            <span className="preset-label font-mono">{preset.label}</span>
-                            {isSelected && <span className="preset-active-dot" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="avatar-color-row">
-                      <span className="avatar-color-label font-mono">Aura Accent:</span>
-                      <div className="color-swatches-grid">
-                        {BG_COLORS.map(c => (
-                          <button
-                            key={c}
-                            type="button"
-                            className={`swatch-circle ${profAvatarBg === c ? 'active' : ''}`}
-                            style={{ backgroundColor: c }}
-                            onClick={() => handleSelectAvatarColor(c)}
-                            title={`Aura Accent: ${c}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 1B. UNLOCKABLE AVATAR FRAMES */}
-                  <div className="edit-section-card" style={{ marginTop: '4px' }}>
-                    <div className="edit-section-header">
-                      <div className="edit-section-title font-mono">
-                        <AnimatedSparkleIcon size={14} color="#38bdf8" />
-                        <span>Unlockable Avatar Frames</span>
-                      </div>
-                      <span className="edit-section-hint font-mono">
-                        Rank: Level {userLevel} • {AVATAR_FRAMES.filter(f => userLevel >= f.minLevel).length}/{AVATAR_FRAMES.length} Unlocked
-                      </span>
-                    </div>
-
-                    <div className="cosmetic-frames-grid-v2">
-                      {AVATAR_FRAMES.map((frame) => {
-                        const isUnlocked = userLevel >= frame.minLevel;
-                        const isEquipped = effectiveProfFrameId === frame.id;
-
-                        return (
-                          <div 
-                            key={frame.id}
-                            className={`cosmetic-frame-card-v2 ${isEquipped ? 'equipped' : ''} ${isUnlocked ? 'unlocked' : 'locked'}`}
-                            onClick={() => {
-                              if (isUnlocked) {
-                                handleEquipFrame(frame.id, frame.name);
-                              }
-                            }}
-                          >
-                            <div className="frame-card-preview-v2">
-                              <AvatarRenderer
-                                avatar={profAvatar}
-                                name={profName}
-                                avatarBg={profAvatarBg}
-                                frameId={frame.id}
-                                size={52}
-                              />
-                            </div>
-                            <div className="frame-card-content-v2">
-                              <div className="frame-card-header-v2 font-mono">
-                                <span className="frame-name-v2 font-mono">{frame.name}</span>
-                                <span 
-                                  className="frame-tier-badge-v2 font-mono" 
-                                  style={{ color: frame.color, borderColor: `${frame.color}50`, background: `${frame.color}18` }}
-                                >
-                                  {frame.tier}
-                                </span>
-                              </div>
-                              <p className="frame-desc-v2">{frame.description}</p>
-                              <div className="frame-card-footer-v2 font-mono">
-                                {isEquipped ? (
-                                  <span className="frame-status-pill equipped font-mono">
-                                    <Icons.Check size={11} /> EQUIPPED
-                                  </span>
-                                ) : isUnlocked ? (
-                                  <button type="button" className="frame-equip-action-btn font-mono">
-                                    EQUIP FRAME
-                                  </button>
-                                ) : (
-                                  <span className="frame-status-pill locked font-mono">
-                                    <Icons.Lock size={11} /> REQ. LVL {frame.minLevel}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <label
+                      className={`avatar-source-btn ${profAvatar && (profAvatar.startsWith('data:image') || profAvatar.startsWith('blob:')) ? 'selected' : ''}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        background: profAvatar && (profAvatar.startsWith('data:image') || profAvatar.startsWith('blob:')) ? 'rgba(192, 132, 252, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                        border: profAvatar && (profAvatar.startsWith('data:image') || profAvatar.startsWith('blob:')) ? '1px solid #c084fc' : '1px solid rgba(255, 255, 255, 0.08)',
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      <Icons.Upload size={14} />
+                      <span className="font-mono">Upload Photo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCustomAvatarUpload}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
                   </div>
                 </div>
-              )}
 
-              {/* TAB 2: ANIMATED BANNERS */}
-              {editModalTab === 'banners' && (
-                <div className="form-pane">
-                  <div className="edit-section-card">
-                    <div className="edit-section-header">
-                      <div className="edit-section-title font-mono">
-                        <AnimatedRadarBeaconIcon size={14} color="#a855f7" />
-                        <span>Unlockable Animated Horizon Banners</span>
-                      </div>
-                      <span className="edit-section-hint font-mono">
-                        Rank: Level {userLevel} • {PROFILE_BANNERS.filter(b => userLevel >= b.minLevel).length}/{PROFILE_BANNERS.length} Unlocked
-                      </span>
-                    </div>
-
-                    <div className="cosmetic-banners-grid-v2">
-                      {PROFILE_BANNERS.map((banner) => {
-                        const isUnlocked = userLevel >= banner.minLevel;
-                        const isEquipped = effectiveProfBannerId === banner.id && !profBannerUrl;
-
-                        return (
-                          <div 
-                            key={banner.id}
-                            className={`cosmetic-banner-card-v2 ${isEquipped ? 'equipped' : ''} ${isUnlocked ? 'unlocked' : 'locked'}`}
-                            onClick={() => {
-                              if (isUnlocked) {
-                                handleEquipBanner(banner.id, banner.name);
-                              }
-                            }}
-                          >
-                            <div 
-                              className={`banner-thumb-panoramic ${banner.overlayClass || ''}`}
-                              style={{ background: banner.bg }}
-                            >
-                              <MythicBannerOverlay bannerId={banner.id} />
-                              <div className="banner-thumb-scrim-v2" />
-                              <div className="banner-thumb-meta-top font-mono">
-                                <span 
-                                  className="banner-tier-badge-v2 font-mono"
-                                  style={{
-                                    color: banner.tierColor || '#94a3b8',
-                                    borderColor: `${banner.tierColor || '#94a3b8'}60`,
-                                    background: 'rgba(0, 0, 0, 0.65)'
-                                  }}
-                                >
-                                  {banner.tier}
-                                </span>
-                                {!isUnlocked && (
-                                  <span className="banner-lock-pill font-mono">
-                                    <Icons.Lock size={10} />
-                                    <span>LVL {banner.minLevel}</span>
-                                  </span>
-                                )}
-                              </div>
-                              <span className="banner-thumb-name font-mono">{banner.name}</span>
-                            </div>
-
-                            <div className="banner-card-body-v2">
-                              <p className="banner-desc-v2" title={banner.description}>
-                                {banner.description}
-                              </p>
-                              <div className="banner-action-row-v2 font-mono">
-                                {isEquipped ? (
-                                  <span className="banner-status-pill equipped font-mono">
-                                    <Icons.Check size={11} /> EQUIPPED
-                                  </span>
-                                ) : isUnlocked ? (
-                                  <button type="button" className="banner-equip-action-btn font-mono">
-                                    EQUIP BANNER
-                                  </button>
-                                ) : (
-                                  <span className="banner-status-pill locked font-mono">
-                                    <Icons.Lock size={11} /> UNLOCKS AT LVL {banner.minLevel}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: IDENTITY & GOALS */}
-              {editModalTab === 'identity' && (
-                <div className="form-pane">
-                  <div className="edit-section-card">
-                    <div className="edit-section-header">
-                      <div className="edit-section-title font-mono">
-                        <Icons.User size={14} />
-                        <span>Aspirant Identity &amp; Target Goal</span>
-                      </div>
-                      <span className="edit-section-hint font-mono">Candidate Bio &amp; Strategy</span>
-                    </div>
-
-                    <div className="identity-form-fields">
-                      <div className="form-row two-cols">
-                        <div className="form-field">
-                          <label className="font-mono">Display Name</label>
-                          <input
-                            type="text"
-                            required
-                            value={profName}
-                            onChange={(e) => setProfName(e.target.value)}
-                            placeholder="e.g. Sunny Pathak"
-                            className="clean-field-input"
-                          />
-                        </div>
-                        <div className="form-field">
-                          <label className="font-mono">Handle / Username</label>
-                          <div className="input-with-affix">
-                            <span className="affix-at font-mono">@</span>
-                            <input
-                              type="text"
-                              value={profUsername}
-                              onChange={(e) => setProfUsername(e.target.value)}
-                              placeholder="sunnypathak"
-                              className="clean-field-input affixed"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="form-row two-cols">
-                        <div className="form-field">
-                          <label className="font-mono">Target Examination &amp; Goal</label>
-                          <AnimatedSelect
-                            value={profTarget}
-                            onChange={(e) => setProfTarget(e.target.value)}
-                            options={TARGET_PRESETS.map(t => ({ value: t, label: t }))}
-                          />
-                        </div>
-                        <div className="form-field">
-                          <label className="font-mono">Location / City (Optional)</label>
-                          <input
-                            type="text"
-                            value={profLocation}
-                            onChange={(e) => setProfLocation(e.target.value)}
-                            placeholder="e.g. Bengaluru, KA"
-                            className="clean-field-input"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="form-field full">
-                        <label className="font-mono">Aspirant Bio &amp; Strategy Notes</label>
-                        <SmoothCaretTextarea
-                          rows={3}
-                          value={profBio}
-                          onChange={(e) => setProfBio(e.target.value)}
-                          placeholder="e.g. Targeting 99.5+%ile with disciplined morning Quant drills and weekly full-length analysis."
-                          className="vault-textarea"
-                        />
-                      </div>
-
-                      <div className="aspirant-id-badge-row">
-                        <div className="aspirant-id-info">
-                          <span className="id-label font-mono">Aspirant ID:</span>
-                          <code className="id-code font-mono">{currentAspirantId}</code>
-                        </div>
-                        <button 
-                          type="button" 
-                          className="id-copy-action-btn font-mono"
-                          onClick={handleCopyMyId}
+                <div className="basic-presets-block">
+                  <div className="avatar-preset-grid">
+                    {AVATAR_PRESETS.map((preset) => {
+                      const PresetIcon = preset.icon;
+                      const isSelected = profAvatar === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          className={`avatar-preset-tile ${isSelected ? 'selected' : ''}`}
+                          onClick={() => handleSelectAvatarPreset(preset.id, preset.label)}
+                          aria-label={`Select ${preset.label} avatar`}
                         >
-                          {copiedMyId ? (
-                            <>
-                              <Icons.Check size={12} color="#34d399" />
-                              <span style={{ color: '#34d399' }}>Copied!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Icons.Copy size={12} />
-                              <span>Copy ID</span>
-                            </>
-                          )}
+                          <div 
+                            className="preset-icon-circle" 
+                            style={{ 
+                              backgroundColor: isSelected ? profAvatarBg : 'rgba(255, 255, 255, 0.05)',
+                              color: isSelected ? '#ffffff' : (preset.color || '#94a3b8')
+                            }}
+                          >
+                            <PresetIcon size={17} />
+                          </div>
+                          <span className="preset-label font-mono">{preset.label}</span>
+                          {isSelected && <span className="preset-active-dot" />}
                         </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="avatar-color-row">
+                  <span className="avatar-color-label font-mono">Accent Color:</span>
+                  <div className="color-swatches-grid">
+                    {BG_COLORS.map(c => (
+                      <button
+                        key={c}
+                        type="button"
+                        className={`swatch-circle ${profAvatarBg === c ? 'active' : ''}`}
+                        style={{ backgroundColor: c }}
+                        onClick={() => handleSelectAvatarColor(c)}
+                        title={`Accent Color: ${c}`}
+                        aria-label={`Select accent color ${c}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Identity & Target Goal Section */}
+              <div className="edit-section-card basic-identity-section">
+                <div className="edit-section-header">
+                  <div className="edit-section-title font-mono">
+                    <Icons.User size={14} />
+                    <span>Aspirant Identity &amp; Target Goal</span>
+                  </div>
+                  <span className="edit-section-hint font-mono">Candidate Bio &amp; Strategy</span>
+                </div>
+
+                <div className="identity-form-fields">
+                  <div className="form-row two-cols">
+                    <div className="form-field">
+                      <label htmlFor="prof-name-input" className="font-mono">Display Name</label>
+                      <input
+                        id="prof-name-input"
+                        type="text"
+                        required
+                        value={profName}
+                        onChange={(e) => setProfName(e.target.value)}
+                        placeholder="e.g. Sunny Pathak"
+                        className="clean-field-input"
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label htmlFor="prof-username-input" className="font-mono">Handle / Username</label>
+                      <div className="input-with-affix">
+                        <span className="affix-at font-mono">@</span>
+                        <input
+                          id="prof-username-input"
+                          type="text"
+                          value={profUsername}
+                          onChange={(e) => setProfUsername(e.target.value)}
+                          placeholder="sunnypathak"
+                          className="clean-field-input affixed"
+                        />
                       </div>
                     </div>
                   </div>
+
+                  <div className="form-row two-cols">
+                    <div className="form-field">
+                      <label htmlFor="prof-target-select" className="font-mono">Target Examination &amp; Goal</label>
+                      <AnimatedSelect
+                        id="prof-target-select"
+                        value={profTarget}
+                        onChange={(e) => setProfTarget(e.target.value)}
+                        options={TARGET_PRESETS.map(t => ({ value: t, label: t }))}
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label htmlFor="prof-location-input" className="font-mono">Location / City (Optional)</label>
+                      <input
+                        id="prof-location-input"
+                        type="text"
+                        value={profLocation}
+                        onChange={(e) => setProfLocation(e.target.value)}
+                        placeholder="e.g. Bengaluru, KA"
+                        className="clean-field-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-field full">
+                    <label htmlFor="prof-bio-input" className="font-mono">Aspirant Bio &amp; Strategy Notes</label>
+                    <SmoothCaretTextarea
+                      id="prof-bio-input"
+                      rows={3}
+                      value={profBio}
+                      onChange={(e) => setProfBio(e.target.value)}
+                      placeholder="e.g. Targeting 99.5+%ile with disciplined morning Quant drills and weekly full-length analysis."
+                      className="vault-textarea"
+                    />
+                  </div>
+
+                  <div className="aspirant-id-badge-row">
+                    <div className="aspirant-id-info">
+                      <span className="id-label font-mono">Aspirant ID:</span>
+                      <code className="id-code font-mono">{currentAspirantId}</code>
+                    </div>
+                    <button 
+                      type="button" 
+                      className="id-copy-action-btn font-mono"
+                      onClick={handleCopyMyId}
+                    >
+                      {copiedMyId ? (
+                        <>
+                          <Icons.Check size={12} color="#34d399" />
+                          <span style={{ color: '#34d399' }}>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Icons.Copy size={12} />
+                          <span>Copy ID</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              )}
+              </div>
 
               <div className="modal-footer-actions">
-                <div className="modal-footer-note font-mono">
-                  <span>Cosmetic modifications apply instantly across your profile card.</span>
-                </div>
+                <div />
                 <div className="modal-footer-btns">
                   <button type="button" className="btn-cancel font-mono" onClick={() => setIsEditModalOpen(false)}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn-save font-mono" disabled={profileSaving}>
+                  <button type="submit" className="btn-save font-mono minimal-btn-primary" disabled={profileSaving}>
                     {profileSaving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>

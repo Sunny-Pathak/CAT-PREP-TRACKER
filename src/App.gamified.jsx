@@ -57,6 +57,7 @@ import AuthScreen from './components/AuthScreen';
 import CookieConsentBanner from './components/CookieConsentBanner';
 import CustomCursor from './components/CustomCursor';
 import MorphFabStatusHub from './components/MorphFabStatusHub';
+import { getTimelineHorizon } from './config/examConfig';
 
 // Code-split lazy views for high-performance initial bundle
 const TimelineView = lazy(() => import('./components/TimelineView'));
@@ -93,7 +94,6 @@ import {
 import { recordBehaviorTelemetry } from './utils/studyBehaviorEngine';
 import DitherBackground from './components/DitherBackground';
 import LiquidIntroLoader from './components/LiquidIntroLoader';
-import ClickSpark from './components/ClickSpark';
 import AnimatedStreakBadge from './components/AnimatedStreakBadge';
 import { 
   AnimatedSwordsIcon,
@@ -294,6 +294,9 @@ function ViewLoadingFallback({ theme }) {
 
 export default function App() {
   const [state, setState] = useState(() => loadState());
+  const activeTimelineHorizon = useMemo(() => {
+    return getTimelineHorizon(state.settings?.timelineHorizon || '16_weeks');
+  }, [state.settings?.timelineHorizon]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [theme, setTheme] = useState(state.settings?.theme || 'dark');
   const [showThemeToast, setShowThemeToast] = useState(false);
@@ -2566,9 +2569,6 @@ export default function App() {
       {/* ReactBits Dither Background WebGL Shader (Dynamic continuous retro pixel wave) */}
       <DitherBackground activeTheme={theme} opacity={0.16} ditherSize={2.2} />
 
-      {/* ReactBits ClickSpark Particle Burst Animation */}
-      <ClickSpark activeTheme={theme} />
-
       {/* Luxury Liquid Glow Custom Cursor with GSAP Physics */}
       <CustomCursor activeTheme={theme} activeTab={activeTab} />
 
@@ -2607,7 +2607,7 @@ export default function App() {
             onClick={() => setActiveTab('timeline')} 
             ariaLabel="Study Plan"
             tooltipTitle="Study Plan"
-            tooltipTag="16-WK CURRICULUM"
+            tooltipTag={`${activeTimelineHorizon.durationWeeks}-WK CURRICULUM`}
           >
             <Icons.Plan />
           </DockItem>

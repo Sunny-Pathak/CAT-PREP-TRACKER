@@ -150,7 +150,7 @@ describe('ProfileView Featured Achievements Showcase', () => {
     expect(avatarContainer.classList.contains('frame-neon_cyber')).toBe(false);
   });
 
-  it('renders the streamlined Edit Aspirant Profile modal with 3 tabs and uniform cards', () => {
+  it('renders the clean, basic Edit Aspirant Profile modal with avatar presets and identity fields', () => {
     const { container } = render(
       <ProfileView
         user={{ uid: 'test-user-123', email: 'operative@prep.io', displayName: 'Phantom Strike' }}
@@ -162,36 +162,25 @@ describe('ProfileView Featured Achievements Showcase', () => {
       />
     );
 
-    // Check modal title and live preview
+    // Check modal title is present
     expect(screen.getByText('Edit Aspirant Profile')).toBeDefined();
-    expect(screen.getByText('LIVE PREVIEW')).toBeDefined();
 
-    // Check 3 tabs are present
-    expect(screen.getByText(/Avatar & Frames/i)).toBeDefined();
-    expect(screen.getByText(/Animated Banners/i)).toBeDefined();
-    expect(screen.getByText(/Identity & Goals/i)).toBeDefined();
-
-    // Tab 1 (Avatar & Frames) active by default: 8 presets and 7 frames
+    // Verify 8 avatar presets are rendered
     const presetTiles = container.querySelectorAll('.avatar-preset-tile');
     expect(presetTiles.length).toBe(8);
 
-    const frameCards = container.querySelectorAll('.cosmetic-frame-card-v2');
-    expect(frameCards.length).toBe(7);
-
-    // Switch to Tab 2 (Animated Banners)
-    const bannerTabBtn = screen.getByText(/Animated Banners/i);
-    fireEvent.click(bannerTabBtn);
-
-    const bannerCards = container.querySelectorAll('.cosmetic-banner-card-v2');
-    expect(bannerCards.length).toBe(7);
-
-    // Switch to Tab 3 (Identity & Goals)
-    const identityTabBtn = screen.getByText(/Identity & Goals/i);
-    fireEvent.click(identityTabBtn);
-
+    // Verify core identity form inputs are rendered
     expect(screen.getByText(/Display Name/i)).toBeDefined();
     expect(screen.getByText(/Handle \/ Username/i)).toBeDefined();
+    expect(screen.getByText(/Target Examination & Goal/i)).toBeDefined();
     expect(screen.getByText(/Aspirant Bio & Strategy Notes/i)).toBeDefined();
+
+    // Verify Discord-like vanity items are strictly removed
+    expect(screen.queryByText('LIVE PREVIEW')).toBeNull();
+    expect(screen.queryByText(/Horizon Banners/i)).toBeNull();
+    expect(screen.queryByText(/Aspirant Profile Halos/i)).toBeNull();
+    expect(container.querySelectorAll('.cosmetic-frame-card-v2').length).toBe(0);
+    expect(container.querySelectorAll('.cosmetic-banner-card-v2').length).toBe(0);
   });
 });
 

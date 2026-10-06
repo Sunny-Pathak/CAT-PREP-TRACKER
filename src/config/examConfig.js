@@ -584,20 +584,82 @@ export const getTimelineHorizon = (horizonId = DEFAULT_TIMELINE_ID) => {
 };
 
 /**
+ * Study Activity Types
+ * Breaks down preparation into high-yield cognitive modes.
+ */
+export const STUDY_ACTIVITIES = {
+  concept: {
+    id: 'concept',
+    name: 'Concept & Theory',
+    shortName: 'Concept',
+    badge: 'THEORY',
+    description: 'Core concepts, syllabus fundamentals and formula grasp',
+    color: '#a78bfa'
+  },
+  practice: {
+    id: 'practice',
+    name: 'Drill Practice',
+    shortName: 'Drills',
+    badge: 'DRILLS',
+    description: 'High-yield questions, sectional sets and timed problem solving',
+    color: '#8b5cf6'
+  },
+  analysis: {
+    id: 'analysis',
+    name: 'Mock & Error Analysis',
+    shortName: 'Analysis',
+    badge: 'ANALYSIS',
+    description: 'Error vault logging, mock test reviews and weak-area triage',
+    color: '#34d399'
+  }
+};
+
+/**
  * Calculates adjusted daily quotas and hours based on exam and timeline horizon.
  */
-export const getAdjustedDailyQuotas = (examId = DEFAULT_EXAM_ID, horizonId = DEFAULT_TIMELINE_ID) => {
+export const getAdjustedDailyQuotas = (
+  examId = DEFAULT_EXAM_ID, 
+  horizonId = DEFAULT_TIMELINE_ID,
+  persona = 'college_student'
+) => {
   const config = getActiveExamConfig(examId);
   const horizon = getTimelineHorizon(horizonId);
   const m = horizon.multiplier || 1.0;
+  const isWorkingPro = persona === 'working_pro' || persona === 'working_professional';
+
+  // Working professionals: tight schedule, high-yield drill pacing (~3h/day baseline)
+  // College students: dedicated study blocks, comprehensive syllabus mastery (~4-5h/day baseline)
+  const personaFactor = isWorkingPro ? 0.65 : 1.0;
+  const dailyHours = isWorkingPro 
+    ? Math.max(2.0, Number((horizon.dailyHours * 0.75).toFixed(1))) 
+    : horizon.dailyHours;
+
+  // Activity breakdown distribution:
+  // Working Pro: ~25% Theory, ~55% Drills, ~20% Analysis
+  // College Student: ~35% Theory, ~45% Drills, ~20% Analysis
+  const activityDistribution = isWorkingPro
+    ? { concept: 0.25, analysis: 0.20 }
+    : { concept: 0.35, analysis: 0.20 };
+
+  const conceptHrs = Number((dailyHours * activityDistribution.concept).toFixed(1));
+  const analysisHrs = Number((dailyHours * activityDistribution.analysis).toFixed(1));
+  const practiceHrs = Number((dailyHours - conceptHrs - analysisHrs).toFixed(1));
+
+  const activityHours = {
+    concept: conceptHrs,
+    practice: practiceHrs,
+    analysis: analysisHrs
+  };
 
   return {
-    quant: Math.max(1, Math.round((config.sections[0]?.defaultDailyQuota || 18) * m)),
-    lrdi: Math.max(1, Math.round((config.sections[1]?.defaultDailyQuota || 4) * m)),
-    varc: Math.max(1, Math.round((config.sections[2]?.defaultDailyQuota || 4) * m)),
-    dailyHours: horizon.dailyHours,
+    quant: Math.max(1, Math.round((config.sections[0]?.defaultDailyQuota || 18) * m * personaFactor)),
+    lrdi: Math.max(1, Math.round((config.sections[1]?.defaultDailyQuota || 4) * m * personaFactor)),
+    varc: Math.max(1, Math.round((config.sections[2]?.defaultDailyQuota || 4) * m * personaFactor)),
+    dailyHours,
+    activityHours,
     durationWeeks: horizon.durationWeeks,
-    horizonName: horizon.name
+    horizonName: horizon.name,
+    persona: isWorkingPro ? 'working_professional' : 'college_student'
   };
 };
 

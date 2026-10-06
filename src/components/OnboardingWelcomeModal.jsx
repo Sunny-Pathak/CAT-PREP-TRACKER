@@ -21,11 +21,25 @@ export default function OnboardingWelcomeModal({
   const currentTheme = theme || activeTheme || (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : null) || 'dark';
   const [selectedExamId] = useState(initialExamId || DEFAULT_EXAM_ID);
   const [selectedHorizonId, setSelectedHorizonId] = useState(initialHorizonId || DEFAULT_TIMELINE_ID);
+  const [selectedPersona, setSelectedPersona] = useState(() => {
+    try {
+      return localStorage.getItem('catalyze_aspirant_persona') || 'college_student';
+    } catch {
+      return 'college_student';
+    }
+  });
   const [isMinimizing, setIsMinimizing] = useState(false);
 
   const selectedConfig = getActiveExamConfig(selectedExamId);
   const selectedHorizon = getTimelineHorizon(selectedHorizonId);
-  const adjustedQuotas = getAdjustedDailyQuotas(selectedExamId, selectedHorizonId);
+  const adjustedQuotas = getAdjustedDailyQuotas(selectedExamId, selectedHorizonId, selectedPersona);
+
+  const handlePersonaSelect = (persona) => {
+    setSelectedPersona(persona);
+    try {
+      playSoftZenChime(0.18);
+    } catch (e) {}
+  };
 
   const handleHorizonSelect = (horizonId) => {
     setSelectedHorizonId(horizonId);
@@ -37,25 +51,29 @@ export default function OnboardingWelcomeModal({
   const executeFinish = (chosenExamId = selectedExamId, chosenHorizonId = selectedHorizonId) => {
     setIsMinimizing(false);
     const config = getActiveExamConfig(chosenExamId);
-    const quotas = getAdjustedDailyQuotas(chosenExamId, chosenHorizonId);
+    const quotas = getAdjustedDailyQuotas(chosenExamId, chosenHorizonId, selectedPersona);
 
     const payload = {
       targetExam: chosenExamId,
       targetYear: config.defaultYear || '2025',
       timelineHorizon: chosenHorizonId,
+      aspirantPersona: selectedPersona,
       dailyHoursGoal: quotas.dailyHours,
       dailyQuotas: {
         quant: quotas.quant,
         lrdi: quotas.lrdi,
         varc: quotas.varc
-      }
+      },
+      activityHours: quotas.activityHours
     };
 
     try {
       localStorage.setItem('catalyze_target_exam', chosenExamId);
       localStorage.setItem('catalyze_timeline_horizon', chosenHorizonId);
+      localStorage.setItem('catalyze_aspirant_persona', selectedPersona);
       localStorage.setItem('catalyze_target_year', payload.targetYear);
       localStorage.setItem('catalyze_daily_hours_goal', String(quotas.dailyHours));
+      localStorage.setItem('catalyze_activity_hours', JSON.stringify(quotas.activityHours));
       localStorage.setItem('catalyze_onboarding_completed', 'true');
     } catch (e) {}
 
@@ -98,12 +116,12 @@ export default function OnboardingWelcomeModal({
 
   if (!isOpen) return null;
 
-  // Refined, high-yield copy that fits with zero ellipsis truncations
+  // Short, punchy copy with zero filler
   const CONCISE_DESCRIPTIONS = {
-    '3_months': 'High-yield sprint prioritizing high-weightage chapters and intensive PYQs.',
-    '16_weeks': 'Balanced foundation, advanced drills, and mock marathon retention.',
-    '6_months': 'Methodical pacing with dedicated multiple-revision cycles.',
-    '1_year': 'Exhaustive foundation building with complete revision cycles.'
+    '3_months': 'Fast sprint · PYQs',
+    '16_weeks': 'Core theory + mocks',
+    '6_months': 'Steady pacing',
+    '1_year': 'Full coverage'
   };
 
   return (
@@ -136,8 +154,49 @@ export default function OnboardingWelcomeModal({
         <div className="onb-headline-block">
           <h1 id="onb-title" className="onb-title">Target Velocity</h1>
           <p className="onb-description">
-            Calibrate your daily commitment. Syllabus volume and drill cadences adapt in real time.
+            Calibrate your daily commitment.
           </p>
+        </div>
+
+        {/* Operating Persona Selector */}
+        <div className="onb-persona-grid" role="radiogroup" aria-label="Select operating persona">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={selectedPersona === 'working_professional'}
+            className={`onb-persona-tile ${selectedPersona === 'working_professional' ? 'active' : ''}`}
+            onClick={() => handlePersonaSelect('working_professional')}
+          >
+            <div className="onb-pt-top">
+              <span className="onb-pt-title">Working Professional</span>
+              <span className="onb-pt-hours font-mono">~2.5–3.5 H / DAY</span>
+            </div>
+            <p className="onb-pt-pain">
+              Evenings &amp; weekends · Lean high-yield pace
+            </p>
+            {selectedPersona === 'working_professional' && (
+              <span className="onb-pt-badge font-mono">CALIBRATED FOR WORKING PRO</span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            role="radio"
+            aria-checked={selectedPersona === 'college_student'}
+            className={`onb-persona-tile ${selectedPersona === 'college_student' ? 'active' : ''}`}
+            onClick={() => handlePersonaSelect('college_student')}
+          >
+            <div className="onb-pt-top">
+              <span className="onb-pt-title">Student / College Aspirant</span>
+              <span className="onb-pt-hours font-mono">~3.5–6.0 H / DAY</span>
+            </div>
+            <p className="onb-pt-pain">
+              Full-time study · Comprehensive syllabus
+            </p>
+            {selectedPersona === 'college_student' && (
+              <span className="onb-pt-badge font-mono">CALIBRATED FOR STUDENT</span>
+            )}
+          </button>
         </div>
 
         {/* Monolithic 4-Column Horizon Selector */}
@@ -146,6 +205,10 @@ export default function OnboardingWelcomeModal({
             const isSelected = selectedHorizonId === h.id;
             const indexStr = String(idx + 1).padStart(2, '0');
             const desc = CONCISE_DESCRIPTIONS[h.id] || h.description;
+            const displayHours = selectedPersona === 'working_professional' 
+              ? Math.max(2.0, Number((h.dailyHours * 0.75).toFixed(1)))
+              : h.dailyHours;
+
             return (
               <button
                 key={h.id}
@@ -164,7 +227,7 @@ export default function OnboardingWelcomeModal({
                 </div>
 
                 <div className="onb-vt-hours-block">
-                  <span className="onb-vt-hours">{h.dailyHours.toFixed(1)}</span>
+                  <span className="onb-vt-hours">{displayHours.toFixed(1)}</span>
                   <span className="onb-vt-hours-unit">H / DAY</span>
                 </div>
 
@@ -178,11 +241,11 @@ export default function OnboardingWelcomeModal({
           })}
         </div>
 
-        {/* Precision Telemetry Readout (No nested boxes) */}
+        {/* Precision Telemetry Readout */}
         <div className="onb-telemetry-strip">
           <div className="onb-telemetry-meta">
-            <span className="onb-telemetry-tag">DAILY PRACTICE TARGETS</span>
-            <span className="onb-telemetry-duration">· {selectedHorizon.dailyHours} HOURS / DAY</span>
+            <span className="onb-telemetry-tag">DAILY TARGETS</span>
+            <span className="onb-telemetry-duration font-mono">· {adjustedQuotas.dailyHours} H / DAY</span>
           </div>
 
           <div className="onb-telemetry-metrics">
@@ -200,18 +263,36 @@ export default function OnboardingWelcomeModal({
 
             <div className="onb-tm-item">
               <span className="onb-tm-code">VARC</span>
-              <span className="onb-tm-val">{String(adjustedQuotas.varc).padStart(2, '0')} <span className="onb-tm-unit">RCs & VA</span></span>
+              <span className="onb-tm-val">{String(adjustedQuotas.varc).padStart(2, '0')} <span className="onb-tm-unit">RCs</span></span>
             </div>
           </div>
         </div>
 
-        {/* Stoic Footer & Launch Action */}
-        <footer className="onb-footer">
-          <div className="onb-footer-meta">
-            <span className="onb-footer-dot" />
-            <span className="onb-footer-copy">Curriculum matrix calibrated for CAT 2025.</span>
+        {/* Calibrated Activity Breakdown Bar */}
+        {adjustedQuotas.activityHours && (
+          <div className="onb-activities-bar font-mono" aria-label="Daily study modes distribution">
+            <div className="onb-act-item">
+              <span className="onb-act-dot theory" />
+              <span className="onb-act-label">THEORY</span>
+              <span className="onb-act-hrs">{adjustedQuotas.activityHours.concept}h</span>
+            </div>
+            <span className="onb-act-sep">/</span>
+            <div className="onb-act-item">
+              <span className="onb-act-dot drills" />
+              <span className="onb-act-label">DRILLS</span>
+              <span className="onb-act-hrs">{adjustedQuotas.activityHours.practice}h</span>
+            </div>
+            <span className="onb-act-sep">/</span>
+            <div className="onb-act-item">
+              <span className="onb-act-dot analysis" />
+              <span className="onb-act-label">ANALYSIS</span>
+              <span className="onb-act-hrs">{adjustedQuotas.activityHours.analysis}h</span>
+            </div>
           </div>
+        )}
 
+        {/* Footer Launch Action */}
+        <footer className="onb-footer">
           <button
             type="button"
             className="onb-launch-btn"
@@ -259,17 +340,17 @@ export default function OnboardingWelcomeModal({
           border: 1px solid rgba(139, 92, 246, 0.18);
           border-radius: 20px;
           width: 100%;
-          max-width: 800px;
+          max-width: 820px;
           box-shadow: 
             0 36px 90px -20px rgba(0, 0, 0, 0.95),
             0 0 45px -10px rgba(139, 92, 246, 0.14);
           overflow: hidden;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           color: #ffffff;
-          padding: 28px 32px;
+          padding: 26px 30px;
           display: flex;
           flex-direction: column;
-          gap: 22px;
+          gap: 16px;
           transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
                       opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -334,6 +415,91 @@ export default function OnboardingWelcomeModal({
 
         .onb-close-action:hover {
           color: #ffffff;
+        }
+
+        /* Persona Grid */
+        .onb-persona-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          width: 100%;
+        }
+
+        @media (max-width: 640px) {
+          .onb-persona-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .onb-persona-tile {
+          background: rgba(18, 14, 30, 0.45);
+          border: 1px solid rgba(167, 139, 250, 0.14);
+          border-radius: 12px;
+          padding: 14px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          text-align: left;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          color: inherit;
+        }
+
+        .onb-persona-tile:hover {
+          background: rgba(26, 20, 44, 0.65);
+          border-color: rgba(167, 139, 250, 0.35);
+          transform: translateY(-1px);
+        }
+
+        .onb-persona-tile.active {
+          background: rgba(30, 20, 56, 0.85);
+          border-color: #a78bfa;
+          box-shadow: 
+            0 0 20px -2px rgba(139, 92, 246, 0.25),
+            inset 0 0 14px -2px rgba(139, 92, 246, 0.12);
+        }
+
+        .onb-pt-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .onb-pt-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 13.5px;
+          font-weight: 800;
+          color: #ffffff;
+          letter-spacing: -0.01em;
+        }
+
+        .onb-pt-hours {
+          font-size: 9.5px;
+          font-weight: 700;
+          color: #c084fc;
+          letter-spacing: 0.04em;
+          background: rgba(167, 139, 250, 0.1);
+          padding: 2px 7px;
+          border-radius: 5px;
+          border: 1px solid rgba(167, 139, 250, 0.2);
+          white-space: nowrap;
+        }
+
+        .onb-pt-pain {
+          font-size: 11.5px;
+          color: #94a3b8;
+          line-height: 1.45;
+          margin: 0;
+        }
+
+        .onb-pt-badge {
+          display: inline-block;
+          margin-top: 3px;
+          font-size: 8.5px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          color: #c084fc;
         }
 
         /* Headline */
@@ -559,33 +725,68 @@ export default function OnboardingWelcomeModal({
           font-size: 11px;
         }
 
+        /* Activity Breakdown Bar */
+        .onb-activities-bar {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          padding: 7px 14px;
+          background: rgba(139, 92, 246, 0.03);
+          border: 1px dashed rgba(167, 139, 250, 0.16);
+          border-radius: 8px;
+          font-size: 10px;
+        }
+
+        .onb-act-item {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .onb-act-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+        }
+
+        .onb-act-dot.theory {
+          background: #a78bfa;
+          box-shadow: 0 0 6px rgba(167, 139, 250, 0.6);
+        }
+
+        .onb-act-dot.drills {
+          background: #c084fc;
+          box-shadow: 0 0 6px rgba(192, 132, 252, 0.6);
+        }
+
+        .onb-act-dot.analysis {
+          background: #34d399;
+          box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
+        }
+
+        .onb-act-label {
+          color: #94a3b8;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+        }
+
+        .onb-act-hrs {
+          color: #ffffff;
+          font-weight: 800;
+        }
+
+        .onb-act-sep {
+          color: #334155;
+          font-size: 10px;
+        }
+
         /* Footer */
         .onb-footer {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          justify-content: flex-end;
           padding-top: 6px;
-          gap: 16px;
-        }
-
-        .onb-footer-meta {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .onb-footer-dot {
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: #8b5cf6;
-          box-shadow: 0 0 6px #8b5cf6;
-        }
-
-        .onb-footer-copy {
-          font-size: 12px;
-          color: #94a3b8;
-          letter-spacing: 0.01em;
         }
 
         .onb-launch-btn {

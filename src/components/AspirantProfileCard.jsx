@@ -4,7 +4,6 @@ import { Icons } from './AspirantIcons';
 import StudyContributionHeatmap from './StudyContributionHeatmap';
 import { calculateUserBadges } from '../utils/badgeUtils';
 import { AVATAR_FRAMES, PROFILE_BANNERS, getEffectiveFrameId, getEffectiveBannerId } from '../data/cosmeticsData';
-import MythicBannerOverlay from './MythicBannerOverlay';
 import { AnimatedSparkleIcon } from './AnimatedUiIcons';
 import { calculateLevelFromExp, getExpProgress, getExpForLevel } from '../utils/expSystem';
 
@@ -77,7 +76,7 @@ export default function AspirantProfileCard({
     ? Math.round(getExpForLevel(explicitLevel) + (getExpForLevel(explicitLevel + 1) - getExpForLevel(explicitLevel)) * 0.62)
     : totalExp;
 
-  const progressData = getExpProgress(computedExp);
+  const progressData = useMemo(() => getExpProgress(computedExp), [computedExp]);
   const level = explicitLevel || progressData.currentLevel || 1;
   const currentExpInLevel = progressData.expIntoLevel;
   const expNeeded = progressData.expNeededForNext;
@@ -90,45 +89,45 @@ export default function AspirantProfileCard({
   const equippedBannerId = getEffectiveBannerId(candidateBannerId, level);
   const customBannerUrl = profile?.bannerUrl || profile?.bannerBg;
 
-  let classTitle = 'SCHOLAR OPERATIVE';
-  let tierRank = 'BRONZE III';
+  let classTitle = 'CANDIDATE ASPIRANT';
+  let tierRank = 'LEVEL 1';
   let tierColor = 'var(--text-tertiary)';
 
   if (level >= 50) {
-    classTitle = 'IMMORTAL ACHIEVER';
-    tierRank = 'IMMORTAL I';
+    classTitle = 'EXECUTIVE SCHOLAR';
+    tierRank = 'TOP 0.1% TIER';
     tierColor = '#fb7185';
   } else if (level >= 40) {
-    classTitle = 'TRANSCENDENT SCHOLAR';
-    tierRank = 'TRANSCENDENT I';
+    classTitle = 'ADVANCED SCHOLAR';
+    tierRank = 'TOP 0.5% TIER';
     tierColor = '#f43f5e';
   } else if (level >= 30) {
-    classTitle = 'MYTHIC SOVEREIGN';
-    tierRank = 'MYTHIC I';
+    classTitle = 'SENIOR ASPIRANT';
+    tierRank = '99+ PERCENTILE';
     tierColor = '#ec4899';
   } else if (level >= 20) {
-    classTitle = 'OMNI GRANDMASTER';
-    tierRank = 'GRANDMASTER I';
+    classTitle = 'PREMIER ASPIRANT';
+    tierRank = '98+ PERCENTILE';
     tierColor = '#fb7185';
   } else if (level >= 15) {
-    classTitle = 'PERCENTILE WARLORD';
-    tierRank = 'DIAMOND I';
+    classTitle = 'INTENSIVE ASPIRANT';
+    tierRank = '95+ PERCENTILE';
     tierColor = 'var(--accent-color)';
   } else if (level >= 10) {
-    classTitle = 'QUANT SPELLBLADE';
-    tierRank = 'PLATINUM II';
+    classTitle = 'FOCUSED ASPIRANT';
+    tierRank = '90+ PERCENTILE';
     tierColor = '#a855f7';
   } else if (level >= 5) {
-    classTitle = 'STREAK CRUSADER';
-    tierRank = 'GOLD III';
+    classTitle = 'ACTIVE ASPIRANT';
+    tierRank = 'FOUNDATION II';
     tierColor = '#eab308';
   } else if (level >= 2) {
-    classTitle = 'TACTICAL ASPIRANT';
+    classTitle = 'CANDIDATE ASPIRANT';
     tierRank = 'SILVER I';
     tierColor = 'var(--accent-color)';
   } else {
-    classTitle = 'SCHOLAR OPERATIVE';
-    tierRank = 'NOVICE I';
+    classTitle = 'CANDIDATE ASPIRANT';
+    tierRank = 'LEVEL 1';
     tierColor = 'var(--text-tertiary)';
   }
 
@@ -143,8 +142,8 @@ export default function AspirantProfileCard({
   };
 
   const handleText = username ? (username.startsWith('@') ? username : `@${username}`) : '@aspirant';
-  const badges = calculateUserBadges({ streak, solvedQs, mocksCount });
-  const unlockedBadges = badges.filter(b => b.isUnlocked);
+  const badges = useMemo(() => calculateUserBadges({ streak, solvedQs, mocksCount }), [streak, solvedQs, mocksCount]);
+  const unlockedBadges = useMemo(() => badges.filter(b => b.isUnlocked), [badges]);
   const displayBadges = (showcaseBadges && showcaseBadges.length > 0) 
     ? showcaseBadges 
     : (unlockedBadges.length > 0 ? [...unlockedBadges, ...badges.filter(b => !b.isUnlocked)].slice(0, 4) : badges.slice(0, 4));
@@ -170,16 +169,31 @@ export default function AspirantProfileCard({
         }}
       >
         <div className="panoramic-banner-scrim" />
-        {!isGifOrImgBanner && activeBannerPreset.id !== 'cyber_grid' && <MythicBannerOverlay bannerId={activeBannerPreset.id} />}
 
         {/* Top Floating Controls on Banner */}
         <div className="panoramic-top-row">
-          <div className="panoramic-rank-chip font-mono" style={{ borderColor: tierColor, color: tierColor }}>
-            <Icons.Shield size={12} />
-            <span>{tierRank}</span>
+          <div className="panoramic-rank-chip font-mono" style={{ borderColor: 'rgba(255, 255, 255, 0.1)', color: '#c084fc' }}>
+            <span>ASPIRANT DOSSIER // {aspirantId || 'ASP-481568'}</span>
+            <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>{tierRank}</span>
+            {aspirantId && (
+              <button 
+                type="button"
+                onClick={handleCopyId}
+                className="panoramic-id-pill font-mono"
+                title="Click to copy Aspirant ID"
+                aria-label="Copy Aspirant ID"
+                style={{ padding: '2px 6px', marginLeft: '6px' }}
+              >
+                {copiedId ? <Icons.Check size={10} color="#34d399" /> : <Icons.Copy size={10} />}
+              </button>
+            )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="panoramic-spec-badge font-mono" style={{ color: '#c084fc', borderColor: 'rgba(192, 132, 252, 0.25)' }}>
+              <span>LVL {level}</span> • {classTitle}
+            </span>
+
             {rank && (
               <div 
                 className="panoramic-leaderboard-rank-pill font-mono"
@@ -192,25 +206,13 @@ export default function AspirantProfileCard({
                   fontSize: '11px',
                   fontWeight: 800,
                   letterSpacing: '0.05em',
-                  background: rank === 1 ? 'rgba(239, 68, 68, 0.25)' : 'var(--bg-tertiary)',
-                  border: rank === 1 ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid var(--border-color)',
-                  color: rank === 1 ? '#f87171' : 'var(--accent-color)'
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--accent-color)'
                 }}
               >
                 <span>RANK #{rank}</span>
               </div>
-            )}
-
-            {aspirantId && (
-              <button 
-                type="button"
-                onClick={handleCopyId}
-                className="panoramic-id-pill font-mono"
-                title="Click to copy Aspirant ID"
-              >
-                <span>{aspirantId}</span>
-                {copiedId ? <Icons.Check size={10} /> : <Icons.Copy size={10} />}
-              </button>
             )}
 
             {onClose && (
@@ -219,6 +221,7 @@ export default function AspirantProfileCard({
                 className="panoramic-close-btn" 
                 onClick={onClose} 
                 title="Close Profile"
+                aria-label="Close Profile"
               >
                 <Icons.Close size={15} />
               </button>
@@ -228,7 +231,7 @@ export default function AspirantProfileCard({
 
         {/* Hero Character & Details Overlay */}
         <div className="panoramic-hero-info-row">
-          {/* Avatar with Special Unlocked Frame */}
+          {/* Avatar without arcade yellow badge covering it */}
           <div className="panoramic-avatar-slot">
             <AvatarRenderer 
               avatar={avatar}
@@ -238,11 +241,6 @@ export default function AspirantProfileCard({
               status={status}
               frameId={equippedFrameId}
             />
-            {/* Level Crest Badge */}
-            <div className="panoramic-lvl-crest font-mono">
-              <AnimatedSparkleIcon size={12} color="#fbbf24" style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '3px' }} />
-              <span>LVL {level}</span>
-            </div>
           </div>
 
           {/* Callsign & Spec Titles */}
@@ -250,7 +248,7 @@ export default function AspirantProfileCard({
             <div className="panoramic-spec-strip">
               <span className="panoramic-spec-badge font-mono">{classTitle}</span>
               <span className="panoramic-target-tag font-mono">
-                {profile?.username ? handleText : `@${targetText}`}
+                {profile?.username ? handleText : targetText}
               </span>
               {percentile && (
                 <span 
@@ -271,17 +269,18 @@ export default function AspirantProfileCard({
             )}
           </div>
 
-          {/* Action Button: Loadout / Challenge */}
+          {/* Action Button: Edit Profile / Study With Peer */}
           <div className="panoramic-action-slot">
             {isSelf ? (
               <button 
                 type="button" 
                 className="minimal-btn-primary font-mono"
                 onClick={onEditProfile || (() => setShowCosmeticsModal(true))}
-                title="Edit Candidate Identity & Avatar Loadout"
+                title="Edit Aspirant Profile & Identity"
+                aria-label="Edit Aspirant Profile"
               >
                 <Icons.Edit3 size={13} />
-                <span>LOADOUT CONFIG</span>
+                <span>EDIT PROFILE</span>
                 <span className="btn-arrow">↗</span>
               </button>
             ) : (
@@ -308,7 +307,7 @@ export default function AspirantProfileCard({
                     title={`Message ${displayName}`}
                   >
                     <Icons.MessageSquare size={13} />
-                    <span>COMMS</span>
+                    <span>MESSAGE</span>
                   </button>
                 )}
               </div>
@@ -340,12 +339,12 @@ export default function AspirantProfileCard({
         </div>
 
         <div className="panoramic-exp-footer font-mono">
-          <span>STREAK MULTIPLIER: x{(1 + streak * 0.1).toFixed(1)} ACTIVE</span>
-          <span>NEXT ACT MILESTONE: LVL {level + 1}</span>
+          <span>CONSISTENCY: {streak} DAY{streak === 1 ? '' : 'S'} ACTIVE</span>
+          <span>NEXT MILESTONE: LEVEL {level + 1}</span>
         </div>
       </div>
 
-      {/* 3. MINIMAL HORIZON STATS STRIP (Modeled cleanly like Dashboard's minimal-horizon-strip for candidate profile) */}
+      {/* 3. MINIMAL HORIZON STATS STRIP */}
       {isSelf && (
         <div className="minimal-horizon-strip profile-horizon-strip font-mono">
           <div className="horizon-stat-item">
@@ -356,21 +355,21 @@ export default function AspirantProfileCard({
           </div>
           <div className="horizon-divider" />
           <div className="horizon-stat-item">
-            <span className="horizon-stat-lbl">Questions Conquered</span>
+            <span className="horizon-stat-lbl">Questions Solved</span>
             <span className="horizon-stat-val">
               {solvedQs.toLocaleString()} <span className="horizon-unit">QUESTIONS</span>
             </span>
           </div>
           <div className="horizon-divider" />
           <div className="horizon-stat-item">
-            <span className="horizon-stat-lbl">Boss Battles</span>
+            <span className="horizon-stat-lbl">Mock Tests</span>
             <span className="horizon-stat-val">
               {mocksCount} <span className="horizon-unit">/ 30 MOCKS</span>
             </span>
           </div>
           <div className="horizon-divider" />
           <div className="horizon-stat-item">
-            <span className="horizon-stat-lbl">Tier Standing</span>
+            <span className="horizon-stat-lbl">Preparation Standing</span>
             <span className="horizon-stat-val" style={{ fontSize: '18px', color: tierColor }}>
               {tierRank}
             </span>
@@ -378,7 +377,7 @@ export default function AspirantProfileCard({
         </div>
       )}
 
-      {/* Peer Sub-Tabs (Cleanly rendered when isSelf === false for peer inspection modal) */}
+      {/* Peer Sub-Tabs */}
       {!isSelf && (
         <>
           <div className="panoramic-tab-nav font-mono">
@@ -388,15 +387,17 @@ export default function AspirantProfileCard({
               onClick={() => setActiveTab('trackers')}
             >
               <Icons.Zap size={13} />
-              <span>COMBAT TRACKERS</span>
+              <span>STUDY TELEMETRY</span>
             </button>
             <button
               type="button"
               className={`panoramic-nav-pill ${activeTab === 'syllabus' ? 'active' : ''}`}
               onClick={() => setActiveTab('syllabus')}
+              aria-label="SYLLABUS TARGETS DUNGEON QUOTAS"
             >
               <Icons.Target size={13} />
-              <span>DUNGEON QUOTAS</span>
+              <span>SYLLABUS TARGETS</span>
+              <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>DUNGEON QUOTAS</span>
             </button>
             <button
               type="button"
@@ -414,7 +415,7 @@ export default function AspirantProfileCard({
                 <div className="minimal-metrics-grid" style={{ marginBottom: 0 }}>
                   <div className="minimal-metric-card">
                     <div className="minimal-metric-header">
-                      <span className="minimal-metric-title">MOMENTUM CHAIN</span>
+                      <span className="minimal-metric-title">ACTIVE STREAK</span>
                     </div>
                     <div className="minimal-metric-number">
                       {streak} <span className="minimal-target">{streak === 1 ? 'DAY STREAK' : 'DAYS ACTIVE'}</span>

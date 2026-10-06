@@ -132,6 +132,28 @@ export default function StudyTimerView({
     }
   }, [currentSubject]);
 
+  // Recalculate sliding pill indicators on window resize / orientation change
+  useEffect(() => {
+    const handleResize = () => {
+      const activeCadenceEl = cadenceTabRefs.current[activeCadenceKey];
+      if (activeCadenceEl && cadenceIndicatorRef.current) {
+        gsap.set(cadenceIndicatorRef.current, {
+          x: activeCadenceEl.offsetLeft,
+          width: activeCadenceEl.offsetWidth
+        });
+      }
+      const activeSubjectEl = subjectTabRefs.current[currentSubject];
+      if (activeSubjectEl && subjectIndicatorRef.current) {
+        gsap.set(subjectIndicatorRef.current, {
+          x: activeSubjectEl.offsetLeft,
+          width: activeSubjectEl.offsetWidth
+        });
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [activeCadenceKey, currentSubject]);
+
   // GSAP Expand Animation for Custom Duration Line
   useGSAP(() => {
     if (timerMode === 'custom' && customLineRef.current) {
@@ -442,8 +464,9 @@ export default function StudyTimerView({
                 if (isMuted) playSoftZenChime(0.2);
               }}
               title={isMuted ? "Unmute completion chime" : "Mute completion chime"}
+              aria-label={isMuted ? "Unmute sound" : "Mute sound"}
             >
-              <span>{isMuted ? 'Muted' : 'Sound On'}</span>
+              <span>{isMuted ? 'Muted' : 'Sound'}</span>
             </button>
 
             {/* Fullscreen */}
@@ -455,8 +478,9 @@ export default function StudyTimerView({
                 toggleZenFullscreen();
               }}
               title="Toggle Fullscreen Sanctuary (Shortcut: F)"
+              aria-label="Toggle Fullscreen"
             >
-              <span>Fullscreen [F]</span>
+              <span>Fullscreen <span className="shortcut-hint">[F]</span></span>
             </button>
           </div>
         </header>
@@ -532,7 +556,7 @@ export default function StudyTimerView({
                     key={m}
                     ref={el => { cadenceTabRefs.current[key] = el; }}
                     type="button"
-                    className={`cadence-text-btn ${isActive ? 'active' : ''}`}
+                    className={`cadence-text-btn cadence-preset-tab ${isActive ? 'active' : ''}`}
                     onClick={(e) => {
                       triggerTactile(e);
                       playSoftClick();
@@ -549,13 +573,14 @@ export default function StudyTimerView({
               <button
                 ref={el => { cadenceTabRefs.current['custom'] = el; }}
                 type="button"
-                className={`cadence-text-btn ${timerMode === 'custom' ? 'active' : ''}`}
+                className={`cadence-text-btn cadence-custom-tab ${timerMode === 'custom' ? 'active' : ''}`}
                 onClick={(e) => {
                   triggerTactile(e);
                   playSoftClick();
                   setTimerMode('custom');
                 }}
                 disabled={isRunning || isPaused}
+                aria-label="Custom Duration"
               >
                 Custom
               </button>
@@ -563,15 +588,17 @@ export default function StudyTimerView({
               <button
                 ref={el => { cadenceTabRefs.current['stopwatch'] = el; }}
                 type="button"
-                className={`cadence-text-btn ${timerMode === 'stopwatch' ? 'active' : ''}`}
+                className={`cadence-text-btn cadence-stopwatch-tab ${timerMode === 'stopwatch' ? 'active' : ''}`}
                 onClick={(e) => {
                   triggerTactile(e);
                   playSoftClick();
                   setTimerMode('stopwatch');
                 }}
                 disabled={isRunning || isPaused}
+                aria-label="Stopwatch Mode"
               >
-                Stopwatch
+                <span className="cadence-full-label">Stopwatch</span>
+                <span className="cadence-short-label">Watch</span>
               </button>
             </div>
 
