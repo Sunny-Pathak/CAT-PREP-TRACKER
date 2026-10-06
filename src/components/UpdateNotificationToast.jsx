@@ -1,60 +1,80 @@
-import React from 'react';
-import { applyInstantUpdate } from '../utils/versionCheck';
+import React, { useState } from 'react';
+import { applyInstantUpdate, dismissUpdateForSession } from '../utils/versionCheck';
 import { Icons } from './AspirantIcons';
 
 export default function UpdateNotificationToast({ updateData, onDismiss, onOpenPatchNotes }) {
+  const [isApplying, setIsApplying] = useState(false);
   if (!updateData) return null;
 
+  const handleDismiss = () => {
+    dismissUpdateForSession(updateData.version);
+    if (onDismiss) onDismiss();
+  };
+
+  const handleApply = async () => {
+    setIsApplying(true);
+    await applyInstantUpdate(updateData.version);
+  };
+
   return (
-    <div className="update-toast-banner animate-slide-up">
-      <div className="update-toast-content">
-        <div className="update-toast-icon">
-          <Icons.Sparkles size={16} color="#3b82f6" />
-        </div>
-        <div className="update-toast-text">
+    <aside 
+      className="update-toast-banner animate-slide-up"
+      role="alert"
+      aria-live="polite"
+      aria-label="App update available"
+    >
+      <div className="update-toast-header">
+        <div className="update-toast-badge-group">
+          <div className="update-toast-icon-badge" aria-hidden="true">
+            <Icons.Sparkles size={14} color="#a855f7" />
+          </div>
           <div className="update-toast-title">
-            New App Update (v{updateData.version})
+            App Update Available
           </div>
-          <div className="update-toast-subtitle">
-            {updateData.releaseNotes || 'New features, security hardening, and UI improvements are ready.'}
-          </div>
+          <span className="update-toast-version-tag">
+            v{updateData.version}
+          </span>
         </div>
+        <button 
+          type="button"
+          className="update-toast-btn-dismiss"
+          onClick={handleDismiss}
+          title="Dismiss update banner for this session"
+          aria-label="Dismiss update notification"
+        >
+          <Icons.X size={14} />
+        </button>
       </div>
+
+      <div className="update-toast-body">
+        <p className="update-toast-subtitle">
+          {updateData.releaseNotes || 'New features, security updates, and performance optimizations are ready.'}
+        </p>
+      </div>
+
       <div className="update-toast-actions">
         {onOpenPatchNotes && (
           <button
             type="button"
             className="update-toast-btn-notes"
             onClick={onOpenPatchNotes}
-            style={{
-              padding: '6px 10px',
-              background: 'rgba(56, 189, 248, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.35)',
-              color: '#38bdf8',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
+            title="Inspect What's New & System Updates Hub"
           >
-            Patch Notes
+            <Icons.FileText size={12} />
+            <span>Patch Notes</span>
           </button>
         )}
         <button 
+          type="button"
           className="update-toast-btn-apply"
-          onClick={() => applyInstantUpdate(updateData.version)}
+          onClick={handleApply}
+          disabled={isApplying}
+          title="Reload application to apply the latest build"
         >
-          Update Now
-        </button>
-        <button 
-          className="update-toast-btn-dismiss"
-          onClick={onDismiss}
-          title="Dismiss for now"
-        >
-          <Icons.X size={14} />
+          <Icons.Zap size={12} />
+          <span>{isApplying ? 'Applying Update...' : 'Update Now'}</span>
         </button>
       </div>
-    </div>
+    </aside>
   );
 }
