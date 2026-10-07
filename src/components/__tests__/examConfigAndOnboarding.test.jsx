@@ -11,10 +11,10 @@ import {
   getTimelineHorizon,
   getAdjustedDailyQuotas
 } from '../../config/examConfig';
-import OnboardingWelcomeModal from '../OnboardingWelcomeModal';
-import SettingsView from '../SettingsView';
-import DailyTrackerView from '../DailyTrackerView';
-import TimelineView from '../TimelineView';
+import OnboardingWelcomeModal from '../modals/OnboardingWelcomeModal';
+import SettingsView from '../views/SettingsView';
+import DailyTrackerView from '../views/DailyTrackerView';
+import TimelineView from '../views/TimelineView';
 
 describe('Multi-Exam Config Registry, Timelines & Minimal Welcome Modal', () => {
   beforeEach(() => {
@@ -107,7 +107,7 @@ describe('Multi-Exam Config Registry, Timelines & Minimal Welcome Modal', () => 
       );
 
       // Title & Monolithic header
-      expect(screen.getByText(/CATALYZE · CALIBRATION PROTOCOL/i)).toBeDefined();
+      expect(screen.getByText(/CATALYZE · STUDY SETUP/i)).toBeDefined();
       expect(screen.getByText('Target Velocity')).toBeDefined();
 
       // Check velocity tiles
@@ -182,7 +182,7 @@ describe('Multi-Exam Config Registry, Timelines & Minimal Welcome Modal', () => 
       );
 
       // Verify monolithic console headers and velocity track
-      expect(screen.getByText(/CALIBRATION PROTOCOL/i)).toBeDefined();
+      expect(screen.getByText(/STUDY SETUP/i)).toBeDefined();
       expect(screen.getByText(/Target Velocity/i)).toBeDefined();
       expect(screen.getByText(/Calibrate your daily commitment/i)).toBeDefined();
 

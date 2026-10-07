@@ -1,8 +1,8 @@
 import React from 'react';
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import StudyLounge from '../StudyLounge';
-import AspirantProfileCard from '../AspirantProfileCard';
+import StudyLounge from '../views/StudyLounge';
+import AspirantProfileCard from '../ui/AspirantProfileCard';
 import { stripEmojis } from '../../utils/textUtils';
 
 beforeAll(() => {

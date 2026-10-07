@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import SessionCompletionModal, { parseTargetNumber } from '../SessionCompletionModal';
+import SessionCompletionModal, { parseTargetNumber } from '../modals/SessionCompletionModal';
 
 describe('SessionCompletionModal & Quota Verification', () => {
   it('correctly parses target numbers from strings', () => {

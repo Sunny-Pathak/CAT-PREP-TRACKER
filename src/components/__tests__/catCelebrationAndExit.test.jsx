@@ -1,8 +1,8 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import DailyQuotaCelebrationModal from '../DailyQuotaCelebrationModal';
-import SadCatGuiltTripModal from '../SadCatGuiltTripModal';
+import DailyQuotaCelebrationModal from '../modals/DailyQuotaCelebrationModal';
+import SadCatGuiltTripModal from '../modals/SadCatGuiltTripModal';
 
 describe('Cat Mascot Quota Celebration & Exit Modes', () => {
   it('renders DailyQuotaCelebrationModal with proud cat mascot and animated heatmap stamp', () => {

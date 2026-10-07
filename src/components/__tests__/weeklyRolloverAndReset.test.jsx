@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import DailyTrackerView from '../DailyTrackerView';
+import DailyTrackerView from '../views/DailyTrackerView';
 import { getInitialState } from '../../utils/storage';
 
 describe('Weekly Rollover, Data Isolation & Reset Functionality', () => {

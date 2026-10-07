@@ -60,15 +60,15 @@ function ChronoTimerHUD({
             <stop offset="100%" stopColor="#8b5cf6" />
           </linearGradient>
 
-          {/* Deep ambient lens glow for centerpiece */}
+          {/* Soothing ambient violet aura for centerpiece (eye-friendly, no dark mud) */}
           <radialGradient id="chronoLensGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(139, 92, 246, 0.12)" />
-            <stop offset="70%" stopColor="rgba(12, 10, 20, 0.6)" />
+            <stop offset="0%" stopColor="rgba(167, 139, 250, 0.12)" />
+            <stop offset="50%" stopColor="rgba(139, 92, 246, 0.04)" />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
         </defs>
 
-        {/* Ambient Centerpiece Lens */}
+        {/* Ambient Centerpiece Aura */}
         <circle
           cx="160"
           cy="160"
@@ -82,11 +82,11 @@ function ChronoTimerHUD({
           cy="160"
           r={radius}
           fill="none"
-          stroke="rgba(255, 255, 255, 0.08)"
+          stroke="rgba(255, 255, 255, 0.07)"
           strokeWidth="1.5"
         />
 
-        {/* Dynamic Sweep Arc (State-Aware: subtle when idle, luminous when running) */}
+        {/* Dynamic Sweep Arc (State-Aware: smooth 1s linear transition for fluid clock motion) */}
         {!isStopwatch ? (
           <circle
             cx="160"
@@ -94,7 +94,7 @@ function ChronoTimerHUD({
             r={radius}
             fill="none"
             stroke="url(#chronoGrad)"
-            strokeWidth={isRunning ? "3.5" : "2"}
+            strokeWidth={isRunning ? "2.5" : "1.8"}
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
@@ -102,9 +102,9 @@ function ChronoTimerHUD({
             style={{
               transform: 'rotate(-90deg)',
               transformOrigin: '160px 160px',
-              transition: 'stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1), stroke-width 0.3s ease',
-              filter: isRunning ? 'drop-shadow(0 0 10px rgba(167, 139, 250, 0.7))' : 'drop-shadow(0 0 4px rgba(167, 139, 250, 0.25))',
-              opacity: isRunning ? 1 : 0.45
+              transition: isRunning ? 'stroke-dashoffset 1s linear, stroke-width 0.3s ease' : 'stroke-dashoffset 0.4s ease-out, stroke-width 0.3s ease',
+              filter: isRunning ? 'drop-shadow(0 0 6px rgba(167, 139, 250, 0.45))' : 'drop-shadow(0 0 3px rgba(167, 139, 250, 0.15))',
+              opacity: isRunning ? 0.95 : 0.4
             }}
           />
         ) : (
@@ -113,12 +113,11 @@ function ChronoTimerHUD({
             cy="160"
             r={radius}
             fill="none"
-            stroke="rgba(167, 139, 250, 0.35)"
+            stroke="rgba(167, 139, 250, 0.22)"
             strokeWidth="1.5"
-            strokeDasharray="4 6"
             className="chrono-stopwatch-ring"
             style={{
-              filter: isRunning ? 'drop-shadow(0 0 6px rgba(167, 139, 250, 0.4))' : 'none'
+              filter: isRunning ? 'drop-shadow(0 0 6px rgba(167, 139, 250, 0.3))' : 'none'
             }}
           />
         )}

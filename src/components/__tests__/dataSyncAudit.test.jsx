@@ -1,9 +1,9 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import DataSyncAuditModal from '../DataSyncAuditModal';
-import GooeyThemeSwitch from '../GooeyThemeSwitch';
-import StackedChips from '../StackedChips';
+import DataSyncAuditModal from '../modals/DataSyncAuditModal';
+import GooeyThemeSwitch from '../ui/GooeyThemeSwitch';
+import StackedChips from '../ui/StackedChips';
 
 beforeAll(() => {
   global.ResizeObserver = class ResizeObserver {

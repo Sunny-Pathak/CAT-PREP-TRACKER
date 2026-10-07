@@ -11,9 +11,9 @@ import {
   calculateOverallBacklog,
   sanitizeTrackerState
 } from '../../utils/adaptiveStudyEngine';
-import AdaptiveWeekReviewModal from '../AdaptiveWeekReviewModal';
-import DailyTrackerView from '../DailyTrackerView';
-import BacklogRecoveryView from '../BacklogRecoveryView';
+import AdaptiveWeekReviewModal from '../modals/AdaptiveWeekReviewModal';
+import DailyTrackerView from '../views/DailyTrackerView';
+import BacklogRecoveryView from '../views/BacklogRecoveryView';
 import {
   analyzeAspirantBehavior,
   recordBehaviorTelemetry,

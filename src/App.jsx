@@ -28,48 +28,48 @@ import {
   getMondayOfWeek 
 } from './utils/dateUtils';
 import { stripEmojis } from './utils/textUtils';
-import HeaderProfileDropdown from './components/HeaderProfileDropdown';
-import GooeyThemeSwitch from './components/GooeyThemeSwitch';
+import HeaderProfileDropdown from './components/ui/HeaderProfileDropdown';
+import GooeyThemeSwitch from './components/ui/GooeyThemeSwitch';
 
-import DashboardView from './components/DashboardView';
-import FloatingTimerWidget from './components/FloatingTimerWidget';
-import ThemeSelectorDropdown from './components/ThemeSelectorDropdown';
-import ThemeSwitchToast from './components/ThemeSwitchToast';
+import DashboardView from './components/views/DashboardView';
+import FloatingTimerWidget from './components/ui/FloatingTimerWidget';
+import ThemeSelectorDropdown from './components/ui/ThemeSelectorDropdown';
+import ThemeSwitchToast from './components/ui/ThemeSwitchToast';
 import { getUnlockedThemes } from './utils/themeRedemption';
-import UpdateNotificationToast from './components/UpdateNotificationToast';
-import ActivityNotificationToast from './components/ActivityNotificationToast';
+import UpdateNotificationToast from './components/ui/UpdateNotificationToast';
+import ActivityNotificationToast from './components/ui/ActivityNotificationToast';
 import { checkForAppUpdate } from './utils/versionCheck';
 import { audioEngine } from './utils/audioUtils';
 import { calculateUserBadges } from './utils/badgeUtils';
-import CookieConsentBanner from './components/CookieConsentBanner';
-import CustomCursor from './components/CustomCursor';
-import LiquidIntroLoader from './components/LiquidIntroLoader';
+import CookieConsentBanner from './components/ui/CookieConsentBanner';
+import CustomCursor from './components/ui/CustomCursor';
+import LiquidIntroLoader from './components/ui/LiquidIntroLoader';
 import { getAdjustedDailyQuotas, getTimelineHorizon } from './config/examConfig';
 
 // Code-split lazy views for high-performance initial bundle
-const TimelineView = lazy(() => import('./components/TimelineView'));
-const DailyTrackerView = lazy(() => import('./components/DailyTrackerView'));
-const MockTrackerView = lazy(() => import('./components/MockTrackerView'));
-const ErrorLogView = lazy(() => import('./components/ErrorLogView'));
-const ProfileView = lazy(() => import('./components/ProfileView'));
-const StudyTimerView = lazy(() => import('./components/StudyTimerView'));
-const StudyLounge = lazy(() => import('./components/StudyLounge'));
-const LeaderboardComingSoonView = lazy(() => import('./components/LeaderboardComingSoonView'));
-const SettingsView = lazy(() => import('./components/SettingsView'));
-const AchievementsView = lazy(() => import('./components/AchievementsView'));
-const BacklogRecoveryView = lazy(() => import('./components/BacklogRecoveryView'));
-const BloombergTerminalView = lazy(() => import('./components/BloombergTerminalView'));
+const TimelineView = lazy(() => import('./components/views/TimelineView'));
+const DailyTrackerView = lazy(() => import('./components/views/DailyTrackerView'));
+const MockTrackerView = lazy(() => import('./components/views/MockTrackerView'));
+const ErrorLogView = lazy(() => import('./components/views/ErrorLogView'));
+const ProfileView = lazy(() => import('./components/views/ProfileView'));
+const StudyTimerView = lazy(() => import('./components/views/StudyTimerView'));
+const StudyLounge = lazy(() => import('./components/views/StudyLounge'));
+const LeaderboardComingSoonView = lazy(() => import('./components/views/LeaderboardComingSoonView'));
+const SettingsView = lazy(() => import('./components/views/SettingsView'));
+const AchievementsView = lazy(() => import('./components/views/AchievementsView'));
+const BacklogRecoveryView = lazy(() => import('./components/views/BacklogRecoveryView'));
+const BloombergTerminalView = lazy(() => import('./components/terminal/BloombergTerminalView'));
 
 // Code-split lazy modals & secondary screens
-const AuthScreen = lazy(() => import('./components/AuthScreen'));
-const DataSyncAuditModal = lazy(() => import('./components/DataSyncAuditModal'));
-const ThemeRedeemModal = lazy(() => import('./components/ThemeRedeemModal'));
-const TermsAndPrivacyModal = lazy(() => import('./components/TermsAndPrivacyModal'));
-const OnboardingWelcomeModal = lazy(() => import('./components/OnboardingWelcomeModal'));
-const PeerInspectorModal = lazy(() => import('./components/PeerInspectorModal'));
-const LevelUpModal = lazy(() => import('./components/LevelUpModal'));
-const AdaptiveWeekReviewModal = lazy(() => import('./components/AdaptiveWeekReviewModal'));
-const PatchNotesHubModal = lazy(() => import('./components/PatchNotesHubModal'));
+const AuthScreen = lazy(() => import('./components/auth/AuthScreen'));
+const DataSyncAuditModal = lazy(() => import('./components/modals/DataSyncAuditModal'));
+const ThemeRedeemModal = lazy(() => import('./components/modals/ThemeRedeemModal'));
+const TermsAndPrivacyModal = lazy(() => import('./components/modals/TermsAndPrivacyModal'));
+const OnboardingWelcomeModal = lazy(() => import('./components/modals/OnboardingWelcomeModal'));
+const PeerInspectorModal = lazy(() => import('./components/modals/PeerInspectorModal'));
+const LevelUpModal = lazy(() => import('./components/modals/LevelUpModal'));
+const AdaptiveWeekReviewModal = lazy(() => import('./components/modals/AdaptiveWeekReviewModal'));
+const PatchNotesHubModal = lazy(() => import('./components/modals/PatchNotesHubModal'));
 
 import {
   calculateWeekProgress,
@@ -80,9 +80,9 @@ import {
   sanitizeTrackerState
 } from './utils/adaptiveStudyEngine';
 import { recordBehaviorTelemetry } from './utils/studyBehaviorEngine';
-import DitherBackground from './components/DitherBackground';
-import AnimatedStreakBadge from './components/AnimatedStreakBadge';
-import FocusTransitionPortal from './components/FocusTransitionPortal';
+import DitherBackground from './components/backgrounds/DitherBackground';
+import AnimatedStreakBadge from './components/ui/AnimatedStreakBadge';
+import FocusTransitionPortal from './components/ui/FocusTransitionPortal';
 import { Dock, DockItem } from './components/animations/Dock';
 import { initSmoothScroll, scrollToTop } from './utils/smoothScroll';
 import gsap from 'gsap';
@@ -1314,21 +1314,56 @@ export default function App() {
   }, [user?.uid]);
 
   // Manual notification trigger for demo
-  const triggerDemoNotification = () => {
-    if (Notification.permission === 'granted') {
-      new Notification("Aspirant Tracker Simulator", {
-        body: "Daily prep reminder! Practice makes progress. Check off your Quant, LRDI, or VARC targets today.",
-        icon: "/favicon.svg"
-      });
-    } else {
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-          new Notification("Notifications Enabled!", {
-            body: "Great! You will now receive reminders when tasks are left incomplete."
+  const triggerDemoNotification = (title = "Aspirant Tracker Simulator", body = "Daily prep reminder! Practice makes progress. Check off your Quant, LRDI, or VARC targets today.") => {
+    const notifyTitle = typeof title === 'string' && title ? title : "Aspirant Tracker Simulator";
+    const notifyBody = typeof body === 'string' && body ? body : "Daily prep reminder! Practice makes progress. Check off your Quant, LRDI, or VARC targets today.";
+
+    if (typeof Notification !== 'undefined') {
+      if (Notification.permission === 'granted') {
+        try {
+          new Notification(notifyTitle, {
+            body: notifyBody,
+            icon: "/favicon.svg"
           });
-        } else {
-          alert("Please enable notification permissions in your browser site settings first.");
-        }
+        } catch (_e) {}
+        setActivityNotification({
+          type: 'timer_logged',
+          title: notifyTitle,
+          message: notifyBody
+        });
+      } else {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            try {
+              new Notification("Notifications Enabled!", {
+                body: "Great! You will now receive reminders when tasks are left incomplete."
+              });
+            } catch (_e) {}
+            setActivityNotification({
+              type: 'timer_logged',
+              title: "Notifications Enabled!",
+              message: "Great! You will now receive reminders when tasks are left incomplete."
+            });
+          } else {
+            setActivityNotification({
+              type: 'unsaved_warning',
+              title: "Browser Notifications Blocked",
+              message: "Please enable notification permissions in your browser site settings first."
+            });
+          }
+        }).catch(() => {
+          setActivityNotification({
+            type: 'unsaved_warning',
+            title: "Browser Notifications Blocked",
+            message: "Please enable notification permissions in your browser site settings first."
+          });
+        });
+      }
+    } else {
+      setActivityNotification({
+        type: 'timer_logged',
+        title: notifyTitle,
+        message: notifyBody
       });
     }
   };
@@ -1689,6 +1724,31 @@ export default function App() {
           }
         });
       }
+    } else if (planId === 'advance_week') {
+      const currentWeekNum = parseInt(weekKey?.replace(/\D/g, ''), 10) || 1;
+      const currentMonthNum = parseInt(monthKey?.replace(/\D/g, ''), 10) || 1;
+      let targetMonthKey = monthKey;
+      let targetWeekKey = `Week ${currentWeekNum + 1}`;
+      if (currentWeekNum >= 4) {
+        targetMonthKey = `Month ${Math.min(4, currentMonthNum + 1)}`;
+        targetWeekKey = 'Week 1';
+      }
+      setActiveMonth(targetMonthKey);
+      setActiveWeek(targetWeekKey);
+      setActiveDayName('Monday');
+      setActiveTab('daily');
+      if (typeof setActivityNotification === 'function') {
+        setActivityNotification({
+          title: 'Advanced to Next Week',
+          message: `Switched to ${targetMonthKey} • ${targetWeekKey}. Incomplete drills remain tracked in Backlog Recovery.`,
+          actionLabel: 'View Drills',
+          onAction: () => {
+            setActiveMonth(targetMonthKey);
+            setActiveWeek(targetWeekKey);
+            setActiveTab('daily');
+          }
+        });
+      }
     }
 
     // Record persistent study behavior telemetry for AI personalization research
@@ -1976,7 +2036,11 @@ export default function App() {
       downloadEncryptedBlob(blob);
       triggerDemoNotification("Encrypted Backup Downloaded", "Zero-Knowledge AES-GCM backup exported safely.");
     } catch (err) {
-      alert("Export failed: " + (err?.message || "Encryption error"));
+      setActivityNotification({
+        type: 'unsaved_warning',
+        title: "Export Failed",
+        message: err?.message || "Encryption error"
+      });
       throw err;
     }
   };
@@ -2043,7 +2107,11 @@ export default function App() {
     if (!file) return;
 
     if (file.size > 10 * 1024 * 1024) {
-      alert("Backup file exceeds maximum limit of 10MB.");
+      setActivityNotification({
+        type: 'unsaved_warning',
+        title: "File Limit Exceeded",
+        message: "Backup file exceeds maximum limit of 10MB."
+      });
       e.target.value = '';
       return;
     }
@@ -2058,9 +2126,17 @@ export default function App() {
           setTheme(saved.settings.theme);
         }
         setHasUnsyncedCloudChanges(true);
-        alert("Backup data imported and verified successfully!");
+        setActivityNotification({
+          type: 'timer_logged',
+          title: "Backup Verified & Restored",
+          message: "All syllabus milestones and mock history loaded successfully."
+        });
       } catch (err) {
-        alert("Failed to parse or validate backup: " + (err?.message || "Invalid file"));
+        setActivityNotification({
+          type: 'unsaved_warning',
+          title: "Restore Failed",
+          message: "Failed to parse or validate backup: " + (err?.message || "Invalid file")
+        });
       } finally {
         e.target.value = '';
       }
@@ -2956,6 +3032,8 @@ export default function App() {
               onNavigateTab={setActiveTab}
               theme={theme}
               onSelectTheme={handleSelectTheme}
+              user={user}
+              userProfile={userProfile}
             />
           )}
           {activeTab === 'errors' && (
@@ -3277,6 +3355,7 @@ export default function App() {
             progressData={checkpointWeekData}
             onApplyPlan={handleApplyRecoveryPlan}
             state={state}
+            theme={theme}
           />
         </Suspense>
       )}

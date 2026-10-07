@@ -38,7 +38,9 @@ function SkiperAnimatedTimer({
             <NumberFlow
               value={hours}
               format={{ minimumIntegerDigits: 2 }}
-              trend={isRunning ? -1 : undefined}
+              transformTiming={{ duration: 220, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+              opacityTiming={{ duration: 180, easing: 'ease-out' }}
+              respectMotionPreference
               willChange
             />
             <span className="skiper-timer-colon">:</span>
@@ -47,14 +49,18 @@ function SkiperAnimatedTimer({
         <NumberFlow
           value={mins}
           format={{ minimumIntegerDigits: 2 }}
-          trend={isRunning ? -1 : undefined}
+          transformTiming={{ duration: 220, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+          opacityTiming={{ duration: 180, easing: 'ease-out' }}
+          respectMotionPreference
           willChange
         />
         <span className="skiper-timer-colon">:</span>
         <NumberFlow
           value={secs}
           format={{ minimumIntegerDigits: 2 }}
-          trend={isRunning ? -1 : undefined}
+          transformTiming={{ duration: 220, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+          opacityTiming={{ duration: 180, easing: 'ease-out' }}
+          respectMotionPreference
           willChange
         />
       </div>

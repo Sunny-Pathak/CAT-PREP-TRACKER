@@ -1,14 +1,14 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import ComicPeekingCatBuddy, { CAT_UTILITY_SATELLITES } from '../ComicPeekingCatBuddy';
+import ComicPeekingCatBuddy, { CAT_UTILITY_SATELLITES } from '../ui/ComicPeekingCatBuddy';
 import {
   CatTrapScratchpad,
   CatStretchBreakTimer,
   CatAmbientAudioBoard,
   CatHeadpatBonusCard,
   CatFlashcardDeck
-} from '../CatCompanionUtilities';
+} from '../ui/CatCompanionUtilities';
 import { getStoredMistakes } from '../../utils/mistakeVaultStorage';
 
 // Mock Web Audio API methods in jsdom

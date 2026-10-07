@@ -61,7 +61,7 @@ describe('App Root Render Test', () => {
   });
 
   it('renders StudyTimerView directly without error', async () => {
-    const { default: StudyTimerView } = await import('../StudyTimerView');
+    const { default: StudyTimerView } = await import('../views/StudyTimerView');
     const timerState = {
       secondsLeft: 25 * 60,
       totalSeconds: 25 * 60,

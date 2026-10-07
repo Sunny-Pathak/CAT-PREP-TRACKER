@@ -8,8 +8,8 @@ import {
   sanitizeObjectForPrototypePollution 
 } from '../../utils/textUtils';
 import { validateAndSanitizeBackup } from '../../utils/storage';
-import AvatarRenderer from '../AvatarRenderer';
-import AuthScreen from '../AuthScreen';
+import AvatarRenderer from '../ui/AvatarRenderer';
+import AuthScreen from '../auth/AuthScreen';
 import * as firebaseAuth from '../../utils/firebase';
 
 vi.mock('../../utils/firebase', async (importOriginal) => {

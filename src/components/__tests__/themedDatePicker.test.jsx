@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import ThemedDatePicker from '../ThemedDatePicker';
+import ThemedDatePicker from '../ui/ThemedDatePicker';
 
 describe('ThemedDatePicker Component', () => {
   it('renders trigger button with formatted date value and opens calendar on click', () => {

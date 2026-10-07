@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import ErrorLogView from '../ErrorLogView';
+import ErrorLogView from '../views/ErrorLogView';
 import {
   getStoredMistakes,
   exportMistakesToMarkdown

@@ -8,8 +8,8 @@ import ChronoTimerHUD from '../animations/ChronoTimerHUD';
 import WordHoverEffect from '../animations/WordHoverEffect';
 import Stepper from '../animations/Stepper';
 import SpotlightCard from '../animations/SpotlightCard';
-import TermsAndPrivacyModal from '../TermsAndPrivacyModal';
-import DitherBackground from '../DitherBackground';
+import TermsAndPrivacyModal from '../modals/TermsAndPrivacyModal';
+import DitherBackground from '../backgrounds/DitherBackground';
 
 describe('ReactBits & Skiper Animations', () => {
   it('renders SkiperAnimatedTimer with rolling digits', () => {
@@ -57,11 +57,11 @@ describe('ReactBits & Skiper Animations', () => {
 
     // Check ownership declaration and license
     expect(screen.getByText(/Ownership & Intellectual Property/i)).toBeDefined();
-    expect(screen.getByText(/Basic Free User License/i)).toBeDefined();
-    expect(screen.getByText(/I own this site/i)).toBeDefined();
+    expect(screen.getByText(/Free User License/i)).toBeDefined();
+    expect(screen.getByText(/intellectual property of the site/i)).toBeDefined();
 
     // Check sidebar navigation items
-    const licenseNavBtn = screen.getByRole('button', { name: /Basic Free License/i });
+    const licenseNavBtn = screen.getByRole('button', { name: /Free User License/i });
     expect(licenseNavBtn).toBeDefined();
     fireEvent.click(licenseNavBtn);
 

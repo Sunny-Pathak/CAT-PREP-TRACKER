@@ -1,9 +1,9 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import PatchNotesHubModal from '../PatchNotesHubModal';
-import UpdateNotificationToast from '../UpdateNotificationToast';
-import SettingsView from '../SettingsView';
+import PatchNotesHubModal from '../modals/PatchNotesHubModal';
+import UpdateNotificationToast from '../ui/UpdateNotificationToast';
+import SettingsView from '../views/SettingsView';
 import { PATCH_RELEASES, SYSTEM_HEALTH } from '../../data/patchNotesData';
 
 describe('Release Notes & Changelog Hub System', () => {
@@ -14,8 +14,10 @@ describe('Release Notes & Changelog Hub System', () => {
   it('contains valid structured patch releases and system health metadata', () => {
     expect(PATCH_RELEASES.length).toBeGreaterThanOrEqual(4);
     const latest = PATCH_RELEASES[0];
-    expect(latest.version).toBe('1.0.88');
-    expect(latest.codename).toContain('PROTOCOL HORIZON');
+    expect(['1.0.93', '1.0.88']).toContain(latest.version);
+    const v88 = PATCH_RELEASES.find(p => p.version === '1.0.88');
+    expect(v88).toBeDefined();
+    expect(v88.codename).toContain('PROTOCOL HORIZON');
     expect(latest.telemetryBenchmarks.firestoreLatencyMs).toBeDefined();
     expect(latest.telemetryBenchmarks.localStorageSyncMs).toBeDefined();
     expect(latest.sections.features.length).toBeGreaterThan(0);

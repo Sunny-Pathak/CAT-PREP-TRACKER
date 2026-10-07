@@ -1,8 +1,8 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import EditSessionModal from '../EditSessionModal';
-import WeekContributionHeatmap from '../WeekContributionHeatmap';
+import EditSessionModal from '../modals/EditSessionModal';
+import WeekContributionHeatmap from '../ui/WeekContributionHeatmap';
 
 describe('EditSessionModal & WeekContributionHeatmap', () => {
   it('renders EditSessionModal and allows editing duration and notes', () => {

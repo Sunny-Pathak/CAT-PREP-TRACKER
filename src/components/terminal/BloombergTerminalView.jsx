@@ -12,7 +12,7 @@ import {
 } from '../../utils/catTerminalAnalytics';
 import { analyzeAspirantBehavior } from '../../utils/studyBehaviorEngine';
 import { audioEngine } from '../../utils/audioUtils';
-import { THEMES } from '../ThemeSelectorDropdown';
+import { THEMES } from '../ui/ThemeSelectorDropdown';
 import { getLenis } from '../../utils/smoothScroll';
 
 /**
@@ -444,9 +444,10 @@ function TerminalBoxedCard({ line, isTestEnv = false }) {
 const isTestEnv = (typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || process.env?.VITEST)) || 
   (typeof navigator !== 'undefined' && (navigator.userAgent?.includes('jsdom') || navigator.userAgent?.includes('Vitest')));
 
-export default function BloombergTerminalView({ state, onNavigateTab, theme, onSelectTheme }) {
+export default function BloombergTerminalView({ state, onNavigateTab, theme, onSelectTheme, user = null, userProfile = null }) {
   const currentTheme = theme || state?.settings?.theme || (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : null) || 'dark';
   const shaderColors = useMemo(() => getBalatroThemeColors(currentTheme), [currentTheme]);
+  const aspirantDisplayName = userProfile?.displayName || user?.displayName || state?.profile?.name || 'Guest';
 
   const [isBooting, setIsBooting] = useState(() => !isTestEnv && !sessionStorage.getItem('cat_terminal_booted_session'));
   const [activeFKey, setActiveFKey] = useState('F1');
@@ -620,13 +621,13 @@ export default function BloombergTerminalView({ state, onNavigateTab, theme, onS
     renderBoxedCard('Workspace info', [
       { label: 'Workspace', value: 'quant-yield-engine', highlight: false },
       { label: 'State', value: 'RUNNING', highlight: true, color: 'accent' },
-      { label: 'Aspirant', value: 'Sunny Pathak (Track: Consulting)', highlight: false },
+      { label: 'Aspirant', value: aspirantDisplayName, highlight: false },
       { label: 'Starting Baseline Floor', value: `${simulation.forecast.baselinePercentile.toFixed(1)} %ile (${simulation.forecast.baselineScore}/198 pts)`, highlight: false },
       { label: 'Projected CAT Percentile', value: `${activePercentile.toFixed(1)} %ile`, highlight: true, color: 'accent' },
       { label: 'Predicted Alpha Gain', value: `+${(activePercentile - simulation.forecast.baselinePercentile).toFixed(1)} %ile (+${simulation.forecast.rawScoreDelta} Raw Marks)`, highlight: false },
       { label: 'Runway Effort', value: `${metrics.totals.studyHours}h logged · +${plannedAddlHours}h projected (${realWeeksRemaining} wks left)`, highlight: false }
     ])
-  ], [simulation, activePercentile, metrics, plannedAddlHours, realWeeksRemaining]);
+  ], [simulation, activePercentile, metrics, plannedAddlHours, realWeeksRemaining, aspirantDisplayName]);
 
   const [terminalLines, setTerminalLines] = useState(() => isTestEnv ? initialBatch : []);
   const [queuedLines, setQueuedLines] = useState(() => isTestEnv ? [] : initialBatch);

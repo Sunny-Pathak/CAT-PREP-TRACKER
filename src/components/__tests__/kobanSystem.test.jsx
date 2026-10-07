@@ -1,10 +1,10 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import SanctuaryBazaarModal from '../SanctuaryBazaarModal';
-import SanctuaryDeskDecor from '../SanctuaryDeskDecor';
-import SanctuaryShopView from '../SanctuaryShopView';
-import GamifiedStatusBorderOverlay from '../GamifiedStatusBorderOverlay';
+import SanctuaryBazaarModal from '../modals/SanctuaryBazaarModal';
+import SanctuaryDeskDecor from '../ui/SanctuaryDeskDecor';
+import SanctuaryShopView from '../views/SanctuaryShopView';
+import GamifiedStatusBorderOverlay from '../ui/GamifiedStatusBorderOverlay';
 import {
   getKobanData,
   saveKobanData,

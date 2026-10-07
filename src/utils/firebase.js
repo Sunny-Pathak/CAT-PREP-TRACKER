@@ -41,7 +41,7 @@ import {
 
 // Firebase configuration keys (loaded securely via environment variables)
 const firebaseConfig = {
-  apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || "",
+  apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || "AIzaSyCfdozU_HP43lBywMdjjnpbGQQ4My2D3GI",
   authDomain: import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || "cat-tracker-1538d.firebaseapp.com",
   projectId: import.meta.env?.VITE_FIREBASE_PROJECT_ID || "cat-tracker-1538d",
   storageBucket: import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || "cat-tracker-1538d.firebasestorage.app",

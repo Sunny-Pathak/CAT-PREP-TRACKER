@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import BloombergTerminalView from '../BloombergTerminalView';
+import BloombergTerminalView from '../terminal/BloombergTerminalView';
 
 describe('BloombergTerminalView Component', () => {
   const mockState = {
@@ -111,7 +111,7 @@ describe('BloombergTerminalView Component', () => {
   });
 
   it('keeps custom cursor reticle active and non-suppressed on the terminal tab', async () => {
-    const { default: CustomCursor } = await import('../CustomCursor');
+    const { default: CustomCursor } = await import('../ui/CustomCursor');
     const { container } = render(<CustomCursor activeTheme="dark" activeTab="terminal" />);
     
     // In terminal tab, custom cursor container must NOT be display: none

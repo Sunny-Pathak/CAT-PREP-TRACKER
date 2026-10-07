@@ -1,13 +1,13 @@
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import DailyTrackerView from '../DailyTrackerView';
-import DashboardView from '../DashboardView';
+import DailyTrackerView from '../views/DailyTrackerView';
+import DashboardView from '../views/DashboardView';
 import App from '../../App';
 import { getInitialState } from '../../utils/storage';
 
-import StudyContributionHeatmap from '../StudyContributionHeatmap';
-import WeekContributionHeatmap from '../WeekContributionHeatmap';
+import StudyContributionHeatmap from '../ui/StudyContributionHeatmap';
+import WeekContributionHeatmap from '../ui/WeekContributionHeatmap';
 
 describe('Mobile View & Component Test Cases', () => {
   let mockState;

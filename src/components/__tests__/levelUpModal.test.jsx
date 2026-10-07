@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import LevelUpModal from '../LevelUpModal';
+import LevelUpModal from '../modals/LevelUpModal';
 
 describe('LevelUpModal Component', () => {
   it('renders standard promotion modal with clearance perks', () => {
