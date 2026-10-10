@@ -577,10 +577,6 @@ function DailyTrackerView({
       {/* 1. COMPACT COMMAND HEADER */}
       <div className="minimal-header-strip">
         <div className="minimal-header-left">
-          <div className="minimal-tag">
-            <span className="minimal-ping" />
-            <span>DAILY PREPARATION</span>
-          </div>
           <h1 className="minimal-title">
             DAILY DRILLS
           </h1>
@@ -889,7 +885,7 @@ function DailyTrackerView({
 
               </div>
               <span className="day-syllabus-subtitle">
-                {activeMonth} • {activeWeek} Syllabus Targets {activeWeekPlan?.phase ? `• ${activeWeekPlan.phase.split(':')[0]}` : ''}
+                {activeMonth} • {activeWeek}
               </span>
             </div>
 
@@ -1330,8 +1326,8 @@ function DailyTrackerView({
                   padding: '10px 14px',
                   borderRadius: '10px',
                   background: '#0d1526',
-                  border: '1px solid rgba(168, 85, 247, 0.4)',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(168, 85, 247, 0.15)',
+                  border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.4))',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px var(--accent-glow, rgba(168, 85, 247, 0.15))',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '8px',
@@ -1339,7 +1335,7 @@ function DailyTrackerView({
                   boxSizing: 'border-box'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#c084fc' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent-secondary, #c084fc)' }}>
                       Tag DILR Set #{activeTagPopover.setNum || selectedDay.lrdiCount || 1} Details:
                     </span>
                     <button 
@@ -1366,9 +1362,9 @@ function DailyTrackerView({
                             fontWeight: 600,
                             padding: '3px 8px',
                             borderRadius: '5px',
-                            background: activeTagPopover.pace === p ? 'rgba(168, 85, 247, 0.3)' : 'rgba(255, 255, 255, 0.05)',
-                            color: activeTagPopover.pace === p ? '#f3e8ff' : '#cbd5e1',
-                            border: activeTagPopover.pace === p ? '1px solid #c084fc' : '1px solid rgba(255, 255, 255, 0.1)',
+                            background: activeTagPopover.pace === p ? 'var(--accent-muted, rgba(168, 85, 247, 0.3))' : 'rgba(255, 255, 255, 0.05)',
+                            color: activeTagPopover.pace === p ? '#ffffff' : '#cbd5e1',
+                            border: activeTagPopover.pace === p ? '1px solid var(--accent-secondary, #c084fc)' : '1px solid rgba(255, 255, 255, 0.1)',
                             cursor: 'pointer'
                           }}
                         >
@@ -1432,9 +1428,9 @@ function DailyTrackerView({
                       fontWeight: 700,
                       padding: '2px 7px',
                       borderRadius: '4px',
-                      background: 'rgba(168, 85, 247, 0.15)',
-                      color: '#c084fc',
-                      border: '1px solid rgba(168, 85, 247, 0.3)',
+                      background: 'var(--accent-muted, rgba(168, 85, 247, 0.15))',
+                      color: 'var(--accent-secondary, #c084fc)',
+                      border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.3))',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -1454,9 +1450,9 @@ function DailyTrackerView({
                       fontWeight: 600,
                       padding: '2px 7px',
                       borderRadius: '4px',
-                      background: 'rgba(168, 85, 247, 0.12)',
-                      color: '#d8b4fe',
-                      border: '1px solid rgba(168, 85, 247, 0.25)',
+                      background: 'var(--accent-muted, rgba(168, 85, 247, 0.12))',
+                      color: 'var(--accent-secondary, #d8b4fe)',
+                      border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.25))',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px'
@@ -1517,7 +1513,7 @@ function DailyTrackerView({
                       fontSize: '11px',
                       fontWeight: 600,
                       color: '#10b981',
-                      background: 'rgba(168, 85, 247, 0.08)',
+                      background: 'var(--accent-muted, rgba(168, 85, 247, 0.08))',
                       padding: '2px 8px',
                       borderRadius: '4px',
                       width: 'fit-content'
@@ -1849,9 +1845,7 @@ function DailyTrackerView({
                   </div>
                   <div className="add-custom-btn-info">
                     <span className="add-custom-btn-title">Add Custom Objective</span>
-                    <span className="add-custom-btn-sub">Add extra target for GK & Editorial, Mock Analysis, Vocabulary, or Sectionals</span>
                   </div>
-                  <span className="add-custom-pill font-mono">+ ADD</span>
                 </button>
               </div>
             )}
@@ -1862,11 +1856,10 @@ function DailyTrackerView({
           <div className="clean-notes-card">
             <div className="notes-card-head">
               <span className="notes-card-title">Day Reflection & Error Log</span>
-              <span className="notes-card-hint">Formula slips, trap answers, takeaways</span>
             </div>
             <SmoothCaretTextarea
               className="clean-notes-textarea"
-              placeholder="Jot down formula triggers, mistakes made today, or question numbers to revise later..."
+              placeholder="Formula triggers, traps, and revision takeaways..."
               value={selectedDay.notes || ''}
               onChange={(e) => updateDayNotes(activeMonth, activeWeek, selectedDay.day, stripEmojis(e.target.value))}
             />

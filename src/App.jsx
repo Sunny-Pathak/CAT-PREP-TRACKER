@@ -42,7 +42,6 @@ import { checkForAppUpdate } from './utils/versionCheck';
 import { audioEngine } from './utils/audioUtils';
 import { calculateUserBadges } from './utils/badgeUtils';
 import CookieConsentBanner from './components/ui/CookieConsentBanner';
-import CustomCursor from './components/ui/CustomCursor';
 import LiquidIntroLoader from './components/ui/LiquidIntroLoader';
 import { getAdjustedDailyQuotas, getTimelineHorizon } from './config/examConfig';
 
@@ -58,7 +57,6 @@ const LeaderboardComingSoonView = lazy(() => import('./components/views/Leaderbo
 const SettingsView = lazy(() => import('./components/views/SettingsView'));
 const AchievementsView = lazy(() => import('./components/views/AchievementsView'));
 const BacklogRecoveryView = lazy(() => import('./components/views/BacklogRecoveryView'));
-const BloombergTerminalView = lazy(() => import('./components/terminal/BloombergTerminalView'));
 
 // Code-split lazy modals & secondary screens
 const AuthScreen = lazy(() => import('./components/auth/AuthScreen'));
@@ -271,12 +269,6 @@ const Icons = {
       <circle cx="15" cy="12" r="1.5" fill="currentColor" />
       <circle cx="15" cy="5" r="1.5" fill="currentColor" />
       <circle cx="15" cy="19" r="1.5" fill="currentColor" />
-    </svg>
-  ),
-  Terminal: ({ size = 20 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
-      <polyline points="4 17 10 11 4 5" />
-      <line x1="12" y1="19" x2="20" y2="19" />
     </svg>
   )
 };
@@ -2707,7 +2699,7 @@ export default function App() {
   }
 
   return (
-    <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''} ${activeTab === 'terminal' ? 'terminal-fullscreen-active' : ''}`}>
+    <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Spylt-Inspired Cinematic Liquid Intro Loader */}
       {showIntro && (
         <LiquidIntroLoader 
@@ -2719,10 +2711,7 @@ export default function App() {
 
 
       {/* ReactBits Dither Background WebGL Shader (Fine silk grain ambient texture matching landing page depth) */}
-      <DitherBackground activeTheme={theme} opacity={0.32} ditherSize={1.2} waveSpeed={0.25} disabled={activeTab === 'terminal'} />
-
-      {/* Luxury Liquid Glow Custom Cursor with GSAP Physics */}
-      <CustomCursor activeTheme={theme} activeTab={activeTab} />
+      <DitherBackground activeTheme={theme} opacity={0.32} ditherSize={1.2} waveSpeed={0.25} />
 
       {/* Draggable Floating Overlay Dock for Tabs (Zero Logo on Dock - Pure Tab Capsule Overlay) */}
       <aside 
@@ -2821,17 +2810,6 @@ export default function App() {
             tooltipTag="BENCHMARKS"
           >
             <Icons.Mocks />
-          </DockItem>
-
-          <DockItem 
-            active={activeTab === 'terminal'} 
-            onClick={() => setActiveTab('terminal')} 
-            ariaLabel="CAT Terminal"
-            tooltipTitle="CAT Terminal"
-            tooltipTag="QUANT & YIELD INTEL"
-            className="dock-item-terminal"
-          >
-            <Icons.Terminal />
           </DockItem>
 
           <DockItem 
@@ -3026,16 +3004,6 @@ export default function App() {
               updateMockRow={updateMockRow} 
             />
           )}
-          {activeTab === 'terminal' && (
-            <BloombergTerminalView
-              state={state}
-              onNavigateTab={setActiveTab}
-              theme={theme}
-              onSelectTheme={handleSelectTheme}
-              user={user}
-              userProfile={userProfile}
-            />
-          )}
           {activeTab === 'errors' && (
             <ErrorLogView 
               state={state} 
@@ -3162,7 +3130,6 @@ export default function App() {
       <nav 
         className="mobile-bottom-nav"
         aria-label="Mobile Navigation"
-        style={{ display: activeTab === 'terminal' ? 'none' : undefined }}
       >
         <Dock direction="horizontal" magnification={1} distance={0} baseItemSize={40} className="mobile-dock-wrap">
           <DockItem 
@@ -3230,7 +3197,7 @@ export default function App() {
           </DockItem>
 
           <DockItem 
-            active={activeTab === 'profile' || activeTab === 'terminal' || activeTab === 'timeline' || activeTab === 'errors' || activeTab === 'achievements' || activeTab === 'settings'} 
+            active={activeTab === 'profile' || activeTab === 'timeline' || activeTab === 'errors' || activeTab === 'achievements' || activeTab === 'settings'} 
             onClick={() => setActiveTab('profile')} 
             ariaLabel="More Menu"
             tooltipTitle="Menu"
@@ -3242,7 +3209,7 @@ export default function App() {
       </nav>
 
       {/* Floating Timer Mini Widget */}
-      {activeTab !== 'timer' && activeTab !== 'terminal' && (
+      {activeTab !== 'timer' && (
         <FloatingTimerWidget
           timerState={timerState}
           onPause={handlePauseTimer}

@@ -1,5 +1,6 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { playSoftClick } from './audioUtils';
 
 if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
   gsap.registerPlugin(ScrollTrigger);
@@ -180,7 +181,7 @@ export function tactileClick(targetOrEvent, { scale = 0.93, duration = 0.26, sou
   
   if (sound) {
     try {
-      import('./audioUtils').then(m => m.playSoftClick && m.playSoftClick()).catch(() => {});
+      playSoftClick();
     } catch (_e) {}
   }
 

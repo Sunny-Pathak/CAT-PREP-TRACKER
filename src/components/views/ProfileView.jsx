@@ -1397,8 +1397,8 @@ export default function ProfileView({
                           gap: '8px',
                           padding: '6px 12px',
                           borderRadius: '8px',
-                          background: profAvatar === user.photoURL ? 'rgba(192, 132, 252, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                          border: profAvatar === user.photoURL ? '1px solid #c084fc' : '1px solid rgba(255, 255, 255, 0.08)',
+                          background: profAvatar === user.photoURL ? 'var(--accent-muted, rgba(192, 132, 252, 0.15))' : 'rgba(255, 255, 255, 0.04)',
+                          border: profAvatar === user.photoURL ? '1px solid var(--accent-color, #c084fc)' : '1px solid rgba(255, 255, 255, 0.08)',
                           color: '#ffffff',
                           cursor: 'pointer',
                           fontSize: '12px'
@@ -1424,8 +1424,8 @@ export default function ProfileView({
                         gap: '8px',
                         padding: '6px 12px',
                         borderRadius: '8px',
-                        background: profAvatar && (profAvatar.startsWith('data:image') || profAvatar.startsWith('blob:')) ? 'rgba(192, 132, 252, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                        border: profAvatar && (profAvatar.startsWith('data:image') || profAvatar.startsWith('blob:')) ? '1px solid #c084fc' : '1px solid rgba(255, 255, 255, 0.08)',
+                        background: profAvatar && (profAvatar.startsWith('data:image') || profAvatar.startsWith('blob:')) ? 'var(--accent-muted, rgba(192, 132, 252, 0.15))' : 'rgba(255, 255, 255, 0.04)',
+                        border: profAvatar && (profAvatar.startsWith('data:image') || profAvatar.startsWith('blob:')) ? '1px solid var(--accent-color, #c084fc)' : '1px solid rgba(255, 255, 255, 0.08)',
                         color: '#ffffff',
                         cursor: 'pointer',
                         fontSize: '12px'

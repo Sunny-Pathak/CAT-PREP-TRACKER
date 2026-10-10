@@ -26,7 +26,7 @@ export default function ActivityNotificationToast({ notification, onDismiss }) {
           ) : isUnsavedWarning ? (
             <Icons.AlertCircle size={18} color="#fbbf24" />
           ) : (
-            <Icons.Cloud size={18} color="#a78bfa" />
+            <Icons.Cloud size={18} color="var(--accent-secondary, #a78bfa)" />
           )}
         </div>
         <div className="activity-toast-text">

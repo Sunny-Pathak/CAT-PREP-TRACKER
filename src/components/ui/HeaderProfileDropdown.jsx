@@ -34,7 +34,7 @@ export default function HeaderProfileDropdown({
     return userProfile?.avatar || 'rocket';
   }, [userProfile?.avatar, userProfile?.photoURL, user?.photoURL]);
 
-  const userAvatarBg = userProfile?.avatarBg || '#8b5cf6';
+  const userAvatarBg = userProfile?.avatarBg || 'var(--accent-color, #8b5cf6)';
 
   // Close dropdown on click outside or escape key
   useEffect(() => {
@@ -231,7 +231,7 @@ export default function HeaderProfileDropdown({
                 className="menu-nav-item"
                 onClick={() => handleAction(onOpenPatchNotes)}
               >
-                <div className="menu-item-icon-box" style={{ background: 'rgba(139, 92, 246, 0.12)', color: 'var(--accent-color, #8b5cf6)' }}>
+                <div className="menu-item-icon-box" style={{ background: 'var(--accent-muted, rgba(139, 92, 246, 0.12))', color: 'var(--accent-color, #8b5cf6)' }}>
                   <Icons.Sparkles size={15} />
                 </div>
                 <div className="menu-item-text">
@@ -248,7 +248,7 @@ export default function HeaderProfileDropdown({
               className="menu-nav-item"
               onClick={() => setIsOpen(false)}
             >
-              <div className="menu-item-icon-box" style={{ background: 'rgba(139, 92, 246, 0.12)', color: '#c084fc' }}>
+              <div className="menu-item-icon-box" style={{ background: 'var(--accent-muted, rgba(139, 92, 246, 0.12))', color: 'var(--accent-secondary, #c084fc)' }}>
                 <Icons.ExternalLink size={15} />
               </div>
               <div className="menu-item-text">

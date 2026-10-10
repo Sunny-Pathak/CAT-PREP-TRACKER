@@ -64,7 +64,14 @@ export default function SmoothCaretInput({
     // Clamp caret position within visible input bounds so it never spills over on mobile
     const inputWidth = input.clientWidth || 300;
     const maxCaretLeft = Math.max(paddingLeft, inputWidth - 12);
-    const calculatedLeft = paddingLeft + textWidth - scrollLeft;
+    
+    let calculatedLeft = paddingLeft + textWidth - scrollLeft;
+    if (style.textAlign === 'center') {
+      const fullText = type === 'password' ? '•'.repeat(String(value || '').length) : String(value || '');
+      const totalWidth = measureTextWidth(fullText, input);
+      const startX = Math.max(paddingLeft, (inputWidth - totalWidth) / 2);
+      calculatedLeft = startX + textWidth - scrollLeft;
+    }
 
     setCaretLeft(Math.min(maxCaretLeft, Math.max(paddingLeft, calculatedLeft)));
   };

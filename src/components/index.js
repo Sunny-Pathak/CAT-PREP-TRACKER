@@ -17,7 +17,6 @@ export { default as BacklogRecoveryView } from './views/BacklogRecoveryView';
 export { default as SanctuaryShopView } from './views/SanctuaryShopView';
 export { default as StudyLounge } from './views/StudyLounge';
 export { default as LeaderboardComingSoonView } from './views/LeaderboardComingSoonView';
-export { default as BloombergTerminalView } from './terminal/BloombergTerminalView';
 
 // Modals & Dialogue Systems
 export { default as AdaptiveWeekReviewModal } from './modals/AdaptiveWeekReviewModal';
@@ -43,19 +42,9 @@ export { default as AuthScreen } from './auth/AuthScreen';
 export { default as ErrorBoundary } from './common/ErrorBoundary';
 
 // Backgrounds & Canvas Engines
-export { default as Balatro } from './backgrounds/Balatro';
-export { default as MicroSlats } from './backgrounds/MicroSlats';
-export { default as DreamcoreAsciiCanvas } from './backgrounds/DreamcoreAsciiCanvas';
-export { default as MaleniaAsciiCanvas } from './backgrounds/MaleniaAsciiCanvas';
 export { default as DitherBackground } from './backgrounds/DitherBackground';
-export { default as CubesCanvas } from './backgrounds/CubesCanvas';
-export { default as ShaderGradientCanvas } from './backgrounds/ShaderGradientCanvas';
-
-// Terminal
-export { default as TerminalAsciiBootLoader } from './terminal/TerminalAsciiBootLoader';
 
 // UI Widgets & Mascot Systems
-export { default as CustomCursor } from './ui/CustomCursor';
 export { default as GooeyThemeSwitch } from './ui/GooeyThemeSwitch';
 export { default as ThemedDatePicker } from './ui/ThemedDatePicker';
 export { default as ThemeSelectorDropdown } from './ui/ThemeSelectorDropdown';

@@ -37,14 +37,14 @@ function StudyCompanionEntity({
       >
         <defs>
           <linearGradient id="bodyGrad" x1="60" y1="40" x2="180" y2="180" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="var(--accent-violet, #8b5cf6)" />
-            <stop offset="50%" stopColor="var(--accent-secondary, #a855f7)" />
-            <stop offset="100%" stopColor="var(--accent-violet, #c084fc)" stopOpacity="0.85" />
+            <stop offset="0%" stopColor="var(--accent-color, #8b5cf6)" />
+            <stop offset="50%" stopColor="var(--accent-secondary, #c084fc)" />
+            <stop offset="100%" stopColor="var(--accent-tertiary, #a78bfa)" stopOpacity="0.85" />
           </linearGradient>
 
           <linearGradient id="earInnerGrad" x1="88" y1="38" x2="108" y2="62" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="var(--accent-secondary, #ec4899)" />
-            <stop offset="100%" stopColor="var(--accent-violet, #8b5cf6)" />
+            <stop offset="100%" stopColor="var(--accent-color, #8b5cf6)" />
           </linearGradient>
 
           <linearGradient id="deskGrad" x1="20" y1="170" x2="220" y2="170" gradientUnits="userSpaceOnUse">
@@ -176,7 +176,7 @@ function StudyCompanionEntity({
               <line x1="140" y1="154" x2="128" y2="160" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" />
               <polygon points="128,160 125,162 127,159" fill="#0f172a" />
               {/* Particle Spark at pen tip when writing */}
-              {isRunning && <circle cx="125" cy="162" r="1.5" fill="var(--accent-violet, #8b5cf6)" style={{ filter: 'drop-shadow(0 0 3px rgba(139, 92, 246, 0.9))' }} />}
+              {isRunning && <circle cx="125" cy="162" r="1.5" fill="var(--accent-color, #8b5cf6)" style={{ filter: 'drop-shadow(0 0 3px var(--accent-glow, rgba(139, 92, 246, 0.9)))' }} />}
             </g>
           </g>
 

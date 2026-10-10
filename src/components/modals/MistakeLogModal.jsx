@@ -222,7 +222,7 @@ export default function MistakeLogModal({ isOpen, onClose, onSave, editingMistak
               className="smooth-text-input"
               value={formData.source}
               onChange={(e) => setFormData(prev => ({ ...prev, source: stripEmojis(e.target.value) }))}
-              placeholder="e.g. SimCAT Mock 3, Arun Sharma..."
+              placeholder="e.g. National Mock 3, Sectional Drill..."
             />
           </div>
 

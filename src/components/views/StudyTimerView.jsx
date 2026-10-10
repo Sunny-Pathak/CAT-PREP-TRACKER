@@ -43,12 +43,11 @@ export default function StudyTimerView({
   const [showGuiltTrip, setShowGuiltTrip] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const companionRef = useRef(null);
-  const cadenceIndicatorRef = useRef(null);
-  const cadenceTabRefs = useRef({});
-  const subjectIndicatorRef = useRef(null);
-  const subjectTabRefs = useRef({});
-  const customLineRef = useRef(null);
   const digitsAnchorRef = useRef(null);
+  const [isDurationMenuOpen, setIsDurationMenuOpen] = useState(false);
+  const [isSubjectMenuOpen, setIsSubjectMenuOpen] = useState(false);
+  const durationMenuRef = useRef(null);
+  const subjectMenuRef = useRef(null);
 
   const {
     secondsLeft = 1500,
@@ -98,71 +97,19 @@ export default function StudyTimerView({
     }
   };
 
-  const activeCadenceKey = timerMode === 'pomodoro'
-    ? `${selectedDuration}m`
-    : timerMode === 'custom'
-      ? 'custom'
-      : 'stopwatch';
-
-  // GSAP Sliding Pill Animation for Duration Cadence Rack
-  useGSAP(() => {
-    const activeEl = cadenceTabRefs.current[activeCadenceKey];
-    if (activeEl && cadenceIndicatorRef.current) {
-      gsap.to(cadenceIndicatorRef.current, {
-        x: activeEl.offsetLeft,
-        width: activeEl.offsetWidth,
-        opacity: 1,
-        duration: 0.32,
-        ease: 'power3.out'
-      });
-    }
-  }, [activeCadenceKey]);
-
-  // GSAP Sliding Pill Animation for Disciplines Rack
-  useGSAP(() => {
-    const activeEl = subjectTabRefs.current[currentSubject];
-    if (activeEl && subjectIndicatorRef.current) {
-      gsap.to(subjectIndicatorRef.current, {
-        x: activeEl.offsetLeft,
-        width: activeEl.offsetWidth,
-        opacity: 1,
-        duration: 0.32,
-        ease: 'power3.out'
-      });
-    }
-  }, [currentSubject]);
-
-  // Recalculate sliding pill indicators on window resize / orientation change
+  // Close dropdown menus when clicking outside
   useEffect(() => {
-    const handleResize = () => {
-      const activeCadenceEl = cadenceTabRefs.current[activeCadenceKey];
-      if (activeCadenceEl && cadenceIndicatorRef.current) {
-        gsap.set(cadenceIndicatorRef.current, {
-          x: activeCadenceEl.offsetLeft,
-          width: activeCadenceEl.offsetWidth
-        });
+    const handleClickOutside = (e) => {
+      if (durationMenuRef.current && !durationMenuRef.current.contains(e.target)) {
+        setIsDurationMenuOpen(false);
       }
-      const activeSubjectEl = subjectTabRefs.current[currentSubject];
-      if (activeSubjectEl && subjectIndicatorRef.current) {
-        gsap.set(subjectIndicatorRef.current, {
-          x: activeSubjectEl.offsetLeft,
-          width: activeSubjectEl.offsetWidth
-        });
+      if (subjectMenuRef.current && !subjectMenuRef.current.contains(e.target)) {
+        setIsSubjectMenuOpen(false);
       }
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [activeCadenceKey, currentSubject]);
-
-  // GSAP Expand Animation for Custom Duration Line
-  useGSAP(() => {
-    if (timerMode === 'custom' && customLineRef.current) {
-      gsap.fromTo(customLineRef.current,
-        { opacity: 0, y: -6, scale: 0.96 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.28, ease: 'back.out(1.5)' }
-      );
-    }
-  }, [timerMode]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // GSAP Punch on Digits Anchor
   useGSAP(() => {
@@ -446,15 +393,6 @@ export default function StudyTimerView({
               <span className="back-arrow">←</span>
               <span className="back-text">Dashboard</span>
             </button>
-            <a
-              href="https://catalyze-prep.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="human-landing-link"
-              title="Visit Landing Page"
-            >
-              <span>Landing Page ↗</span>
-            </a>
           </div>
 
           <div className="monumental-header-right">
@@ -520,9 +458,8 @@ export default function StudyTimerView({
               
               <div className="monumental-readout-sub">
                 <span className="monumental-subject-label">
-                  {currentSubject} Focus
+                  {currentSubject.toUpperCase()}{timerMode === 'stopwatch' ? ' · STOPWATCH' : ''}
                 </span>
-                {timerMode === 'stopwatch' && <span className="monumental-stopwatch-label">(Stopwatch)</span>}
                 {effectivePace?.hasPace && (
                   <span 
                     className="monumental-pace-pill active-pace"
@@ -535,13 +472,13 @@ export default function StudyTimerView({
                       fontWeight: 700,
                       padding: '1px 7px',
                       borderRadius: '999px',
-                      background: 'rgba(56, 189, 248, 0.15)',
-                      color: '#38bdf8',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      background: 'var(--accent-muted, rgba(168, 85, 247, 0.15))',
+                      color: 'var(--accent-secondary, #c084fc)',
+                      border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.3))',
                       marginTop: '3px'
                     }}
                   >
-                    <Icons.Zap size={9} color="#38bdf8" />
+                    <Icons.Zap size={9} color="var(--accent-secondary, #c084fc)" />
                     <span>{effectivePace.formatted}</span>
                   </span>
                 )}
@@ -554,160 +491,148 @@ export default function StudyTimerView({
         {!isZenFullscreen && (
           <div className="monumental-controls-console">
             
-            {/* Row 1: Duration Cadence with GSAP Sliding Pill Indicator */}
-            <div className="monumental-cadence-rack">
-              <div ref={cadenceIndicatorRef} className="segmented-indicator-pill" aria-hidden="true" />
-              {[15, 25, 45, 60].map(m => {
-                const key = `${m}m`;
-                const isActive = timerMode === 'pomodoro' && selectedDuration === m;
-                return (
-                  <button
-                    key={m}
-                    ref={el => { cadenceTabRefs.current[key] = el; }}
-                    type="button"
-                    className={`cadence-text-btn cadence-preset-tab ${isActive ? 'active' : ''}`}
-                    onClick={(e) => {
-                      triggerTactile(e);
-                      playSoftClick();
-                      setTimerMode('pomodoro');
-                      setSelectedDuration(m);
-                    }}
-                    disabled={isRunning || isPaused}
-                  >
-                    {m}m
-                  </button>
-                );
-              })}
-
-              <button
-                ref={el => { cadenceTabRefs.current['custom'] = el; }}
-                type="button"
-                className={`cadence-text-btn cadence-custom-tab ${timerMode === 'custom' ? 'active' : ''}`}
-                onClick={(e) => {
-                  triggerTactile(e);
-                  playSoftClick();
-                  setTimerMode('custom');
-                }}
-                disabled={isRunning || isPaused}
-                aria-label="Custom Duration"
-              >
-                Custom
-              </button>
-
-              <button
-                ref={el => { cadenceTabRefs.current['stopwatch'] = el; }}
-                type="button"
-                className={`cadence-text-btn cadence-stopwatch-tab ${timerMode === 'stopwatch' ? 'active' : ''}`}
-                onClick={(e) => {
-                  triggerTactile(e);
-                  playSoftClick();
-                  setTimerMode('stopwatch');
-                }}
-                disabled={isRunning || isPaused}
-                aria-label="Stopwatch Mode"
-              >
-                <span className="cadence-full-label">Stopwatch</span>
-                <span className="cadence-short-label">Watch</span>
-              </button>
-            </div>
-
-            {/* Custom Minutes Input (Inline when active) */}
-            {timerMode === 'custom' && (
-              <div ref={customLineRef} className="monumental-custom-line">
-                <span className="custom-prompt">Duration:</span>
-                <input
-                  type="number"
-                  className="custom-duration-input"
-                  min="1"
-                  max="480"
-                  value={customMinutes}
-                  onChange={(e) => setCustomMinutes(Math.max(1, parseInt(e.target.value) || 1))}
-                  disabled={isRunning || isPaused}
-                />
-                <span className="custom-mins-suffix">mins</span>
-              </div>
-            )}
-
-            {/* Row 2: Clean Subject Selector with GSAP Sliding Pill Indicator */}
-            <div className="monumental-disciplines-rack">
-              <div ref={subjectIndicatorRef} className="segmented-indicator-pill" aria-hidden="true" />
-              {['Quant', 'LRDI', 'VARC', 'General'].map(s => {
-                const isActive = currentSubject === s;
-                return (
-                  <button
-                    key={s}
-                    ref={el => { subjectTabRefs.current[s] = el; }}
-                    type="button"
-                    className={`discipline-text-btn ${isActive ? 'active' : ''}`}
-                    onClick={(e) => {
-                      triggerTactile(e);
-                      playSoftClick();
-                      setCurrentSubject(s);
-                    }}
-                    disabled={isRunning || isPaused}
-                  >
-                    <span className="name">{s}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Row 3: Direct Action Trigger with fluid pop-in animation */}
-            <div className="monumental-actuation-rack">
-              {!isRunning && !isPaused ? (
-                <button 
-                  type="button" 
-                  className="monumental-engage-cta" 
-                  onClick={(e) => {
-                    triggerTactile(e);
-                    handleStart(e);
+            {/* Minimal Focus Configuration: Compact Selector Pills */}
+            <div className="focus-config-row">
+              {/* 1. Duration Pill & Popover */}
+              <div className="focus-pill-container" ref={durationMenuRef}>
+                <button
+                  type="button"
+                  className={`focus-pill-trigger ${isDurationMenuOpen ? 'is-active' : ''}`}
+                  onClick={() => {
+                    playSoftClick();
+                    setIsDurationMenuOpen(prev => !prev);
+                    setIsSubjectMenuOpen(false);
                   }}
+                  disabled={isRunning || isPaused}
+                  aria-expanded={isDurationMenuOpen}
+                  aria-label="Select Duration"
                 >
-                  <span className="engage-icon">▶</span>
-                  <span className="engage-text">Start</span>
-                  <span className="engage-shortcut">[Space]</span>
+                  <span className="focus-pill-icon">⏱</span>
+                  <span className="focus-pill-label">
+                    {timerMode === 'stopwatch'
+                      ? 'Stopwatch'
+                      : timerMode === 'custom'
+                      ? `${customMinutes}m`
+                      : `${selectedDuration}m`}
+                  </span>
+                  <span className="focus-pill-arrow">▾</span>
                 </button>
-              ) : (
-                <div className="monumental-running-controls">
-                  <button 
-                    type="button"
-                    className={`monumental-running-btn ${isRunning ? 'pause-btn' : 'resume-btn'}`} 
-                    onClick={(e) => {
-                      triggerTactile(e);
-                      playSoftClick();
-                      if (isRunning) onPauseTimer();
-                      else onResumeTimer();
-                    }}
-                  >
-                    <span>{isRunning ? 'Pause [Space]' : 'Resume [Space]'}</span>
-                  </button>
-                  <button 
-                    type="button"
-                    className="monumental-running-btn log-btn" 
-                    onClick={(e) => {
-                      triggerTactile(e);
-                      handleFinish();
-                    }}
-                  >
-                    <span>Log Session</span>
-                  </button>
-                  <button 
-                    type="button"
-                    className="monumental-running-btn reset-btn" 
-                    onClick={(e) => {
-                      triggerTactile(e);
-                      playSoftClick();
-                      onResetTimer();
-                    }}
-                  >
-                    <span>Reset</span>
-                  </button>
-                </div>
-              )}
+
+                {isDurationMenuOpen && (
+                  <div className="focus-dropdown-menu">
+                    {[15, 25, 45, 60].map(mins => {
+                      const isSelected = timerMode === 'pomodoro' && selectedDuration === mins;
+                      return (
+                        <button
+                          key={mins}
+                          type="button"
+                          className={`focus-dropdown-item ${isSelected ? 'is-selected' : ''}`}
+                          onClick={() => {
+                            playSoftClick();
+                            setTimerMode('pomodoro');
+                            setSelectedDuration(mins);
+                            setIsDurationMenuOpen(false);
+                          }}
+                        >
+                          <span>{mins}m</span>
+                          {isSelected && <span className="item-check">✓</span>}
+                        </button>
+                      );
+                    })}
+
+                    <div className="focus-dropdown-divider" />
+
+                    {/* Stopwatch Option */}
+                    <button
+                      type="button"
+                      className={`focus-dropdown-item ${timerMode === 'stopwatch' ? 'is-selected' : ''}`}
+                      onClick={() => {
+                        playSoftClick();
+                        setTimerMode('stopwatch');
+                        setIsDurationMenuOpen(false);
+                      }}
+                    >
+                      <span>Stopwatch</span>
+                      {timerMode === 'stopwatch' && <span className="item-check">✓</span>}
+                    </button>
+
+                    {/* Custom Duration Option */}
+                    <div className="focus-dropdown-custom-block">
+                      <div className="custom-input-strip">
+                        <span className="custom-prefix">Custom:</span>
+                        <input
+                          type="number"
+                          className="custom-mini-input"
+                          min="1"
+                          max="480"
+                          value={customMinutes}
+                          onChange={(e) => setCustomMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                        />
+                        <span className="custom-unit">m</span>
+                        <button
+                          type="button"
+                          className="custom-apply-btn"
+                          onClick={() => {
+                            playSoftClick();
+                            setTimerMode('custom');
+                            setIsDurationMenuOpen(false);
+                          }}
+                        >
+                          Set
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Discipline Pill & Popover */}
+              <div className="focus-pill-container" ref={subjectMenuRef}>
+                <button
+                  type="button"
+                  className={`focus-pill-trigger ${isSubjectMenuOpen ? 'is-active' : ''}`}
+                  onClick={() => {
+                    playSoftClick();
+                    setIsSubjectMenuOpen(prev => !prev);
+                    setIsDurationMenuOpen(false);
+                  }}
+                  disabled={isRunning || isPaused}
+                  aria-expanded={isSubjectMenuOpen}
+                  aria-label="Select Discipline"
+                >
+                  <span className="focus-pill-icon">✦</span>
+                  <span className="focus-pill-label">{currentSubject}</span>
+                  <span className="focus-pill-arrow">▾</span>
+                </button>
+
+                {isSubjectMenuOpen && (
+                  <div className="focus-dropdown-menu">
+                    {['Quant', 'LRDI', 'VARC', 'General'].map(key => {
+                      const isSelected = currentSubject === key;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          className={`focus-dropdown-item ${isSelected ? 'is-selected' : ''}`}
+                          onClick={() => {
+                            playSoftClick();
+                            setCurrentSubject(key);
+                            setIsSubjectMenuOpen(false);
+                          }}
+                        >
+                          <span>{key}</span>
+                          {isSelected && <span className="item-check">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Row 4: Clean Session Note (Zero Em-Dash, Zero "Objective" Jargon) */}
+            {/* Session Note Placement: Directly Above Primary Action */}
             <div className="monumental-intention-row">
+              <span className="intention-pencil-icon" aria-hidden="true">✎</span>
               <SmoothCaretInput
                 type="text"
                 className="monumental-intention-input"
@@ -728,6 +653,85 @@ export default function StudyTimerView({
                 >
                   <span>Vault ↗</span>
                 </button>
+              )}
+            </div>
+
+            {/* Primary Action Trigger */}
+            <div className="monumental-actuation-rack">
+              {!isRunning && !isPaused ? (
+                <button 
+                  type="button" 
+                  className="monumental-engage-cta" 
+                  onClick={(e) => {
+                    triggerTactile(e);
+                    handleStart(e);
+                  }}
+                >
+                  <span className="engage-icon">▶</span>
+                  <span className="engage-text">Start</span>
+                </button>
+              ) : (
+                <div className="monumental-running-controls">
+                  <button 
+                    type="button"
+                    className={`monumental-running-btn ${isRunning ? 'pause-btn' : 'resume-btn'}`} 
+                    onClick={(e) => {
+                      triggerTactile(e);
+                      playSoftClick();
+                      if (isRunning) onPauseTimer();
+                      else onResumeTimer();
+                    }}
+                    title={isRunning ? "Pause Focus Timer (Shortcut: Space)" : "Resume Focus Timer (Shortcut: Space)"}
+                    aria-label={isRunning ? "Pause Focus Timer" : "Resume Focus Timer"}
+                  >
+                    <span className="btn-icon">
+                      {isRunning ? (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                          <rect x="6" y="4" width="4" height="16" rx="1" />
+                          <rect x="14" y="4" width="4" height="16" rx="1" />
+                        </svg>
+                      ) : (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                          <polygon points="6 4 20 12 6 20 6 4" />
+                        </svg>
+                      )}
+                    </span>
+                    <span>{isRunning ? 'Pause' : 'Resume'}</span>
+                  </button>
+
+                  <button 
+                    type="button"
+                    className="monumental-running-btn log-btn" 
+                    onClick={(e) => {
+                      triggerTactile(e);
+                      handleFinish();
+                    }}
+                    title="Log and save session to today's drills"
+                    aria-label="Log Session"
+                  >
+                    <span className="btn-icon">
+                      <Icons.Check size={13} />
+                    </span>
+                    <span>Log Session</span>
+                  </button>
+
+                  <button 
+                    type="button"
+                    className="monumental-running-btn reset-btn" 
+                    onClick={(e) => {
+                      triggerTactile(e);
+                      playSoftClick();
+                      onResetTimer();
+                    }}
+                    title="Reset focus session"
+                    aria-label="Reset Timer"
+                  >
+                    <span className="btn-icon">
+                      <Icons.RotateCcw size={12} />
+                    </span>
+                    <span>Reset</span>
+                  </button>
+                </div>
               )}
             </div>
 
@@ -762,7 +766,7 @@ export default function StudyTimerView({
               {effectivePace?.hasPace && (
                 <>
                   <span className="telemetry-sep">·</span>
-                  <span className="telemetry-pace" style={{ color: '#38bdf8', fontWeight: 600 }}>
+                  <span className="telemetry-pace" style={{ color: 'var(--accent-secondary, #c084fc)', fontWeight: 600 }}>
                     {currentSubject} Pace: {effectivePace.formatted}
                   </span>
                 </>

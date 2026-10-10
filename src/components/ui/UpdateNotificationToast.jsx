@@ -26,7 +26,7 @@ export default function UpdateNotificationToast({ updateData, onDismiss, onOpenP
       <div className="update-toast-header">
         <div className="update-toast-badge-group">
           <div className="update-toast-icon-badge" aria-hidden="true">
-            <Icons.Sparkles size={14} color="#a855f7" />
+            <Icons.Sparkles size={14} color="var(--accent-secondary, #a855f7)" />
           </div>
           <div className="update-toast-title">
             App Update Available

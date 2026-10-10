@@ -190,7 +190,7 @@ export default function AspirantProfileCard({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="panoramic-spec-badge font-mono" style={{ color: '#c084fc', borderColor: 'rgba(192, 132, 252, 0.25)' }}>
+            <span className="panoramic-spec-badge font-mono" style={{ color: 'var(--accent-secondary, #c084fc)', borderColor: 'var(--accent-border, rgba(192, 132, 252, 0.25))' }}>
               <span>LVL {level}</span> • {classTitle}
             </span>
 

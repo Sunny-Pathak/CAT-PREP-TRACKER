@@ -955,9 +955,9 @@ export default function TimelineView({
                   type="button"
                   className="drawer-secondary-btn"
                   style={{
-                    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-                    borderColor: 'rgba(168, 85, 247, 0.35)',
-                    color: '#c084fc'
+                    backgroundColor: 'var(--accent-muted, rgba(139, 92, 246, 0.12))',
+                    borderColor: 'var(--accent-border, rgba(168, 85, 247, 0.35))',
+                    color: 'var(--accent-secondary, #c084fc)'
                   }}
                   onClick={(e) => {
                     tactileClick(e);
@@ -967,7 +967,7 @@ export default function TimelineView({
                     onOpenCheckpoint(monthKey, relativeWeek, inspectedWeekIdx + 1);
                   }}
                 >
-                  <Icons.Target size={13} color="#c084fc" />
+                  <Icons.Target size={13} color="var(--accent-secondary, #c084fc)" />
                   <span>Adaptive Checkpoint</span>
                 </button>
               )}

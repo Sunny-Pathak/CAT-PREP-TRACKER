@@ -21,7 +21,7 @@ describe('Study Notes & Mistake Vault Unit Tests', () => {
         title: 'TSD Relative Speed Unit Conversion',
         subject: 'Quant',
         content: 'Always convert km/h to m/s before multiplying time in seconds.',
-        source: 'SimCAT Mock 3'
+        source: 'National Mock 3'
       }
     ];
     const md = exportMistakesToMarkdown(sample);

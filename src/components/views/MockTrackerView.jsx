@@ -665,7 +665,7 @@ export default function MockTrackerView({ state, updateMockRow }) {
                   <SmoothCaretInput
                     type="text"
                     required
-                    placeholder="e.g. SIMCAT 1, AIMCAT 2601"
+                    placeholder="e.g. National Full Mock 1, Sectional Drill 2"
                     value={modalForm.title}
                     onChange={(e) => setModalForm(prev => ({ ...prev, title: stripEmojis(e.target.value) }))}
                   />

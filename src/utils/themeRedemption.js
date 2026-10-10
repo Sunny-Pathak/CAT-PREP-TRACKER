@@ -126,9 +126,8 @@ export function getUnlockedThemes() {
  * Check if a theme is unlocked for the user
  */
 export function isThemeUnlocked(themeId, unlockedThemesList = null) {
-  // Dark Obsidian is the solitary unlocked and active theme.
-  // Other themes are locked for maintenance.
-  return themeId === 'dark';
+  // Dark Obsidian and Neon Orchid are unlocked and active themes.
+  return themeId === 'dark' || themeId === 'neon-orchid';
 }
 
 /**

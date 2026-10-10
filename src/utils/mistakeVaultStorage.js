@@ -19,7 +19,7 @@ export const STARTER_MISTAKES = [
   {
     id: 'starter_qa_1',
     title: 'Time-Speed-Distance: Relative Speed & Unit Mismatch',
-    source: 'SimCAT Mock 3, QA Q14',
+    source: 'National Mock 3, QA Q14',
     subject: 'Quant',
     topic: 'Arithmetic / TSD',
     errorTypeId: 'calc_slip',

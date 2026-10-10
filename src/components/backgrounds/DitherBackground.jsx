@@ -35,11 +35,65 @@ const THEME_PALETTES = {
   'dark-olive': { bg: [0.04, 0.05, 0.03], wave: [0.15, 0.20, 0.10] },
   'plum-velvet': { bg: [0.05, 0.02, 0.05], wave: [0.22, 0.08, 0.18] },
   'slate-terracotta': { bg: [0.03, 0.04, 0.05], wave: [0.24, 0.14, 0.12] },
+  'neon-orchid': { bg: [0.04, 0.02, 0.08], wave: [0.82, 0.20, 0.62] },
   'dark': { bg: [0.025, 0.022, 0.04], wave: [0.28, 0.14, 0.52] }
 };
 
+function parseColorToGl(colorStr, fallback = [0.1, 0.1, 0.1]) {
+  if (!colorStr) return fallback;
+  const str = colorStr.trim();
+  if (/^\d+\s*,\s*\d+\s*,\s*\d+$/.test(str)) {
+    return str.split(',').map(n => parseFloat(n.trim()) / 255);
+  }
+  if (str.startsWith('#')) {
+    const hex = str.slice(1);
+    if (hex.length === 3) {
+      return [
+        parseInt(hex[0] + hex[0], 16) / 255,
+        parseInt(hex[1] + hex[1], 16) / 255,
+        parseInt(hex[2] + hex[2], 16) / 255
+      ];
+    }
+    if (hex.length >= 6) {
+      return [
+        parseInt(hex.slice(0, 2), 16) / 255,
+        parseInt(hex.slice(2, 4), 16) / 255,
+        parseInt(hex.slice(4, 6), 16) / 255
+      ];
+    }
+  }
+  const rgbMatch = str.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (rgbMatch) {
+    return [
+      parseFloat(rgbMatch[1]) / 255,
+      parseFloat(rgbMatch[2]) / 255,
+      parseFloat(rgbMatch[3]) / 255
+    ];
+  }
+  return fallback;
+}
+
 function getThemePalette(themeId) {
-  return THEME_PALETTES[themeId] || THEME_PALETTES['dark'];
+  if (THEME_PALETTES[themeId]) {
+    return THEME_PALETTES[themeId];
+  }
+  if (typeof document !== 'undefined') {
+    const style = getComputedStyle(document.documentElement);
+    const bgStr = style.getPropertyValue('--bg-primary');
+    const accentRgbStr = style.getPropertyValue('--accent-rgb');
+    const accentStr = style.getPropertyValue('--accent-color');
+    if (bgStr || accentRgbStr || accentStr) {
+      const bg = parseColorToGl(bgStr, [0.025, 0.022, 0.04]);
+      const accent = parseColorToGl(accentRgbStr || accentStr, [0.28, 0.14, 0.52]);
+      const wave = [
+        Math.min(1.0, accent[0] * 0.65),
+        Math.min(1.0, accent[1] * 0.65),
+        Math.min(1.0, accent[2] * 0.65)
+      ];
+      return { bg, wave };
+    }
+  }
+  return THEME_PALETTES['dark'];
 }
 
 function DitherBackground({
