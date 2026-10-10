@@ -2570,15 +2570,15 @@ button, input, select, textarea {
   position: sticky;
   top: 56px;
   z-index: 35;
-  background: rgba(8, 7, 13, 0.94);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--bg-primary, #08070d) 84%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
-  border-bottom: 1px solid var(--accent-border, rgba(139, 92, 246, 0.18));
+  border-bottom: 1px solid var(--accent-border, rgba(139, 92, 246, 0.16));
   padding: 10px 4px 12px 4px;
   margin-bottom: 18px;
 }
@@ -2590,28 +2590,31 @@ button, input, select, textarea {
 .expedition-phase-segmented {
   position: relative;
   display: flex;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid var(--accent-border, rgba(139, 92, 246, 0.18));
-  border-radius: 8px;
-  padding: 3px;
-  gap: 4px;
+  background: linear-gradient(180deg, rgba(24, 18, 40, 0.65) 0%, rgba(13, 10, 24, 0.75) 100%);
+  border: 1px solid var(--accent-border, rgba(139, 92, 246, 0.22));
+  border-radius: 9px;
+  padding: 3.5px;
+  gap: 3px;
   flex-shrink: 0;
   max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   flex-wrap: nowrap;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .phase-indicator-pill {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
+  top: 3.5px;
+  bottom: 3.5px;
   left: 0;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, var(--accent-muted, rgba(139, 92, 246, 0.26)) 0%, var(--accent-muted, rgba(139, 92, 246, 0.14)) 100%);
+  border: 1px solid var(--accent-border-hover, rgba(192, 132, 252, 0.45));
+  box-shadow: 0 0 16px var(--accent-glow, rgba(139, 92, 246, 0.25)), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   pointer-events: none;
   z-index: 1;
   opacity: 0;
@@ -2625,8 +2628,8 @@ button, input, select, textarea {
 .expedition-phase-btn {
   position: relative;
   z-index: 2;
-  padding: 6px 12px;
-  font-family: 'JetBrains Mono', monospace;
+  padding: 6px 13px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
   font-size: 11px;
   font-weight: 700;
   border-radius: 6px;
@@ -2638,15 +2641,17 @@ button, input, select, textarea {
   flex-shrink: 0;
   outline: none;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.15s ease;
+  transition: color 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.expedition-phase-btn:hover {
-  color: #ffffff;
+.expedition-phase-btn:hover:not(.active) {
+  color: #f1f5f9;
 }
 
 .expedition-phase-btn.active {
   color: #ffffff;
+  font-weight: 800;
+  text-shadow: 0 0 12px var(--accent-glow, rgba(192, 132, 252, 0.4));
 }
 
 .expedition-tools-right {
@@ -2660,22 +2665,26 @@ button, input, select, textarea {
 .expedition-search-box {
   display: flex;
   align-items: center;
-  gap: 7px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--accent-border, rgba(139, 92, 246, 0.18));
-  border-radius: 8px;
+  gap: 8px;
+  background: linear-gradient(180deg, rgba(24, 18, 40, 0.65) 0%, rgba(13, 10, 24, 0.75) 100%);
+  border: 1px solid var(--accent-border, rgba(139, 92, 246, 0.22));
+  border-radius: 9px;
   padding: 6px 12px;
   width: 190px;
-  transition: width 0.2s ease, border-color 0.2s ease;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .expedition-search-box:focus-within {
   width: 230px;
-  border-color: var(--accent-border-hover, rgba(168, 85, 247, 0.45));
+  border-color: var(--accent-border-hover, rgba(168, 85, 247, 0.55));
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35), 0 0 14px var(--accent-glow, rgba(139, 92, 246, 0.25));
 }
 
 .expedition-search-icon {
-  color: #64748b;
+  color: #94a3b8;
   flex-shrink: 0;
 }
 
@@ -2705,22 +2714,25 @@ button, input, select, textarea {
 .expedition-view-segmented {
   position: relative;
   display: flex;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid var(--accent-border, rgba(139, 92, 246, 0.18));
-  border-radius: 8px;
-  padding: 3px;
+  background: linear-gradient(180deg, rgba(24, 18, 40, 0.65) 0%, rgba(13, 10, 24, 0.75) 100%);
+  border: 1px solid var(--accent-border, rgba(139, 92, 246, 0.22));
+  border-radius: 9px;
+  padding: 3.5px;
   gap: 2px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .view-indicator-pill {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
+  top: 3.5px;
+  bottom: 3.5px;
   left: 0;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, var(--accent-muted, rgba(139, 92, 246, 0.26)) 0%, var(--accent-muted, rgba(139, 92, 246, 0.14)) 100%);
+  border: 1px solid var(--accent-border-hover, rgba(192, 132, 252, 0.45));
+  box-shadow: 0 0 16px var(--accent-glow, rgba(139, 92, 246, 0.25)), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   pointer-events: none;
   z-index: 1;
   opacity: 0;
@@ -2733,7 +2745,7 @@ button, input, select, textarea {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 10px;
+  padding: 5px 11px;
   border: none;
   background: transparent;
   border-radius: 6px;
@@ -2742,15 +2754,17 @@ button, input, select, textarea {
   font-weight: 700;
   color: #94a3b8;
   cursor: pointer;
-  transition: color 0.15s ease;
+  transition: color 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.expedition-view-btn:hover {
-  color: #cbd5e1;
+.expedition-view-btn:hover:not(.active) {
+  color: #f1f5f9;
 }
 
 .expedition-view-btn.active {
   color: #ffffff;
+  font-weight: 800;
+  text-shadow: 0 0 12px var(--accent-glow, rgba(192, 132, 252, 0.4));
 }
 
 /* ========================================================
