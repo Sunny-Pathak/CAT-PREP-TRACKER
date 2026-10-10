@@ -255,7 +255,6 @@ export default function SettingsView({
     e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
   };
 
-  const currentAspirantId = userProfile?.aspirantId || getLocalAspirantId();
   const profName = userProfile?.displayName || user?.displayName || 'CAT Aspirant';
   const profAvatar = userProfile?.avatar || '';
   const profAvatarBg = userProfile?.avatarBg || '#8b5cf6';
@@ -529,57 +528,9 @@ export default function SettingsView({
       {/* ========================================================
           CATEGORY 1: APPEARANCE & THEMES
          ======================================================== */}
-      {/* ========================================================
-          CATEGORY 1: APPEARANCE & THEMES
-         ======================================================== */}
       {activeTab === 'themes' && (
         <div className="settings-pane-content fade-in">
           
-          {/* Active Theme & Quick Switch Controls Panel */}
-          <div className="settings-sub-panel">
-            <div className="sub-panel-header">
-              <div>
-                <h3 className="sub-panel-title">Active Workspace Theme</h3>
-              </div>
-            </div>
-
-            {/* Active Theme Spotlight Card - Fixed & Stable */}
-            <div 
-              className="theme-spotlight-card"
-              style={{
-                borderColor: activeThemeObj.colors[3],
-                background: `linear-gradient(135deg, ${activeThemeObj.colors[0]} 0%, ${activeThemeObj.colors[1]} 100%)`
-              }}
-            >
-              <div className="spotlight-left">
-                <div className="spotlight-title-row">
-                  <span className="spotlight-icon" style={{ color: activeThemeObj.colors[3] }}>
-                    <ActivePreviewIcon />
-                  </span>
-                  <span className="spotlight-name" style={{ color: activeThemeObj.colors[3] }}>
-                    {activeThemeObj.name}
-                  </span>
-                  <span className="spotlight-active-badge">
-                    <Icons.Check size={11} />
-                    <span>Active System Theme</span>
-                  </span>
-                </div>
-                <p className="spotlight-desc">
-                  {THEME_DESCRIPTIONS[activeThemeObj.id] || "Curated interface theme palette tailored for high-focus preparation."}
-                </p>
-              </div>
-
-              <div className="spotlight-right">
-                <div className="spotlight-palette-chips">
-                  {activeThemeObj.colors.map((c, i) => (
-                    <span key={i} className="palette-color-chip" style={{ backgroundColor: c }} title={c} />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-          </div>
-
           {/* Visual Theme Selection Cards */}
           <div className="settings-sub-panel">
             <div className="sub-panel-header">
@@ -588,7 +539,7 @@ export default function SettingsView({
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '16px' }}>
               {/* Catalyze Obsidian Dark */}
               <div 
                 className={`theme-card-tile ${currentTheme === 'dark' ? 'active' : ''}`} 
@@ -616,7 +567,7 @@ export default function SettingsView({
                 <div className="theme-card-meta">
                   <span className="theme-title">Catalyze Obsidian Dark</span>
                   <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px', display: 'block' }}>
-                    Engineered with silk dither depth for distraction-free focus.
+                    High-contrast deep black with silk dither depth.
                   </span>
                   <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
                     {['#08070d', '#0f0d18', '#171424', '#8b5cf6'].map((c, i) => (
@@ -673,24 +624,6 @@ export default function SettingsView({
       {activeTab === 'typography' && (
         <div className="settings-pane-content fade-in">
           
-          {/* Live Font Interactive Sandbox */}
-          <div className="typography-sandbox-card">
-            <div className="sandbox-header">
-              <span className="sandbox-tag">LIVE TYPE SPECIMEN</span>
-              <span className="sandbox-active-font font-mono" style={{ color: 'var(--accent-secondary, #c084fc)', fontWeight: 700 }}>
-                {selectedFont}
-              </span>
-            </div>
-            <div className="sandbox-content" style={{ fontFamily: selectedFont }}>
-              <h2 className="sandbox-headline">
-                Catalyze Workspace Typography
-              </h2>
-              <p className="sandbox-body">
-                Consistent deliberate practice and structured feedback compound into high percentiles.
-              </p>
-            </div>
-          </div>
-
           {/* Font Family Selection Grid */}
           <div className="settings-sub-panel">
             <div className="sub-panel-header">
@@ -744,7 +677,6 @@ export default function SettingsView({
                   <span className="control-title">UI Zoom &amp; Font Scale</span>
                   <span className="control-value-pill">{fontScale}%</span>
                 </div>
-                <p className="control-desc">Scale text elements and metrics for high-DPI screens or compact reading.</p>
                 <div className="scale-buttons-row">
                   {[
                     { val: '90', label: '90% Compact' },
@@ -780,7 +712,6 @@ export default function SettingsView({
                     </span>
                   </label>
                 </div>
-                <p className="control-desc">Enhance font weight across titles, problem statements, and timers for sharper contrast.</p>
                 <div className="bold-status-chip">
                   <span className={`status-dot ${boldBoost ? 'active' : ''}`} />
                   <span>{boldBoost ? 'Enabled' : 'Standard'}</span>
@@ -987,7 +918,6 @@ export default function SettingsView({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <span style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>Daily Study Goal Parameter</span>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: '#94a3b8' }}>Fine-tune your daily target hours to dynamically calibrate quotas across dashboard.</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="font-mono">
                   <button
@@ -1035,11 +965,9 @@ export default function SettingsView({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                padding: '8px 12px',
-                background: 'var(--accent-muted, rgba(139, 92, 246, 0.04))',
-                border: '1px dashed var(--accent-border, rgba(167, 139, 250, 0.22))',
-                borderRadius: '8px',
-                fontSize: '11px'
+                fontSize: '11px',
+                paddingTop: '6px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.06)'
               }} className="font-mono">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-tertiary, #a78bfa)' }} />
@@ -1093,7 +1021,7 @@ export default function SettingsView({
                   {quotaRolloverMode === 'strict' && <Icons.Check size={16} color="var(--accent-secondary, #c084fc)" />}
                 </div>
                 <p style={{ margin: 0, fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.5 }}>
-                  Unfinished daily quotas reset cleanly to 0 at midnight. Every morning begins with a fresh, guilt-free slate.
+                  Daily quotas reset to 0 at midnight. Fresh slate every morning.
                 </p>
               </div>
 
@@ -1119,7 +1047,7 @@ export default function SettingsView({
                   {quotaRolloverMode === 'rollover' && <Icons.Check size={16} color="var(--accent-secondary, #c084fc)" />}
                 </div>
                 <p style={{ margin: 0, fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.5 }}>
-                  Incomplete daily drills calculate a manageable backlog buffer stored in your Weekend Catch-up Bank for review.
+                  Unfinished drills roll into your Weekend Catch-Up backlog.
                 </p>
               </div>
             </div>
@@ -1137,13 +1065,11 @@ export default function SettingsView({
               <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(18, 16, 26, 0.75)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
                 <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent-secondary, #c084fc)', letterSpacing: '0.06em' }}>Primary Mock Test Day</span>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#f4f4f5', marginTop: '4px' }}>Sunday (Full 2-Hour Simulation)</div>
-                <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#94a3b8' }}>High-fidelity exam conditions followed by section percentile review.</p>
               </div>
 
               <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(18, 16, 26, 0.75)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
                 <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent-tertiary, #d8b4fe)', letterSpacing: '0.06em' }}>Buffer &amp; Catch-Up Day</span>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#f4f4f5', marginTop: '4px' }}>Saturday (Backlog Clearance)</div>
-                <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#94a3b8' }}>Revisit mistake cards, revise weak subtopics, and clear rollover quota debt.</p>
               </div>
             </div>
           </div>
@@ -1164,9 +1090,6 @@ export default function SettingsView({
                     <Icons.CheckCircle size={16} color="var(--accent-secondary, #c084fc)" />
                     <span style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>In-App Toast Notification</span>
                   </div>
-                  <p className="audio-desc" style={{ fontSize: '11.5px', color: '#94a3b8', margin: '4px 0 0 0' }}>
-                    Trigger a demo toast notification to verify system alert visibility.
-                  </p>
                 </div>
                 <button 
                   type="button" 
@@ -1186,12 +1109,6 @@ export default function SettingsView({
         </div>
       )}
 
-      {/* ========================================================
-          CATEGORY 4: CLOUD ACCOUNT & PORTABILITY
-         ======================================================== */}
-      {/* ========================================================
-          CATEGORY 4: CLOUD ACCOUNT & PORTABILITY
-         ======================================================== */}
       {/* ========================================================
           CATEGORY 4: CLOUD ACCOUNT & PORTABILITY
          ======================================================== */}
@@ -1369,11 +1286,6 @@ export default function SettingsView({
                     </div>
                     <span className="cloud-email">{user.email}</span>
                     <div className="cloud-id-row">
-                      <span className="cloud-asp-id" onClick={handleCopyId} title="Click to copy Aspirant ID">
-                        <Icons.Hash size={11} />
-                        <span>{currentAspirantId}</span>
-                        {copiedId ? <Icons.Check size={11} /> : <Icons.Copy size={11} />}
-                      </span>
                       <span className="cloud-status-badge" style={{ color: 'var(--accent-secondary, #c084fc)' }}>
                         <Icons.Check size={12} color="var(--accent-secondary, #c084fc)" />
                         <span>Cloud Synced</span>

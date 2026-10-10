@@ -293,19 +293,6 @@ function DashboardView({
                 Active study days logged across 16 weeks.
               </div>
             </div>
-
-            <button 
-              type="button"
-              className="minimal-perks-btn"
-              onClick={() => setActiveTab('achievements')}
-              title="View your prestige achievement badges"
-            >
-              <div className="perks-btn-text">
-                <Icons.Award size={14} color="#eab308" />
-                <span>Prestige Badges & Perks</span>
-              </div>
-              <span>↗</span>
-            </button>
           </div>
         </div>
       </div>

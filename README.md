@@ -167,8 +167,7 @@ Tracker/
     │   ├── StudyTimerView.jsx  # Pomodoro focus session suite
     │   ├── StudyLounge.jsx     # Live peer study room & leaderboard
     │   ├── ErrorLogView.jsx    # Mistake audit & classification log
-    │   ├── AchievementsView.jsx# Prestige milestone badges
-    │   ├── ProfileView.jsx     # User identity & study buddy system
+    │   ├── ProfileView.jsx     # User identity, study matrix & milestones
     │   ├── SettingsView.jsx    # Themes, typography, schedule & data controls
     │   ├── AspirantIcons.jsx   # Bespoke animated vector SVG icon collection
     │   ├── ComicPeekingCatBuddy.jsx # Interactive vector mascot companion
