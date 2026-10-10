@@ -97,7 +97,6 @@ export default function HeaderProfileDropdown({
             avatarBg={userAvatarBg}
             size={26}
             frameId={userProfile?.frameId || 'default'}
-            status={isStudying ? 'studying' : user ? 'online' : 'offline'}
           />
         </div>
       </button>
@@ -119,7 +118,6 @@ export default function HeaderProfileDropdown({
                 avatarBg={userAvatarBg}
                 size={40}
                 frameId={userProfile?.frameId || 'default'}
-                status={isStudying ? 'studying' : user ? 'online' : 'offline'}
               />
               <div className="preview-user-details">
                 <div className="preview-name-row">
@@ -155,28 +153,14 @@ export default function HeaderProfileDropdown({
             <button
               type="button"
               className="menu-nav-item"
-              onClick={() => handleAction(() => onNavigate('achievements'))}
-            >
-              <div className="menu-item-icon-box award">
-                <Icons.Award size={15} />
-              </div>
-              <div className="menu-item-text">
-                <span className="item-title">Achievements & Badges</span>
-                <span className="item-sub">View unlocked milestones</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              className="menu-nav-item"
               onClick={() => handleAction(() => onNavigate('profile'))}
             >
               <div className="menu-item-icon-box profile">
                 <Icons.User size={15} />
               </div>
               <div className="menu-item-text">
-                <span className="item-title">Study Profile & Circle</span>
-                <span className="item-sub">Edit bio, banner & buddies</span>
+                <span className="item-title">Aspirant Profile</span>
+                <span className="item-sub">Manage identity, target & benchmarks</span>
               </div>
             </button>
 

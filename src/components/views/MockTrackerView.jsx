@@ -275,124 +275,45 @@ export default function MockTrackerView({ state, updateMockRow }) {
   return (
     <div ref={containerRef} className="mock-terminal-container fade-in">
       
-      {/* 1. SPACIOUS TOP TELEMETRY DECK (3 COHESIVE PILLARS) */}
-      <div className="mock-cockpit-hero">
-        
-        {/* Pillar 1: Next Mission Spotlight */}
-        <div className="cockpit-card mission-spotlight">
-          <div className="card-top-tag">
-            <span className="live-ping-dot" />
-            <span>UPCOMING MOCK</span>
+      {/* 1. UNIFIED EXECUTIVE TELEMETRY BANNER (NO DUPLICATE ACTION BOX) */}
+      <div className="mock-telemetry-banner">
+        <div className="telemetry-main-stat">
+          <span className="telemetry-stat-number font-mono">
+            {stats.totalTaken} <span className="telemetry-stat-total">/ {mocks.length || 30}</span>
+          </span>
+          <span className="telemetry-stat-label">Full Mocks Evaluated</span>
+        </div>
+
+        <div className="telemetry-divider" />
+
+        <div className="telemetry-metrics-row">
+          <div className="telemetry-metric-cell">
+            <span className="telemetry-cell-lbl">Avg Score</span>
+            <span className="telemetry-cell-val font-mono">{stats.avgScore > 0 ? `${stats.avgScore} pts` : '--'}</span>
           </div>
 
-          <div className="spotlight-title-row">
-            <span className="spotlight-id-badge">MOCK #{nextMock.id < 10 ? `0${nextMock.id}` : nextMock.id}</span>
-            <div className="spotlight-text-block">
-              <h2 className="spotlight-title">{nextMock.title || `Mock Test ${nextMock.id}`}</h2>
-              <span className="spotlight-subtitle">
-                {nextMock.status === 'Scheduled' ? `Scheduled for ${nextMock.date}` : 'Awaiting attempt'}
-              </span>
-            </div>
+          <div className="telemetry-metric-cell">
+            <span className="telemetry-cell-lbl">Projected Percentile</span>
+            <span className="telemetry-cell-val font-mono" style={{ color: 'var(--accent-color)' }}>
+              {stats.latestPercentile > 0 ? `${stats.latestPercentile}%ile` : '99.0+%ile Target'}
+            </span>
           </div>
 
-          <div className="spotlight-cta-row">
-            <button
-              type="button"
-              className="cockpit-primary-btn"
-              onClick={() => openEditModal(nextMock)}
-            >
-              <AnimatedLightningIcon size={15} color="#04101e" />
-              <span>Log Mock #{nextMock.id} Scores</span>
-            </button>
-            <span className="spotlight-stage-badge">
-              {nextMock.id <= 10 ? 'Phase 1: Diagnostic' : nextMock.id <= 20 ? 'Phase 2: Speed' : 'Phase 3: Peak'}
+          <div className="telemetry-metric-cell">
+            <span className="telemetry-cell-lbl">Trajectory</span>
+            <span className="telemetry-cell-val font-mono" style={{ color: stats.overallGain >= 0 ? '#34d399' : '#f87171' }}>
+              {stats.overallGain >= 0 ? `+${stats.overallGain} pts` : `${stats.overallGain} pts`}
             </span>
           </div>
         </div>
 
-        {/* Pillar 2: Performance Summary & Percentile Tier Stepper */}
-        <div className="cockpit-card telemetry-readout">
-          <div className="card-top-tag">
-            <span>PERFORMANCE SUMMARY</span>
-          </div>
+        <div className="telemetry-divider" />
 
-          <div className="readout-hero-metric">
-            <div className="metric-score-group">
-              <span className="metric-num">{stats.latestScore > 0 ? stats.latestScore : '--'}</span>
-              <span className="metric-unit">pts</span>
-            </div>
-            <div className="metric-details-group">
-              <span className="metric-percentile-tag">
-                {stats.latestPercentile > 0 ? `${stats.latestPercentile}%ile Current` : 'Target: 99.0+%ile'}
-              </span>
-              <span className="metric-delta-text">
-                {stats.scoreDelta !== 0 
-                  ? (stats.scoreDelta > 0 ? `▲ +${stats.scoreDelta} pts vs prior` : `▼ ${stats.scoreDelta} pts vs prior`)
-                  : `Overall Gain: ${stats.overallGain >= 0 ? `+${stats.overallGain}` : stats.overallGain} pts`}
-              </span>
-            </div>
-          </div>
-
-          {/* Linear-Style Percentile Bracket Stepper */}
-          <div className="readout-stepper-track">
-            {readinessTiers.map((tier) => (
-              <div 
-                key={tier.label}
-                className={`stepper-step ${currentTier === tier.label ? 'active' : ''}`}
-              >
-                <div className="step-bar" />
-                <span className="step-label">{tier.label}</span>
-              </div>
-            ))}
-          </div>
+        <div className="telemetry-sectional-row font-mono">
+          <span className="telemetry-sec-pill"><strong>QA</strong> {stats.sectionalAverages.quant} pts</span>
+          <span className="telemetry-sec-pill"><strong>DILR</strong> {stats.sectionalAverages.lrdi} pts</span>
+          <span className="telemetry-sec-pill"><strong>VARC</strong> {stats.sectionalAverages.varc} pts</span>
         </div>
-
-        {/* Pillar 3: Streak & Sectional Balance */}
-        <div className="cockpit-card cadence-balance">
-          <div className="card-top-tag">
-            <span>SECTIONAL SUMMARY</span>
-          </div>
-
-          <div className="streak-hero-block">
-            <div className="streak-flame-wrap">
-              <AnimatedFlameIcon size={18} color="#fbbf24" />
-            </div>
-            <div className="streak-text-wrap">
-              <span className="streak-main-title">
-                {stats.gainStreak > 0 ? `${stats.gainStreak} Test Score Gain Streak` : `${stats.totalTaken} of 30 Mocks Cleared`}
-              </span>
-              <span className="streak-progress-sub">
-                Completion Rate: {Math.round((stats.totalTaken / (mocks.length || 30)) * 100)}% • Avg: {stats.avgScore} pts
-              </span>
-            </div>
-          </div>
-
-          {/* Sectional Tri-Bar */}
-          <div className="cockpit-sectional-tri-bar">
-            <div className="sec-tri-item quant">
-              <span className="sec-tri-label">QA</span>
-              <div className="sec-tri-val-wrap">
-                <span className="sec-tri-val">{stats.sectionalAverages.quant}</span>
-                <span className="sec-tri-unit">pts</span>
-              </div>
-            </div>
-            <div className="sec-tri-item lrdi">
-              <span className="sec-tri-label">DILR</span>
-              <div className="sec-tri-val-wrap">
-                <span className="sec-tri-val">{stats.sectionalAverages.lrdi}</span>
-                <span className="sec-tri-unit">pts</span>
-              </div>
-            </div>
-            <div className="sec-tri-item varc">
-              <span className="sec-tri-label">VARC</span>
-              <div className="sec-tri-val-wrap">
-                <span className="sec-tri-val">{stats.sectionalAverages.varc}</span>
-                <span className="sec-tri-unit">pts</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div>
 
       {/* 2. FILTER STRIP & ACTIONS */}
@@ -449,11 +370,11 @@ export default function MockTrackerView({ state, updateMockRow }) {
         <div className="mock-board-panel">
           <div className="phases-flow-stack">
             {displayedPhases.map((phase) => (
-              <div key={phase.id} className="phase-card-block">
-                <div className="phase-block-head">
+              <div key={phase.id} className="phase-section-group">
+                <div className="phase-section-header">
                   <div className="phase-title-row">
                     <span className="phase-title-text">{phase.name}</span>
-                    <span className="phase-range-badge">{phase.range}</span>
+                    <span className="phase-range-badge font-mono">{phase.range}</span>
                   </div>
                   <p className="phase-subtext">{phase.description}</p>
                 </div>
@@ -476,7 +397,7 @@ export default function MockTrackerView({ state, updateMockRow }) {
                         onClick={() => setSelectedMockId(m.id)}
                       >
                         <div className="tile-top-bar">
-                          <span className="tile-num-badge">#{m.id < 10 ? `0${m.id}` : m.id}</span>
+                          <span className="tile-num-badge font-mono">#{m.id < 10 ? `0${m.id}` : m.id}</span>
                           {isTaken ? (
                             <span className="tile-status-icon taken">
                               <Icons.Check size={11} />
@@ -494,7 +415,7 @@ export default function MockTrackerView({ state, updateMockRow }) {
 
                         <div className="tile-body-score">
                           {isTaken ? (
-                            <div className="tile-score-readout">
+                            <div className="tile-score-readout font-mono">
                               <span className="score-big">{totalScore}</span>
                               <span className="score-unit">pts</span>
                             </div>
@@ -524,14 +445,16 @@ export default function MockTrackerView({ state, updateMockRow }) {
               <span className="inspector-badge-lbl">MOCK DETAILS</span>
               <span className="inspector-id-code">MOCK #{selectedMock.id < 10 ? `0${selectedMock.id}` : selectedMock.id}</span>
             </div>
-            <button
-              type="button"
-              className="inspector-action-btn"
-              onClick={() => openEditModal(selectedMock)}
-            >
-              <Icons.Edit size={13} />
-              <span>{selectedMockDetails.isTaken ? 'Edit Scores' : 'Log Exam'}</span>
-            </button>
+            {selectedMockDetails.isTaken && (
+              <button
+                type="button"
+                className="inspector-action-btn font-mono"
+                onClick={() => openEditModal(selectedMock)}
+              >
+                <Icons.Edit size={13} />
+                <span>Edit Scores</span>
+              </button>
+            )}
           </div>
 
           <div className="inspector-body">
@@ -541,7 +464,7 @@ export default function MockTrackerView({ state, updateMockRow }) {
                 <span className={`status-pill ${selectedMock.status || 'Not Started'}`}>
                   {selectedMock.status === 'Taken' ? 'Evaluated & Cleared' : selectedMock.status === 'Scheduled' ? 'Exam Scheduled' : 'Awaiting Attempt'}
                 </span>
-                <span className="date-tag">
+                <span className="date-tag font-mono">
                   {selectedMock.date ? `Date: ${selectedMock.date}` : 'No date set'}
                 </span>
               </div>
@@ -552,13 +475,13 @@ export default function MockTrackerView({ state, updateMockRow }) {
                 {/* Composite Score Card */}
                 <div className="composite-score-hero">
                   <div className="composite-left">
-                    <span className="score-huge">{selectedMockDetails.total}</span>
+                    <span className="score-huge font-mono">{selectedMockDetails.total}</span>
                     <span className="score-huge-lbl">Composite Points</span>
                   </div>
                   <div className="composite-right">
-                    <span className="percentile-highlight">{selectedMockDetails.p}%ile</span>
+                    <span className="percentile-highlight font-mono">{selectedMockDetails.p}%ile</span>
                     {selectedMockDetails.delta !== null && (
-                      <span className={`delta-tag ${selectedMockDetails.delta >= 0 ? 'gain' : 'drop'}`}>
+                      <span className={`delta-tag font-mono ${selectedMockDetails.delta >= 0 ? 'gain' : 'drop'}`}>
                         {selectedMockDetails.delta >= 0 ? `▲ +${selectedMockDetails.delta}` : `▼ ${selectedMockDetails.delta}`} vs prior
                       </span>
                     )}
@@ -570,7 +493,7 @@ export default function MockTrackerView({ state, updateMockRow }) {
                   <div className="sec-meter-card quant">
                     <div className="sec-meter-top">
                       <span className="sec-name">Quantitative (QA)</span>
-                      <span className="sec-points">{selectedMockDetails.q} pts</span>
+                      <span className="sec-points font-mono">{selectedMockDetails.q} pts</span>
                     </div>
                     <div className="sec-meter-track">
                       <div 
@@ -583,7 +506,7 @@ export default function MockTrackerView({ state, updateMockRow }) {
                   <div className="sec-meter-card lrdi">
                     <div className="sec-meter-top">
                       <span className="sec-name">Data Interpretation & LR</span>
-                      <span className="sec-points">{selectedMockDetails.l} pts</span>
+                      <span className="sec-points font-mono">{selectedMockDetails.l} pts</span>
                     </div>
                     <div className="sec-meter-track">
                       <div 
@@ -596,7 +519,7 @@ export default function MockTrackerView({ state, updateMockRow }) {
                   <div className="sec-meter-card varc">
                     <div className="sec-meter-top">
                       <span className="sec-name">Verbal Ability & RC</span>
-                      <span className="sec-points">{selectedMockDetails.v} pts</span>
+                      <span className="sec-points font-mono">{selectedMockDetails.v} pts</span>
                     </div>
                     <div className="sec-meter-track">
                       <div 
@@ -621,21 +544,18 @@ export default function MockTrackerView({ state, updateMockRow }) {
                 </div>
               </div>
             ) : (
-              <div className="inspector-pending-card">
-                <div className="pending-icon-circle">
-                  <Icons.Award size={26} />
-                </div>
-                <h4 className="pending-title">Mock Not Attempted</h4>
-                <p className="pending-desc">
-                  Complete this 2-hour full-length CAT exam to evaluate sectional scores, percentile projections, and mistake analysis.
+              <div className="inspector-unattempted-view">
+                <p className="unattempted-desc">
+                  Full-length 2-hour benchmark simulation under timed conditions. Complete the exam and log sectional scores to calibrate pacing and percentile projections.
                 </p>
                 <button
                   type="button"
-                  className="record-exam-btn"
+                  className="record-exam-btn minimal-btn-primary font-mono"
                   onClick={() => openEditModal(selectedMock)}
                 >
-                  <AnimatedLightningIcon size={14} color="#ffffff" />
+                  <Icons.Edit3 size={13} />
                   <span>Record Mock #{selectedMock.id} Scores</span>
+                  <span className="btn-arrow">↗</span>
                 </button>
               </div>
             )}

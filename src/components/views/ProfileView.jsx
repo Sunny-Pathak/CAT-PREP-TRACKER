@@ -3,34 +3,14 @@ import {
   signUpUser, 
   logInUser, 
   logOutUser, 
-  sendFriendRequest, 
-  subscribeToFriendRequests, 
-  respondToFriendRequest, 
-  removeFriend, 
-  getLocalAspirantId, 
-  generateUniqueAspirantId, 
   isFirebaseConfigured
 } from '../../utils/firebase';
-import { 
-  calculateLevelFromExp, 
-  getExpProgress
-} from '../../utils/expSystem';
 import AvatarRenderer, { AVATAR_PRESETS } from '../ui/AvatarRenderer';
 import AspirantProfileCard from '../ui/AspirantProfileCard';
 import StudyContributionHeatmap from '../ui/StudyContributionHeatmap';
 import { calculateUserBadges } from '../../utils/badgeUtils';
 import { AVATAR_FRAMES, PROFILE_BANNERS, getEffectiveFrameId, getEffectiveBannerId } from '../../data/cosmeticsData';
-import AnimatedChip from '../ui/AnimatedChip';
 import { Icons } from '../ui/AspirantIcons';
-import { 
-  AnimatedFlameIcon, 
-  AnimatedTargetIcon, 
-  AnimatedCrownIcon, 
-  AnimatedLightningIcon,
-  AnimatedSparkleIcon,
-  AnimatedShieldCheckIcon,
-  AnimatedRadarBeaconIcon
-} from '../ui/AnimatedUiIcons';
 import { stripEmojis } from '../../utils/textUtils';
 import AnimatedSelect from '../animations/AnimatedSelect';
 import SmoothCaretTextarea from '../animations/SmoothCaretTextarea';
@@ -87,14 +67,6 @@ export default function ProfileView({
   onResetEditOpen = null,
   onTriggerLevelUp = null
 }) {
-  // Navigation Section: 'passport' (Full Executive Profile) | 'network' (Friends & Invitations) | 'settings' (Data & Cloud)
-  const [activeSection, setActiveSection] = useState(initialSubTab === 'friends' ? 'network' : 'passport');
-
-  useEffect(() => {
-    if (initialSubTab === 'friends') {
-      setActiveSection('network');
-    }
-  }, [initialSubTab]);
 
   // Live Live Aggregated Metrics Calculation (Moved up to prevent TDZ ReferenceError)
   const liveStats = useMemo(() => {
@@ -241,15 +213,6 @@ export default function ProfileView({
     }
   }, [isEditModalOpen, isCustomizingShowcase, isAuthModalOpen]);
 
-  // RPG Level & EXP Progression (From Firebase Database for logged in users, defaulting strictly to Level 1 / 0 EXP for new accounts)
-  const currentExp = userProfile?.exp !== undefined 
-    ? userProfile.exp 
-    : (user ? 0 : (userProfile?.exp ?? 0));
-  const userLevel = userProfile?.level !== undefined
-    ? userProfile.level
-    : (user ? 1 : (calculateLevelFromExp(currentExp) || 1));
-  const expProgress = getExpProgress(currentExp);
-
   // Profile customization state
   const savedCosmetics = (() => {
     try {
@@ -268,8 +231,8 @@ export default function ProfileView({
       : (user?.photoURL || userProfile?.photoURL || userProfile?.avatar || savedCosmetics?.avatar || 'rocket')
   );
   const [profAvatarBg, setProfAvatarBg] = useState(userProfile?.avatarBg || savedCosmetics?.avatarBg || '#8b5cf6');
-  const [profFrameId, setProfFrameId] = useState(getEffectiveFrameId(userProfile?.frameId || savedCosmetics?.frameId || 'default', userLevel));
-  const [profBannerId, setProfBannerId] = useState(getEffectiveBannerId(userProfile?.bannerId || savedCosmetics?.bannerId || 'cyber_grid', userLevel));
+  const [profFrameId, setProfFrameId] = useState(getEffectiveFrameId(userProfile?.frameId || savedCosmetics?.frameId || 'default'));
+  const [profBannerId, setProfBannerId] = useState(getEffectiveBannerId(userProfile?.bannerId || savedCosmetics?.bannerId || 'cyber_grid'));
   const [profBannerBg, setProfBannerBg] = useState(userProfile?.bannerBg || savedCosmetics?.bannerBg || '#0b1120');
   const [profBannerUrl, setProfBannerUrl] = useState(userProfile?.bannerUrl || savedCosmetics?.bannerUrl || '');
   const [profBio, setProfBio] = useState(userProfile?.bio || '');
@@ -292,10 +255,10 @@ export default function ProfileView({
       }
       if (userProfile.avatarBg !== undefined) setProfAvatarBg(userProfile.avatarBg);
       if (userProfile.frameId !== undefined) {
-        setProfFrameId(getEffectiveFrameId(userProfile.frameId, userLevel));
+        setProfFrameId(getEffectiveFrameId(userProfile.frameId));
       }
       if (userProfile.bannerId !== undefined) {
-        setProfBannerId(getEffectiveBannerId(userProfile.bannerId, userLevel));
+        setProfBannerId(getEffectiveBannerId(userProfile.bannerId));
       }
       if (userProfile.bannerBg !== undefined) setProfBannerBg(userProfile.bannerBg);
       if (userProfile.bannerUrl !== undefined) setProfBannerUrl(userProfile.bannerUrl);
@@ -303,7 +266,7 @@ export default function ProfileView({
       if (userProfile.target !== undefined) setProfTarget(userProfile.target);
       if (userProfile.location !== undefined) setProfLocation(userProfile.location);
     }
-  }, [userProfile, userLevel]);
+  }, [userProfile]);
 
 
 
@@ -372,95 +335,15 @@ export default function ProfileView({
     reader.readAsDataURL(file);
   };
 
-  // Effective Cosmetics validated against level (defaults to 'default' and 'cyber_grid' for Level 1)
-  const effectiveProfFrameId = getEffectiveFrameId(profFrameId, userLevel);
-  const effectiveProfBannerId = getEffectiveBannerId(profBannerId, userLevel);
+  // Effective Cosmetics
+  const effectiveProfFrameId = getEffectiveFrameId(profFrameId);
+  const effectiveProfBannerId = getEffectiveBannerId(profBannerId);
 
-  // Sanitize stored local cosmetics if user level does not satisfy equipped frame/banner
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('local_aspirant_cosmetics');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        let changed = false;
-        if (parsed.frameId && getEffectiveFrameId(parsed.frameId, userLevel) !== parsed.frameId) {
-          parsed.frameId = 'default';
-          changed = true;
-          setProfFrameId('default');
-        }
-        if (parsed.bannerId && getEffectiveBannerId(parsed.bannerId, userLevel) !== parsed.bannerId) {
-          parsed.bannerId = 'cyber_grid';
-          changed = true;
-          setProfBannerId('cyber_grid');
-        }
-        if (changed) {
-          localStorage.setItem('local_aspirant_cosmetics', JSON.stringify(parsed));
-        }
-      }
-    } catch (e) {}
-  }, [userLevel]);
-
-  // Unique Aspirant ID
-  const currentAspirantId = userProfile?.aspirantId || (user ? generateUniqueAspirantId(user.uid) : getLocalAspirantId());
-  const [copiedMyId, setCopiedMyId] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3000);
-  };
-
-  // Add Friend & Requests State
-  const [friendSearchInput, setFriendSearchInput] = useState('');
-  const [friendActionLoading, setFriendActionLoading] = useState(false);
-  const [friendFeedback, setFriendFeedback] = useState({ type: '', text: '' });
-  const [incomingRequests, setIncomingRequests] = useState([]);
-  const [processingRequestId, setProcessingRequestId] = useState(null);
-  const [removingFriendId, setRemovingFriendId] = useState(null);
-
-  // Sync state when userProfile updates
-  useEffect(() => {
-    if (userProfile) {
-      if (userProfile.displayName) setProfName(userProfile.displayName);
-      if (userProfile.username) setProfUsername(userProfile.username);
-      if (userProfile.avatar) {
-        setProfAvatar(
-          (userProfile.avatar === 'rocket' && user?.photoURL)
-            ? user.photoURL
-            : userProfile.avatar
-        );
-      }
-      if (userProfile.avatarBg) setProfAvatarBg(userProfile.avatarBg);
-      if (userProfile.bannerBg) setProfBannerBg(userProfile.bannerBg);
-      if (userProfile.bannerUrl) setProfBannerUrl(userProfile.bannerUrl);
-      if (userProfile.bio !== undefined) setProfBio(userProfile.bio);
-      if (userProfile.target) setProfTarget(userProfile.target);
-      if (userProfile.location !== undefined) setProfLocation(userProfile.location);
-    } else if (user) {
-      if (user.displayName) setProfName(user.displayName);
-      if (user.email) setProfUsername(user.email.split('@')[0]);
-    }
-  }, [userProfile, user]);
-
-  // Subscribe to real-time incoming friend requests
-  useEffect(() => {
-    if (user && isFirebaseConfigured) {
-      const unsubscribe = subscribeToFriendRequests(user.uid, (requests) => {
-        setIncomingRequests(requests);
-      });
-      return () => unsubscribe();
-    } else {
-      setIncomingRequests([]);
-    }
-  }, [user]);
-
-  // Copy own Unique ID
-  const handleCopyMyId = (e) => {
-    if (e) e.stopPropagation();
-    navigator.clipboard.writeText(currentAspirantId);
-    setCopiedMyId(true);
-    showToast(`Copied Aspirant ID ${currentAspirantId} to clipboard!`);
-    setTimeout(() => setCopiedMyId(false), 2400);
   };
 
   // Save Profile Changes
@@ -513,57 +396,6 @@ export default function ProfileView({
   };
 
   // Send Friend Request
-  const handleSendFriendRequest = async (e) => {
-    e.preventDefault();
-    if (!friendSearchInput.trim()) return;
-    if (!user) {
-      setFriendFeedback({ type: 'error', text: 'Sign in to send friend requests.' });
-      return;
-    }
-
-    setFriendActionLoading(true);
-    setFriendFeedback({ type: '', text: '' });
-
-    try {
-      const res = await sendFriendRequest(user, friendSearchInput.trim(), userProfile);
-      setFriendFeedback({ type: 'success', text: `Friend request sent to ${res.targetName}!` });
-      setFriendSearchInput('');
-      showToast("Invitation sent successfully!");
-    } catch (err) {
-      setFriendFeedback({ type: 'error', text: err.message || 'Unable to find user with that ID or email.' });
-    } finally {
-      setFriendActionLoading(false);
-    }
-  };
-
-  // Accept / Decline Request
-  const handleRespondRequest = async (req, action) => {
-    setProcessingRequestId(req.id);
-    try {
-      await respondToFriendRequest(req.id, action);
-      setIncomingRequests(prev => prev.filter(r => r.id !== req.id));
-      showToast(action === 'accept' ? 'Friend request accepted!' : 'Request declined.');
-    } catch (err) {
-      alert("Error responding to request: " + err.message);
-    } finally {
-      setProcessingRequestId(null);
-    }
-  };
-
-  // Remove Friend
-  const handleRemoveFriend = async (friend) => {
-    const friendId = friend.id || friend.uid;
-    if (!window.confirm(`Remove ${friend.displayName || friend.name} from your study network?`)) return;
-    setRemovingFriendId(friendId);
-    try {
-      await removeFriend(user.uid, friendId);
-      showToast(`Removed from study buddies.`);
-    } catch (err) {
-      alert("Error removing friend: " + err.message);
-    } finally {
-      setRemovingFriendId(null);
-    }
-  };
 
   // Auth Handlers
   const handleAuthSubmit = async (e) => {
@@ -609,25 +441,11 @@ export default function ProfileView({
         </div>
       )}
 
-      {/* ========================================================
-          PROMINENT PROFILE COMMAND HEADER (Modeled cleanly like Settings menu)
-         ======================================================== */}
-      <div className="settings-command-header profile-command-header">
-        <div className="settings-header-left">
-          <div className="settings-title-cluster">
-            <div className="settings-header-icon-box profile-icon-box" aria-hidden="true">
-              <Icons.User size={22} color="#ffffff" />
-            </div>
-            <div>
-              <h1 className="profile-hero-headline minimal-headline">
-                ASPIRANT PROFILE
-              </h1>
-              <p className="settings-hero-subtitle">
-                Manage candidate identity, study statistics, peer network, and cloud sync.
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Sleek Minimal Header Strip */}
+      <div className="profile-minimal-header-strip">
+        <h1 className="profile-hero-headline minimal-headline">
+          ASPIRANT <span className="minimal-headline-italic">Profile</span>
+        </h1>
 
         <div className="settings-header-actions">
           {user ? (
@@ -649,70 +467,27 @@ export default function ProfileView({
         </div>
       </div>
 
-      {/* SEGMENTED CATEGORY NAVIGATION BAR */}
-      <div className="settings-category-nav-bar animated-chips-wrapper profile-category-nav-bar">
-        <AnimatedChip
-          icon={() => <Icons.User size={14} />}
-          label="Aspirant Profile"
-          mobileLabel="Profile"
-          active={activeSection === 'passport'}
-          onClick={() => setActiveSection('passport')}
-        />
-
-        <AnimatedChip
-          icon={() => <AnimatedCrownIcon size={14} color="#c084fc" />}
-          label="Achievements"
-          mobileLabel="Badges"
-          active={false}
-          onClick={() => setActiveTab && setActiveTab('achievements')}
-        />
-
-        <AnimatedChip
-          icon={() => <Icons.Users size={14} />}
-          label={`Study Buddies (${friends.length})`}
-          mobileLabel={`Buddies (${friends.length})`}
-          badge={incomingRequests.length > 0 ? incomingRequests.length : undefined}
-          active={activeSection === 'network'}
-          onClick={() => setActiveSection('network')}
-        />
-
-        <AnimatedChip
-          icon={() => <Icons.Database size={14} />}
-          label="Data & Cloud Sync"
-          mobileLabel="Sync"
-          active={activeSection === 'settings'}
-          onClick={() => setActiveSection('settings')}
-        />
-      </div>
-
-      {/* ========================================================
-          SECTION 1: ASPIRANT TACTICAL CAREER HUB (Spacious Layout)
-         ======================================================== */}
-      {activeSection === 'passport' && (
-        <div className="tactical-career-workspace fade-in">
-          
-          {/* TOP: Full-Width Spacious Panoramic Operative Card */}
-          <div className="panoramic-card-wrapper">
-            <AspirantProfileCard
-              user={user}
-              profile={{
-                displayName: profName || user?.displayName,
-                target: profTarget,
-                bio: profBio,
-                location: profLocation,
-                avatar: profAvatar,
-                avatarBg: profAvatarBg,
-                frameId: effectiveProfFrameId,
-                bannerId: effectiveProfBannerId,
-                bannerUrl: profBannerUrl,
-                streak: liveStats.streak,
-                solvedQs: liveStats.solvedQs,
-                mocksCount: liveStats.mocksCount,
-                status: user ? 'online' : 'offline',
-                aspirantId: currentAspirantId,
-                exp: currentExp,
-                level: userLevel
-              }}
+      {/* ASPIRANT CANDIDATE COCKPIT */}
+      <div className="tactical-career-workspace fade-in">
+        
+        {/* TOP: Full-Width Spacious Panoramic Operative Card */}
+        <div className="panoramic-card-wrapper">
+          <AspirantProfileCard
+            user={user}
+            profile={{
+              displayName: profName || user?.displayName,
+              target: profTarget,
+              bio: profBio,
+              location: profLocation,
+              avatar: profAvatar,
+              avatarBg: profAvatarBg,
+              frameId: effectiveProfFrameId,
+              bannerId: effectiveProfBannerId,
+              bannerUrl: profBannerUrl,
+              streak: liveStats.streak,
+              solvedQs: liveStats.solvedQs,
+              mocksCount: liveStats.mocksCount
+            }}
               tracker={tracker}
               showcaseBadges={showcaseBadges}
               isSelf={true}
@@ -722,87 +497,61 @@ export default function ProfileView({
             />
           </div>
 
-          {/* 4 Core Subject Metrics Grid (Modeled minimal like Dashboard) */}
-          <div className="minimal-metrics-grid" style={{ margin: '16px 0 24px 0' }}>
-            <div className="minimal-metric-card">
-              <div className="minimal-metric-header">
-                <span className="minimal-metric-title">Quantitative Questions</span>
-                <span className="minimal-metric-badge">{liveStats.quantPercent}%</span>
+          {/* Unified Curriculum Progress Overview */}
+          <div className="curriculum-overview-deck">
+            <div className="curriculum-overview-header">
+              <div className="curriculum-title-wrap">
+                <Icons.Target size={15} className="curriculum-ico" />
+                <h3 className="curriculum-deck-title">Curriculum Benchmarks</h3>
               </div>
-              <div className="minimal-metric-number">
-                {liveStats.quantQs.toLocaleString()} <span className="minimal-target">/ 2,500</span>
-              </div>
-              <div className="minimal-progress-track">
-                <div 
-                  className="minimal-progress-fill quant-fill" 
-                  style={{ width: `${liveStats.quantPercent}%` }} 
-                />
-              </div>
+              <span className="curriculum-deck-sub font-mono">2,500 QA • 500 DILR • 500 VARC</span>
             </div>
 
-            <div className="minimal-metric-card">
-              <div className="minimal-metric-header">
-                <span className="minimal-metric-title">DILR Sets</span>
-                <span className="minimal-metric-badge">{liveStats.lrdiPercent}%</span>
+            <div className="curriculum-tracks-grid">
+              <div className="curriculum-track-item">
+                <div className="track-info-row">
+                  <span className="track-name">Quantitative Aptitude</span>
+                  <span className="track-progress font-mono">{liveStats.quantQs.toLocaleString()} / 2,500 <span className="track-pct">({liveStats.quantPercent}%)</span></span>
+                </div>
+                <div className="track-bar-rail">
+                  <div className="track-bar-fill quant" style={{ width: `${liveStats.quantPercent}%` }} />
+                </div>
               </div>
-              <div className="minimal-metric-number">
-                {liveStats.lrdiQs.toLocaleString()} <span className="minimal-target">/ 500</span>
-              </div>
-              <div className="minimal-progress-track">
-                <div 
-                  className="minimal-progress-fill lrdi-fill" 
-                  style={{ width: `${liveStats.lrdiPercent}%` }} 
-                />
-              </div>
-            </div>
 
-            <div className="minimal-metric-card">
-              <div className="minimal-metric-header">
-                <span className="minimal-metric-title">VARC Articles & RCs</span>
-                <span className="minimal-metric-badge">{liveStats.varcPercent}%</span>
+              <div className="curriculum-track-item">
+                <div className="track-info-row">
+                  <span className="track-name">Data Interpretation &amp; LR</span>
+                  <span className="track-progress font-mono">{liveStats.lrdiQs.toLocaleString()} / 500 <span className="track-pct">({liveStats.lrdiPercent}%)</span></span>
+                </div>
+                <div className="track-bar-rail">
+                  <div className="track-bar-fill lrdi" style={{ width: `${liveStats.lrdiPercent}%` }} />
+                </div>
               </div>
-              <div className="minimal-metric-number">
-                {liveStats.varcQs.toLocaleString()} <span className="minimal-target">/ 500</span>
-              </div>
-              <div className="minimal-progress-track">
-                <div 
-                  className="minimal-progress-fill varc-fill" 
-                  style={{ width: `${liveStats.varcPercent}%` }} 
-                />
-              </div>
-            </div>
 
-            <div className="minimal-metric-card">
-              <div className="minimal-metric-header">
-                <span className="minimal-metric-title">Full CAT Mocks</span>
-                <span className="minimal-metric-badge">{liveStats.mockPercent}%</span>
-              </div>
-              <div className="minimal-metric-number">
-                {liveStats.mocksCount} <span className="minimal-target">/ 30</span>
-              </div>
-              <div className="minimal-progress-track">
-                <div 
-                  className="minimal-progress-fill mock-fill" 
-                  style={{ width: `${liveStats.mockPercent}%` }} 
-                />
+              <div className="curriculum-track-item">
+                <div className="track-info-row">
+                  <span className="track-name">Verbal Ability &amp; Reading Comprehension</span>
+                  <span className="track-progress font-mono">{liveStats.varcQs.toLocaleString()} / 500 <span className="track-pct">({liveStats.varcPercent}%)</span></span>
+                </div>
+                <div className="track-bar-rail">
+                  <div className="track-bar-fill varc" style={{ width: `${liveStats.varcPercent}%` }} />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* LOWER WORKSPACE: 2-Column Telemetry & Social Hub */}
+          {/* LOWER WORKSPACE: 2-Column Telemetry & Pinned Showcase */}
           <div className="tactical-lower-workspace-grid">
             
             {/* LEFT COLUMN: Activity Matrix */}
             <div className="tactical-lower-main-col">
-              
-              {/* Panel 1: Activity Matrix (GitHub-Style Heatmap) */}
               <div className="passport-glass-panel">
                 <div className="panel-top-title-row">
                   <div className="title-left">
                     <Icons.Calendar size={16} className="panel-ico" />
                     <h3>Study Contribution Activity Matrix</h3>
                   </div>
-                  <span className="panel-tag font-mono">4-Month Cadence</span>
+                  <span className="panel-tag font-mono">16-Week Cadence</span>
                 </div>
                 <p className="panel-explainer">
                   Visual intensity corresponds to daily questions conquered and sectional drills completed.
@@ -812,13 +561,10 @@ export default function ProfileView({
                   <StudyContributionHeatmap tracker={tracker || {}} startDateStr={startDate} compact={false} />
                 </div>
               </div>
-
             </div>
 
-            {/* RIGHT COLUMN: Prestige Vault & Study Network */}
+            {/* RIGHT COLUMN: Featured Achievements Showcase */}
             <div className="tactical-lower-side-col">
-              
-              {/* Panel 3: Featured Achievements Showcase (User Customizable 3-4 Badges) */}
               <div className="passport-glass-panel">
                 <div className="panel-top-title-row">
                   <div className="title-left">
@@ -835,15 +581,6 @@ export default function ProfileView({
                       <Icons.Edit3 size={11} />
                       <span>SELECT ({showcaseBadges.length}/4)</span>
                     </button>
-                    {setActiveTab && (
-                      <button 
-                        type="button" 
-                        className="panel-link-btn"
-                        onClick={() => setActiveTab('achievements')}
-                      >
-                        All ({badges.length}) →
-                      </button>
-                    )}
                   </div>
                 </div>
                 <p className="panel-explainer">
@@ -876,372 +613,15 @@ export default function ProfileView({
                   })}
                 </div>
               </div>
-
-              {/* Panel 4: Quick Peer Connect & Active Network */}
-              <div className="passport-glass-panel">
-                <div className="panel-top-title-row">
-                  <div className="title-left">
-                    <Icons.Users size={16} className="panel-ico" />
-                    <h3>Study Network ({friends.length})</h3>
-                  </div>
-                  <button 
-                    type="button" 
-                    className="panel-link-btn"
-                    onClick={() => setActiveSection('network')}
-                  >
-                    Manage Network →
-                  </button>
-                </div>
-                <p className="panel-explainer">
-                  Link with peer aspirants using their Unique ID (e.g. <code>ASP-849201</code>) or email to compare prep pace.
-                </p>
-
-                <form onSubmit={handleSendFriendRequest} className="quick-connect-form">
-                  <div className="quick-connect-input-wrap">
-                    <Icons.Search size={14} className="input-search-ico" />
-                    <input
-                      type="text"
-                      placeholder="e.g. ASP-849201 or peer@gmail.com"
-                      value={friendSearchInput}
-                      onChange={(e) => setFriendSearchInput(e.target.value)}
-                      disabled={!user || friendActionLoading}
-                    />
-                    <button
-                      type="submit"
-                      className="quick-connect-btn"
-                      disabled={!user || friendActionLoading || !friendSearchInput.trim()}
-                    >
-                      {friendActionLoading ? 'Connecting...' : 'Connect'}
-                    </button>
-                  </div>
-                </form>
-
-                {friendFeedback.text && (
-                  <div className={`connect-feedback-tag ${friendFeedback.type}`}>
-                    {friendFeedback.type === 'success' ? <Icons.Check size={12} /> : <Icons.Close size={12} />}
-                    <span>{friendFeedback.text}</span>
-                  </div>
-                )}
-
-                {friends.length > 0 && (
-                  <div className="friends-mini-stack" style={{ marginTop: '12px' }}>
-                    {friends.slice(0, 3).map((f) => (
-                      <div key={f.id || f.uid} className="friend-mini-row">
-                        <AvatarRenderer 
-                          avatar={f.avatar || 'rocket'} 
-                          name={f.displayName || f.name} 
-                          avatarBg={f.avatarBg || '#38bdf8'} 
-                          size={32}
-                          status={f.status || 'offline'}
-                        />
-                        <div className="friend-mini-meta">
-                          <span className="friend-mini-name">{f.displayName || f.name}</span>
-                          <span className="friend-mini-sub">{f.streak || 0}d streak • {f.solvedQs || 0} Qs</span>
-                        </div>
-                        {onInspectFriend && (
-                          <button
-                            type="button"
-                            className="mini-inspect-btn"
-                            onClick={() => onInspectFriend(f)}
-                            title="Inspect progress"
-                          >
-                            <Icons.Target size={13} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
             </div>
 
           </div>
 
         </div>
-      )}
 
-      {/* ========================================================
-          SECTION 2: STUDY BUDDY NETWORK & INVITATIONS
-         ======================================================== */}
-      {activeSection === 'network' && (
-        <div className="network-section-content fade-in">
-          
-          {/* Pending Invitations Banner */}
-          {incomingRequests.length > 0 && (
-            <div className="pending-requests-card">
-              <div className="pending-card-head">
-                <div className="pending-title-group">
-                  <Icons.Bell size={16} className="pending-bell" />
-                  <h4>Pending Invitations ({incomingRequests.length})</h4>
-                </div>
-                <span className="pending-pill">Action Required</span>
-              </div>
 
-              <div className="pending-requests-grid">
-                {incomingRequests.map((req) => (
-                  <div key={req.id} className="pending-request-row">
-                    <AvatarRenderer 
-                      avatar={req.fromAvatar || 'rocket'}
-                      name={req.fromName}
-                      avatarBg={req.fromAvatarBg || '#38bdf8'}
-                      size={40}
-                      status="online"
-                    />
-                    <div className="pending-request-details">
-                      <span className="req-name">{req.fromName}</span>
-                      <span className="req-meta">
-                        #{req.fromAspirantId || 'ASP-ID'} • {req.fromTarget || 'CAT Aspirant'}
-                      </span>
-                    </div>
-                    <div className="pending-actions-row">
-                      <button
-                        type="button"
-                        className="btn-req accept"
-                        disabled={processingRequestId === req.id}
-                        onClick={() => handleRespondRequest(req, 'accept')}
-                      >
-                        <Icons.Check size={13} />
-                        <span>Accept</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-req decline"
-                        disabled={processingRequestId === req.id}
-                        onClick={() => handleRespondRequest(req, 'decline')}
-                      >
-                        <Icons.Close size={13} />
-                        <span>Decline</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {/* Full Study Buddies Grid */}
-          <div className="full-buddies-panel">
-            <div className="buddies-panel-header">
-              <div>
-                <h3 className="buddies-title">My Study Buddies ({friends.length})</h3>
-                <p className="buddies-subtitle">Real-time study status, daily streaks, and peer accountability.</p>
-              </div>
-              <div className="buddies-header-actions">
-                <button
-                  type="button"
-                  className="copy-my-id-btn"
-                  onClick={handleCopyMyId}
-                >
-                  <Icons.Hash size={13} />
-                  <span>My ID: {currentAspirantId}</span>
-                  {copiedMyId ? <Icons.Check size={13} /> : <Icons.Copy size={13} />}
-                </button>
-              </div>
-            </div>
 
-            {friends.length === 0 ? (
-              <div className="empty-buddies-hero">
-                <div className="empty-icon-wrap">
-                  <Icons.Users size={32} />
-                </div>
-                <h4>No Study Buddies Connected</h4>
-                <p>Share your Unique Aspirant ID <strong>{currentAspirantId}</strong> or search using your buddy's ID above to start studying together.</p>
-              </div>
-            ) : (
-              <div className="buddies-card-grid">
-                {friends.map((friend) => (
-                  <div key={friend.id || friend.uid} className="buddy-card">
-                    <div className="buddy-card-top">
-                      <AvatarRenderer 
-                        avatar={friend.avatar || 'rocket'}
-                        name={friend.displayName || friend.name}
-                        avatarBg={friend.avatarBg || '#38bdf8'}
-                        size={46}
-                        status={friend.status || 'offline'}
-                      />
-                      <div className="buddy-card-identity">
-                        <div className="buddy-name-bar">
-                          <span className="buddy-name">{friend.displayName || friend.name}</span>
-                          {friend.aspirantId && (
-                            <span className="buddy-id-badge">#{friend.aspirantId}</span>
-                          )}
-                        </div>
-                        <span className="buddy-target-txt">{friend.target || 'CAT Aspirant'}</span>
-                        <div className="buddy-status-indicator">
-                          <span className={`status-dot ${friend.status || 'offline'}`} />
-                          <span className="status-lbl">
-                            {friend.status === 'studying' ? 'Focusing Now' : friend.status === 'online' ? 'Online' : 'Offline'}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="buddy-remove-btn"
-                        onClick={() => handleRemoveFriend(friend)}
-                        disabled={removingFriendId === (friend.id || friend.uid)}
-                        title="Remove friend"
-                      >
-                        <Icons.UserX size={14} />
-                      </button>
-                    </div>
-
-                    <div className="buddy-card-metrics">
-                      <div className="b-metric-pill">
-                        <Icons.Flame size={12} color="#fbbf24" />
-                        <span>{friend.streak || 0}d streak</span>
-                      </div>
-                      <div className="b-metric-pill">
-                        <Icons.Target size={12} color="#38bdf8" />
-                        <span>{friend.solvedQs || 0} Qs solved</span>
-                      </div>
-                    </div>
-
-                    <div className="buddy-card-actions">
-                      {onMessagePeer && (
-                        <button
-                          type="button"
-                          className="buddy-btn primary"
-                          onClick={() => onMessagePeer(friend)}
-                        >
-                          <Icons.MessageSquare size={13} />
-                          <span>Direct Message</span>
-                        </button>
-                      )}
-                      {onInspectFriend && (
-                        <button
-                          type="button"
-                          className="buddy-btn secondary"
-                          onClick={() => onInspectFriend(friend)}
-                        >
-                          <Icons.Target size={13} />
-                          <span>Inspect</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-        </div>
-      )}
-
-      {/* ========================================================
-          SECTION 3: DATA MANAGEMENT, BACKUP & CLOUD SYNC
-         ======================================================== */}
-      {activeSection === 'settings' && (
-        <div className="settings-section-content fade-in">
-          <div className="settings-cards-grid">
-            
-            {/* Card 1: Cloud Account Status */}
-            <div className="settings-panel-card">
-              <div className="panel-card-head">
-                <Icons.Cloud size={18} className="panel-head-ico" />
-                <div>
-                  <h4>Cloud Synchronization</h4>
-                  <p>Keep your daily drill metrics and mocks backed up across all devices.</p>
-                </div>
-              </div>
-
-              <div className="panel-card-body">
-                {user ? (
-                  <div className="auth-user-status-box">
-                    <div className="user-info-row">
-                      <span className="lbl">Logged in as:</span>
-                      <span className="val">{user.email}</span>
-                    </div>
-                    <div className="user-info-row">
-                      <span className="lbl">Cloud Status:</span>
-                      <span className="val success">Real-Time Firestore Sync Active</span>
-                    </div>
-                    <button
-                      type="button"
-                      className="auth-action-btn logout"
-                      onClick={handleLogout}
-                    >
-                      Sign Out of Device
-                    </button>
-                  </div>
-                ) : (
-                  <div className="auth-guest-status-box">
-                    <p>You are currently in <strong>Local Offline Mode</strong>. Your progress is saved in this browser, but not synced across devices.</p>
-                    <button
-                      type="button"
-                      className="auth-action-btn signin"
-                      onClick={() => setIsAuthModalOpen(true)}
-                    >
-                      <Icons.Shield size={14} />
-                      <span>Sign In or Create Account</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Card 2: Data Portability (Export & Import) */}
-            <div className="settings-panel-card">
-              <div className="panel-card-head">
-                <Icons.Database size={18} className="panel-head-ico" />
-                <div>
-                  <h4>Data Portability & Backup</h4>
-                  <p>Download a complete JSON snapshot of your 4-month plan, daily drills, and 30 mocks.</p>
-                </div>
-              </div>
-
-              <div className="panel-card-body">
-                <div className="data-action-buttons-row">
-                  {onExport && (
-                    <button
-                      type="button"
-                      className="data-port-btn export"
-                      onClick={onExport}
-                    >
-                      <Icons.Download size={15} />
-                      <span>Export Backup (JSON)</span>
-                    </button>
-                  )}
-                  {onImport && (
-                    <button
-                      type="button"
-                      className="data-port-btn import"
-                      onClick={onImport}
-                    >
-                      <Icons.Upload size={15} />
-                      <span>Restore from JSON File</span>
-                    </button>
-                  )}
-                </div>
-
-                {startDate !== undefined && (
-                  <div className="prep-start-date-row">
-                    <label>Preparation Journey Start Date:</label>
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => onUpdateStartDate && onUpdateStartDate(e.target.value)}
-                    />
-                  </div>
-                )}
-
-                {onReset && (
-                  <div className="danger-zone-strip">
-                    <button
-                      type="button"
-                      className="reset-tracker-btn"
-                      onClick={onReset}
-                    >
-                      Reset All Tracker Data
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
 
       {/* ========================================================
           MODAL: CUSTOMIZE FEATURED ACHIEVEMENTS SHOWCASE (3-4 SLOTS)
@@ -1564,30 +944,6 @@ export default function ProfileView({
                       placeholder="e.g. Targeting 99.5+%ile with disciplined morning Quant drills and weekly full-length analysis."
                       className="vault-textarea"
                     />
-                  </div>
-
-                  <div className="aspirant-id-badge-row">
-                    <div className="aspirant-id-info">
-                      <span className="id-label font-mono">Aspirant ID:</span>
-                      <code className="id-code font-mono">{currentAspirantId}</code>
-                    </div>
-                    <button 
-                      type="button" 
-                      className="id-copy-action-btn font-mono"
-                      onClick={handleCopyMyId}
-                    >
-                      {copiedMyId ? (
-                        <>
-                          <Icons.Check size={12} color="#34d399" />
-                          <span style={{ color: '#34d399' }}>Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Icons.Copy size={12} />
-                          <span>Copy ID</span>
-                        </>
-                      )}
-                    </button>
                   </div>
                 </div>
               </div>

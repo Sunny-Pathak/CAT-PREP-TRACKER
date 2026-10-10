@@ -103,8 +103,6 @@ describe('Unified Peer Profile Inspection and Card', () => {
     expect(screen.getByText('Ananya Verma')).toBeDefined();
     // Rank badge
     expect(screen.getByText('RANK #1')).toBeDefined();
-    // Level crest
-    expect(screen.getByText(/LVL 22/i)).toBeDefined();
     // Target and Percentile
     expect(screen.getAllByText(/IIM Ahmedabad/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/99.92%ile/i)).toBeDefined();
@@ -172,7 +170,6 @@ describe('Unified Peer Profile Inspection and Card', () => {
     expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/75/i)).toBeDefined();
     expect(screen.getByText(/DAY STREAK/i)).toBeDefined();
-    expect(screen.getByText(/SILVER I/i)).toBeDefined();
 
     // Switch to Dungeon Quotas tab
     const dungeonTab = screen.getByRole('button', { name: /DUNGEON QUOTAS/i });

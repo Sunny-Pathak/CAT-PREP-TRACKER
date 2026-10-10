@@ -149,18 +149,24 @@ export const PROFILE_BANNERS = [
   }
 ];
 
-// Helper to ensure equipped frame is actually unlocked for current level (defaults to 'default')
-export const getEffectiveFrameId = (frameId, userLevel = 1) => {
+// Helper to validate equipped frame (defaults to 'default')
+export const getEffectiveFrameId = (frameId, userLevel) => {
   const candidate = frameId || 'default';
   const found = AVATAR_FRAMES.find(f => f.id === candidate);
   if (!found) return 'default';
-  return (Number(userLevel) >= found.minLevel) ? found.id : 'default';
+  if (userLevel !== undefined && userLevel !== null) {
+    return (Number(userLevel) >= found.minLevel) ? found.id : 'default';
+  }
+  return found.id;
 };
 
-// Helper to ensure equipped banner is actually unlocked for current level (defaults to 'cyber_grid')
-export const getEffectiveBannerId = (bannerId, userLevel = 1) => {
+// Helper to validate equipped banner (defaults to 'cyber_grid')
+export const getEffectiveBannerId = (bannerId, userLevel) => {
   const candidate = bannerId || 'cyber_grid';
   const found = PROFILE_BANNERS.find(b => b.id === candidate);
   if (!found) return 'cyber_grid';
-  return (Number(userLevel) >= found.minLevel) ? found.id : 'cyber_grid';
+  if (userLevel !== undefined && userLevel !== null) {
+    return (Number(userLevel) >= found.minLevel) ? found.id : 'cyber_grid';
+  }
+  return found.id;
 };

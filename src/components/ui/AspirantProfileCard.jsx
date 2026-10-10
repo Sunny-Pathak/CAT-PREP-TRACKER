@@ -5,7 +5,6 @@ import StudyContributionHeatmap from './StudyContributionHeatmap';
 import { calculateUserBadges } from '../../utils/badgeUtils';
 import { AVATAR_FRAMES, PROFILE_BANNERS, getEffectiveFrameId, getEffectiveBannerId } from '../../data/cosmeticsData';
 import { AnimatedSparkleIcon } from './AnimatedUiIcons';
-import { calculateLevelFromExp, getExpProgress, getExpForLevel } from '../../utils/expSystem';
 
 /**
  * AspirantProfileCard - Minimal, Elegant Executive Operative Profile
@@ -31,7 +30,6 @@ export default function AspirantProfileCard({
 }) {
   const [activeTab, setActiveTab] = useState('trackers'); // 'trackers' | 'syllabus' | 'heatmap'
   const [showCosmeticsModal, setShowCosmeticsModal] = useState(false);
-  const [copiedId, setCopiedId] = useState(false);
   const [activeBadgeTooltip, setActiveBadgeTooltip] = useState(null);
 
   const displayName = profile?.displayName || profile?.name || user?.displayName || 'Aspirant';
@@ -54,7 +52,7 @@ export default function AspirantProfileCard({
   const streak = profile?.streak ?? profile?.careerStreak ?? profile?.baseStreak ?? user?.streak ?? 0;
   const solvedQs = profile?.solvedQs ?? profile?.totalSolvedQs ?? profile?.baseSolvedQs ?? user?.solvedQs ?? 0;
   const mocksCount = profile?.mocksCount ?? user?.mocksCount ?? 0;
-  const status = profile?.status || 'offline';
+  const status = isSelf ? null : (profile?.status || null);
   const aspirantId = profile?.aspirantId || user?.aspirantId || '';
   const rank = profile?.rank;
   const percentile = profile?.percentile ?? profile?.basePercentile;
@@ -64,82 +62,12 @@ export default function AspirantProfileCard({
   const totalVarc = tracker?.totals?.varc || profile?.varc || (profile?.subject === 'VARC' ? Math.round(solvedQs * 0.55) : Math.round(solvedQs * 0.3));
   const grandTargets = { quant: 2500, lrdi: 500, varc: 500 };
 
-  // RPG Gaming Engine (Level & EXP) - Unified with expSystem (strictly defaults to Level 1 / 0 EXP for new users)
-  const explicitLevel = profile?.level !== undefined ? Math.max(1, Number(profile.level) || 1) : null;
-  const rawExp = profile?.exp !== undefined 
-    ? profile.exp 
-    : (user?.exp !== undefined ? user.exp : 0);
-  const totalExp = Math.max(0, Number(rawExp) || 0);
-
-  // If a profile explicitly specifies a level (e.g. bots with level 22) and totalExp is 0, compute realistic EXP progress
-  const computedExp = (totalExp === 0 && explicitLevel && explicitLevel > 1)
-    ? Math.round(getExpForLevel(explicitLevel) + (getExpForLevel(explicitLevel + 1) - getExpForLevel(explicitLevel)) * 0.62)
-    : totalExp;
-
-  const progressData = useMemo(() => getExpProgress(computedExp), [computedExp]);
-  const level = explicitLevel || progressData.currentLevel || 1;
-  const currentExpInLevel = progressData.expIntoLevel;
-  const expNeeded = progressData.expNeededForNext;
-  const expProgress = progressData.progressPercent;
-
-  // Equipped Cosmetics (strictly validated against level for self and peers alike)
+  // Equipped Cosmetics
   const candidateFrameId = profile?.frameId || user?.frameId || 'default';
-  const equippedFrameId = getEffectiveFrameId(candidateFrameId, level);
+  const equippedFrameId = getEffectiveFrameId(candidateFrameId);
   const candidateBannerId = profile?.bannerId || user?.bannerId || 'cyber_grid';
-  const equippedBannerId = getEffectiveBannerId(candidateBannerId, level);
+  const equippedBannerId = getEffectiveBannerId(candidateBannerId);
   const customBannerUrl = profile?.bannerUrl || profile?.bannerBg;
-
-  let classTitle = 'CANDIDATE ASPIRANT';
-  let tierRank = 'LEVEL 1';
-  let tierColor = 'var(--text-tertiary)';
-
-  if (level >= 50) {
-    classTitle = 'EXECUTIVE SCHOLAR';
-    tierRank = 'TOP 0.1% TIER';
-    tierColor = '#fb7185';
-  } else if (level >= 40) {
-    classTitle = 'ADVANCED SCHOLAR';
-    tierRank = 'TOP 0.5% TIER';
-    tierColor = '#f43f5e';
-  } else if (level >= 30) {
-    classTitle = 'SENIOR ASPIRANT';
-    tierRank = '99+ PERCENTILE';
-    tierColor = '#ec4899';
-  } else if (level >= 20) {
-    classTitle = 'PREMIER ASPIRANT';
-    tierRank = '98+ PERCENTILE';
-    tierColor = '#fb7185';
-  } else if (level >= 15) {
-    classTitle = 'INTENSIVE ASPIRANT';
-    tierRank = '95+ PERCENTILE';
-    tierColor = 'var(--accent-color)';
-  } else if (level >= 10) {
-    classTitle = 'FOCUSED ASPIRANT';
-    tierRank = '90+ PERCENTILE';
-    tierColor = '#a855f7';
-  } else if (level >= 5) {
-    classTitle = 'ACTIVE ASPIRANT';
-    tierRank = 'FOUNDATION II';
-    tierColor = '#eab308';
-  } else if (level >= 2) {
-    classTitle = 'CANDIDATE ASPIRANT';
-    tierRank = 'SILVER I';
-    tierColor = 'var(--accent-color)';
-  } else {
-    classTitle = 'CANDIDATE ASPIRANT';
-    tierRank = 'LEVEL 1';
-    tierColor = 'var(--text-tertiary)';
-  }
-
-  const handleCopyId = (e) => {
-    e.stopPropagation();
-    if (!aspirantId) return;
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(aspirantId);
-    }
-    setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 2000);
-  };
 
   const handleText = username ? (username.startsWith('@') ? username : `@${username}`) : '@aspirant';
   const badges = useMemo(() => calculateUserBadges({ streak, solvedQs, mocksCount }), [streak, solvedQs, mocksCount]);
@@ -171,67 +99,49 @@ export default function AspirantProfileCard({
         <div className="panoramic-banner-scrim" />
 
         {/* Top Floating Controls on Banner */}
-        <div className="panoramic-top-row">
-          <div className="panoramic-rank-chip font-mono" style={{ borderColor: 'rgba(255, 255, 255, 0.1)', color: '#c084fc' }}>
-            <span>Aspirant ID: {aspirantId || 'ASP-481568'}</span>
-            <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>{tierRank}</span>
-            {aspirantId && (
-              <button 
-                type="button"
-                onClick={handleCopyId}
-                className="panoramic-id-pill font-mono"
-                title="Click to copy Aspirant ID"
-                aria-label="Copy Aspirant ID"
-                style={{ padding: '2px 6px', marginLeft: '6px' }}
-              >
-                {copiedId ? <Icons.Check size={10} color="#34d399" /> : <Icons.Copy size={10} />}
-              </button>
-            )}
+        {(rank || onClose) && (
+          <div className="panoramic-top-row">
+            <div />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {rank && (
+                <div 
+                  className="panoramic-leaderboard-rank-pill font-mono"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    letterSpacing: '0.05em',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--accent-color)'
+                  }}
+                >
+                  <span>RANK #{rank}</span>
+                </div>
+              )}
+
+              {onClose && (
+                <button 
+                  type="button" 
+                  className="panoramic-close-btn" 
+                  onClick={onClose} 
+                  title="Close Profile"
+                  aria-label="Close Profile"
+                >
+                  <Icons.Close size={15} />
+                </button>
+              )}
+            </div>
           </div>
+        )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="panoramic-spec-badge font-mono" style={{ color: 'var(--accent-secondary, #c084fc)', borderColor: 'var(--accent-border, rgba(192, 132, 252, 0.25))' }}>
-              <span>LVL {level}</span> • {classTitle}
-            </span>
-
-            {rank && (
-              <div 
-                className="panoramic-leaderboard-rank-pill font-mono"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  letterSpacing: '0.05em',
-                  background: 'var(--bg-tertiary)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--accent-color)'
-                }}
-              >
-                <span>RANK #{rank}</span>
-              </div>
-            )}
-
-            {onClose && (
-              <button 
-                type="button" 
-                className="panoramic-close-btn" 
-                onClick={onClose} 
-                title="Close Profile"
-                aria-label="Close Profile"
-              >
-                <Icons.Close size={15} />
-              </button>
-            )}
-          </div>
-        </div>
 
         {/* Hero Character & Details Overlay */}
         <div className="panoramic-hero-info-row">
-          {/* Avatar without arcade yellow badge covering it */}
           <div className="panoramic-avatar-slot">
             <AvatarRenderer 
               avatar={avatar}
@@ -246,10 +156,14 @@ export default function AspirantProfileCard({
           {/* Callsign & Spec Titles */}
           <div className="panoramic-titles-block">
             <div className="panoramic-spec-strip">
-              <span className="panoramic-spec-badge font-mono">{classTitle}</span>
               <span className="panoramic-target-tag font-mono">
-                {profile?.username ? handleText : targetText}
+                {targetText}
               </span>
+              {profile?.username && (
+                <span className="panoramic-target-tag font-mono" style={{ color: '#94a3b8' }}>
+                  {handleText}
+                </span>
+              )}
               {percentile && (
                 <span 
                   className="panoramic-target-tag font-mono"
@@ -316,35 +230,7 @@ export default function AspirantProfileCard({
         </div>
       </div>
 
-      {/* 2. SPACIOUS & CLEAN EXP PROGRESSION BAR */}
-      <div className="panoramic-exp-section">
-        <div className="panoramic-exp-header font-mono">
-          <div className="exp-lead">
-            <span className="exp-tag">EXP</span>
-            <span className="exp-title">LEVEL {level} PROGRESSION</span>
-          </div>
-          <div className="exp-stats">
-            <span className="exp-count">{currentExpInLevel.toLocaleString()} / {expNeeded.toLocaleString()} XP</span>
-            <span className="exp-percent">{expProgress}%</span>
-          </div>
-        </div>
-
-        <div className="panoramic-exp-track">
-          <div 
-            className="panoramic-exp-fill" 
-            style={{ width: `${expProgress}%` }}
-          >
-            <div className="exp-shine-edge" />
-          </div>
-        </div>
-
-        <div className="panoramic-exp-footer font-mono">
-          <span>CONSISTENCY: {streak} DAY{streak === 1 ? '' : 'S'} ACTIVE</span>
-          <span>NEXT MILESTONE: LEVEL {level + 1}</span>
-        </div>
-      </div>
-
-      {/* 3. MINIMAL HORIZON STATS STRIP */}
+      {/* 2. MINIMAL HORIZON STATS STRIP */}
       {isSelf && (
         <div className="minimal-horizon-strip profile-horizon-strip font-mono">
           <div className="horizon-stat-item">
@@ -369,9 +255,9 @@ export default function AspirantProfileCard({
           </div>
           <div className="horizon-divider" />
           <div className="horizon-stat-item">
-            <span className="horizon-stat-lbl">Preparation Standing</span>
-            <span className="horizon-stat-val" style={{ fontSize: '18px', color: tierColor }}>
-              {tierRank}
+            <span className="horizon-stat-lbl">Percentile Target</span>
+            <span className="horizon-stat-val" style={{ color: 'var(--accent-color)' }}>
+              {percentile ? `${percentile}%ile` : '99.0+%ile'}
             </span>
           </div>
         </div>
@@ -420,7 +306,7 @@ export default function AspirantProfileCard({
                     <div className="minimal-metric-number">
                       {streak} <span className="minimal-target">{streak === 1 ? 'DAY STREAK' : 'DAYS ACTIVE'}</span>
                     </div>
-                    <span className="tracker-bonus-sub font-mono">x{(1 + streak * 0.1).toFixed(1)} XP Boost Active</span>
+                    <span className="tracker-bonus-sub font-mono">Continuous Study Cadence</span>
                   </div>
                   <div className="minimal-metric-card">
                     <div className="minimal-metric-header">

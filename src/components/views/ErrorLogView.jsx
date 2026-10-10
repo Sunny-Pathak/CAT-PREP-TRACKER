@@ -291,9 +291,9 @@ export default function ErrorLogView({ state, onDayClick, onOpenTimer }) {
           </div>
           <div className="horizon-divider"></div>
           <div className="horizon-stat-item">
-            <span className="horizon-stat-lbl">HARD DRIVE PERSISTENCE</span>
+            <span className="horizon-stat-lbl">STORAGE STATUS</span>
             <span className="horizon-stat-val" style={{ color: 'var(--accent-color, #c084fc)', fontSize: '13px', fontWeight: 600 }}>
-              Protected Local Storage
+              Local Storage Saved
             </span>
           </div>
         </div>

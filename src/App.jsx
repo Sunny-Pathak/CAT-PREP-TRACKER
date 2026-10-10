@@ -55,7 +55,6 @@ const StudyTimerView = lazy(() => import('./components/views/StudyTimerView'));
 const StudyLounge = lazy(() => import('./components/views/StudyLounge'));
 const LeaderboardComingSoonView = lazy(() => import('./components/views/LeaderboardComingSoonView'));
 const SettingsView = lazy(() => import('./components/views/SettingsView'));
-const AchievementsView = lazy(() => import('./components/views/AchievementsView'));
 const BacklogRecoveryView = lazy(() => import('./components/views/BacklogRecoveryView'));
 
 // Code-split lazy modals & secondary screens
@@ -65,7 +64,6 @@ const ThemeRedeemModal = lazy(() => import('./components/modals/ThemeRedeemModal
 const TermsAndPrivacyModal = lazy(() => import('./components/modals/TermsAndPrivacyModal'));
 const OnboardingWelcomeModal = lazy(() => import('./components/modals/OnboardingWelcomeModal'));
 const PeerInspectorModal = lazy(() => import('./components/modals/PeerInspectorModal'));
-const LevelUpModal = lazy(() => import('./components/modals/LevelUpModal'));
 const AdaptiveWeekReviewModal = lazy(() => import('./components/modals/AdaptiveWeekReviewModal'));
 const PatchNotesHubModal = lazy(() => import('./components/modals/PatchNotesHubModal'));
 
@@ -194,6 +192,12 @@ const Icons = {
       <line x1="16" y1="20" x2="16.01" y2="20"></line>
     </svg>
   ),
+  User: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
   Download: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-svg">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -296,31 +300,6 @@ export default function App() {
   const [redeemPreselectTheme, setRedeemPreselectTheme] = useState(null);
   const [isPatchNotesOpen, setIsPatchNotesOpen] = useState(false);
   const [isInitialEntrance, setIsInitialEntrance] = useState(false);
-
-  const [levelUpModalData, setLevelUpModalData] = useState({
-    isOpen: false,
-    oldLevel: 1,
-    newLevel: 2,
-    totalExp: 0,
-    isMilestone: false
-  });
-
-  // Global event listener for level-up pop-up events from anywhere in the app
-  useEffect(() => {
-    const handleExternalLevelUp = (e) => {
-      if (e.detail) {
-        setLevelUpModalData({
-          isOpen: true,
-          oldLevel: e.detail.oldLevel || 1,
-          newLevel: e.detail.newLevel || 2,
-          totalExp: e.detail.totalExp || 0,
-          isMilestone: Boolean(e.detail.isMilestone)
-        });
-      }
-    };
-    window.addEventListener('catalyze_trigger_levelup', handleExternalLevelUp);
-    return () => window.removeEventListener('catalyze_trigger_levelup', handleExternalLevelUp);
-  }, []);
 
   // Auto-sanitize any duplicate stacked extended weeks from legacy state
   useEffect(() => {
@@ -955,15 +934,6 @@ export default function App() {
                   lastDailyLoginDate: new Date().toISOString().split('T')[0],
                   loginStreak: dailyExpRes.streak
                 }));
-                if (dailyExpRes.leveledUp) {
-                  setLevelUpModalData({
-                    isOpen: true,
-                    oldLevel: dailyExpRes.oldLevel,
-                    newLevel: dailyExpRes.newLevel,
-                    totalExp: dailyExpRes.newExp,
-                    isMilestone: dailyExpRes.isMilestone
-                  });
-                }
               }
             } catch (expErr) {
               console.warn("Daily login EXP check skipped:", expErr);
@@ -1016,15 +986,6 @@ export default function App() {
                   actionLabel: null,
                   onAction: null
                 });
-                if (prevDayExpRes.leveledUp) {
-                  setLevelUpModalData({
-                    isOpen: true,
-                    oldLevel: prevDayExpRes.oldLevel,
-                    newLevel: prevDayExpRes.newLevel,
-                    totalExp: prevDayExpRes.newExp,
-                    isMilestone: prevDayExpRes.isMilestone
-                  });
-                }
               }
             } catch (prevExpErr) {
               console.warn("Previous day objective EXP check skipped:", prevExpErr);
@@ -1185,15 +1146,6 @@ export default function App() {
                 actionLabel: null,
                 onAction: null
               });
-              if (res.leveledUp) {
-                setLevelUpModalData({
-                  isOpen: true,
-                  oldLevel: res.oldLevel,
-                  newLevel: res.newLevel,
-                  totalExp: res.newExp,
-                  isMilestone: res.isMilestone
-                });
-              }
             }
           } catch (e) {
             // Background check silent fallback
@@ -1402,7 +1354,6 @@ export default function App() {
         streak: activeStreak,
         solvedQs: totalSolved,
         mocksCount: totalMocksCount,
-        status: timerState.isRunning ? 'studying' : 'online',
         activity: timerState.isRunning ? {
           title: `${timerState.subject || 'Quant'} Focus Session`,
           subject: timerState.subject || 'Quant',
@@ -2735,7 +2686,7 @@ export default function App() {
             onClick={() => setActiveTab('dashboard')} 
             ariaLabel="Dashboard"
             tooltipTitle="Dashboard"
-            tooltipTag="SYS.OVERVIEW"
+            tooltipTag="OVERVIEW"
           >
             <Icons.Home />
           </DockItem>
@@ -2769,15 +2720,6 @@ export default function App() {
             </div>
           </DockItem>
 
-          <DockItem 
-            active={activeTab === 'lounge'} 
-            onClick={() => setActiveTab('lounge')} 
-            ariaLabel="Leaderboard (Coming Soon)"
-            tooltipTitle="Leaderboard"
-            tooltipTag="COMING SOON"
-          >
-            <Icons.Trophy />
-          </DockItem>
 
           {overallBacklog.hasBacklog && (
             <DockItem 
@@ -2813,16 +2755,6 @@ export default function App() {
           </DockItem>
 
           <DockItem 
-            active={activeTab === 'achievements'} 
-            onClick={() => setActiveTab('achievements')} 
-            ariaLabel="Prestige Achievement Badges"
-            tooltipTitle="Achievements"
-            tooltipTag="PRESTIGE BADGES"
-          >
-            <Icons.Award />
-          </DockItem>
-
-          <DockItem 
             active={activeTab === 'errors'} 
             onClick={() => setActiveTab('errors')} 
             ariaLabel="Error Log"
@@ -2833,16 +2765,13 @@ export default function App() {
           </DockItem>
 
           <DockItem 
-            active={activeTab === 'profile'} 
+            active={activeTab === 'profile' || activeTab === 'achievements'} 
             onClick={() => setActiveTab('profile')} 
-            ariaLabel="Profile & Study Buddies"
-            tooltipTitle="Profile & Buddies"
-            tooltipTag="COMMUNITY"
+            ariaLabel="Aspirant Profile"
+            tooltipTitle="Aspirant Profile"
+            tooltipTag="IDENTITY & BENCHMARKS"
           >
-            <Icons.Cloud />
-            {pendingRequestsCount > 0 && (
-              <span className="dock-badge-dot" title={`${pendingRequestsCount} new friend request(s)`}></span>
-            )}
+            <Icons.User size={20} />
           </DockItem>
 
           <DockItem 
@@ -2925,7 +2854,8 @@ export default function App() {
 
         {/* Main Content Render */}
         <main className="main-content">
-          {activeTab === 'dashboard' && (
+          <div key={activeTab} className="view-enter-transition">
+            {activeTab === 'dashboard' && (
             <DashboardView 
               state={state} 
               setActiveTab={setActiveTab} 
@@ -3043,7 +2973,7 @@ export default function App() {
               onBack={() => setActiveTab('dashboard')}
             />
           )}
-          {activeTab === 'profile' && (
+          {(activeTab === 'profile' || activeTab === 'achievements') && (
             <ProfileView
               user={user}
               userProfile={userProfile}
@@ -3068,19 +2998,6 @@ export default function App() {
               onResetSubTab={() => setProfileSubTab('profile')}
               isEditOpen={isEditProfileDirectOpen}
               onResetEditOpen={() => setIsEditProfileDirectOpen(false)}
-              onTriggerLevelUp={(data) => setLevelUpModalData({ isOpen: true, ...data })}
-            />
-          )}
-          {activeTab === 'achievements' && (
-            <AchievementsView
-              userProfile={userProfile}
-              stats={{
-                streak: activeStreak,
-                solvedQs: totalSolved,
-                mocksCount: totalMocksCount
-              }}
-              badges={userBadges}
-              onNavigateToTab={setActiveTab}
             />
           )}
           {activeTab === 'settings' && (
@@ -3123,6 +3040,7 @@ export default function App() {
             />
           )}
           </Suspense>
+          </div>
         </main>
       </div>
 
@@ -3298,20 +3216,7 @@ export default function App() {
         </Suspense>
       )}
 
-      {/* Candidate Level Up & Decade Milestone Pop-Up Modal */}
-      {levelUpModalData.isOpen && (
-        <Suspense fallback={null}>
-          <LevelUpModal
-            isOpen={levelUpModalData.isOpen}
-            onClose={() => setLevelUpModalData(prev => ({ ...prev, isOpen: false }))}
-            oldLevel={levelUpModalData.oldLevel}
-            newLevel={levelUpModalData.newLevel}
-            totalExp={levelUpModalData.totalExp}
-            isMilestone={levelUpModalData.isMilestone}
-            theme={theme}
-          />
-        </Suspense>
-      )}
+
 
       {/* Adaptive Syllabus & Quota Checkpoint Modal */}
       {isCheckpointModalOpen && checkpointWeekData && (

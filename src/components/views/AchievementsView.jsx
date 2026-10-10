@@ -44,57 +44,37 @@ export default function AchievementsView({
   return (
     <div className="achievements-page-container fade-in">
       
-      {/* Top Prestige Hero Banner */}
-      <div className={`achievements-hero-card ${isGrandmaster ? 'is-grandmaster' : ''}`}>
-        <div className="hero-backdrop-glow" style={{ '--rank-color': currentRank.color }} />
-        
-        <div className="hero-content-split">
-          <div className="hero-rank-info">
-            <div className="prestige-tier-badge" style={{ borderColor: currentRank.color, color: currentRank.color }}>
-              <Icons.Sparkles size={13} />
-              <span>{currentRank.tier}</span>
+      {/* Clean Milestone Header & Progress Strip */}
+      <div className="achievements-summary-strip">
+        <div className="achievements-summary-info">
+          <div className="achievements-summary-title-row">
+            <div className="achievements-summary-icon">
+              <Icons.Award size={20} />
             </div>
-            <h1 className="hero-rank-title font-display" style={{ color: currentRank.color }}>
-              {currentRank.title}
-            </h1>
-            <p className="hero-rank-subtitle">
-              {isGrandmaster 
-                ? "Full milestone mastery achieved across consistency, problem-solving volume, and mock benchmarks."
-                : "Earn milestones across study consistency, problem-solving volume, and mock test execution."}
-            </p>
-
-            <div className="hero-progress-group">
-              <div className="hero-progress-labels">
-                <span className="progress-status-label">Mastery Progress</span>
-                <span className="progress-count-label" style={{ color: currentRank.color }}>
-                  {unlockedCount} of {totalBadges} Milestones Completed ({completionPercent}%)
+            <div>
+              <div className="achievements-title-badge-row">
+                <h2 className="achievements-summary-title">Prestige Milestones</h2>
+                <span className="achievements-tier-pill" style={{ borderColor: currentRank.color, color: currentRank.color }}>
+                  {currentRank.title}
                 </span>
               </div>
-              <div className="hero-progress-track">
-                <div 
-                  className="hero-progress-fill" 
-                  style={{ 
-                    width: `${completionPercent}%`,
-                    background: isGrandmaster 
-                      ? 'linear-gradient(90deg, #ffd700 0%, #ff8800 50%, #ec4899 100%)' 
-                      : currentRank.color 
-                  }} 
-                />
-              </div>
+              <p className="achievements-summary-desc">
+                Objective benchmarks earned across study streaks, drill solving volume, and mock exam execution.
+              </p>
             </div>
           </div>
+        </div>
 
-          {/* Grandmaster Scholar Emblem Display */}
-          <div className="hero-emblem-showcase">
-            <div className={`grandmaster-crest-bubble ${isGrandmaster ? 'unlocked-crest' : 'locked-crest'}`}>
-              <div className="crest-icon-wrap">
-                <Icons.Trophy size={42} />
-              </div>
-              {isGrandmaster && <div className="crest-shine-ring" />}
-            </div>
-            <div className="crest-caption">
-              {isGrandmaster ? 'Scholar Crest Unlocked' : `Scholar Crest (${unlockedCount}/${totalBadges})`}
-            </div>
+        <div className="achievements-summary-metrics">
+          <div className="achievements-progress-labels font-mono">
+            <span>{unlockedCount} of {totalBadges} Completed</span>
+            <span className="achievements-pct">{completionPercent}%</span>
+          </div>
+          <div className="achievements-track-bar">
+            <div 
+              className="achievements-fill-bar" 
+              style={{ width: `${completionPercent}%` }} 
+            />
           </div>
         </div>
       </div>

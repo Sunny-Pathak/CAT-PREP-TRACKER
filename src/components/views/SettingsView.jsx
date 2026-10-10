@@ -441,25 +441,11 @@ export default function SettingsView({
         />
       )}
 
-      {/* ========================================================
-          PANORAMIC COMMAND HEADER
-         ======================================================== */}
-      <div className="settings-command-header">
-        <div className="settings-header-left">
-          <div className="settings-title-cluster">
-            <div className="settings-header-icon-box" aria-hidden="true">
-              <Icons.Sliders size={22} color="var(--accent-color, #c084fc)" />
-            </div>
-            <div>
-              <h1 className="settings-hero-headline minimal-headline">
-                SETTINGS
-              </h1>
-              <p className="settings-hero-subtitle">
-                Preferences and workspace configuration.
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Sleek Minimal Header Strip */}
+      <div className="settings-minimal-header-strip">
+        <h1 className="settings-hero-headline minimal-headline">
+          SETTINGS <span className="minimal-headline-italic">&amp; Preferences</span>
+        </h1>
 
         <div className="settings-header-actions">
           <div className={`settings-status-pill ${user ? 'is-synced' : 'is-local'}`}>
@@ -1162,46 +1148,12 @@ export default function SettingsView({
             </div>
           </div>
 
-          {/* 5. Audio Feedback & Sanctuary Chimes */}
-          <div className="settings-sub-panel" style={{ marginTop: '20px' }}>
-            <div className="sub-panel-header">
-              <div>
-                <h3 className="sub-panel-title">Zen Audio &amp; Ambient Chimes</h3>
-              </div>
-            </div>
 
-            <div className="audio-test-card" style={{
-              background: 'rgba(18, 16, 26, 0.75)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '12px',
-              padding: '16px 20px'
-            }}>
-              <div className="audio-card-meta">
-                <div className="audio-title-row">
-                  <Icons.Bell size={16} color="var(--accent-secondary, #c084fc)" />
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>Zen Study Sanctuary Chime</span>
-                </div>
-                <p className="audio-desc" style={{ fontSize: '11.5px', color: '#94a3b8', margin: '4px 0 0 0' }}>
-                  Gentle 528Hz harmonized completion chime played when your focus timer reaches zero.
-                </p>
-              </div>
-              <button 
-                type="button" 
-                className="audio-preview-btn"
-                onClick={(e) => {
-                  tactileClick(e);
-                  playSoftZenChime(0.35);
-                }}
-              >
-                <Icons.Play size={13} />
-                <span>Test Zen Chime</span>
-              </button>
-            </div>
 
-            {/* Notification Toast Simulator */}
-            {onTriggerNotification && (
+          {/* Notification Toast Simulator */}
+          {onTriggerNotification && (
+            <div className="settings-sub-panel" style={{ marginTop: '20px' }}>
               <div className="audio-test-card" style={{
-                marginTop: '12px',
                 background: 'rgba(18, 16, 26, 0.75)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '12px',
@@ -1213,7 +1165,7 @@ export default function SettingsView({
                     <span style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>In-App Toast Notification</span>
                   </div>
                   <p className="audio-desc" style={{ fontSize: '11.5px', color: '#94a3b8', margin: '4px 0 0 0' }}>
-                    Trigger a demo toast notification to verify system alert visibility and sounds.
+                    Trigger a demo toast notification to verify system alert visibility.
                   </p>
                 </div>
                 <button 
@@ -1228,8 +1180,8 @@ export default function SettingsView({
                   <span>Trigger Demo Toast</span>
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
         </div>
       )}

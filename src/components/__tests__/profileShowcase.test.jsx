@@ -99,12 +99,11 @@ describe('ProfileView Featured Achievements Showcase', () => {
     expect(screen.queryByText(/Select Featured Achievements/i)).toBeNull();
   });
 
-  it('defaults new users strictly to Level 1 and 0 EXP rather than Level 4', () => {
+  it('renders candidate profile cleanly for new users without RPG level clutter', () => {
     const newProfile = {
       displayName: 'New Candidate',
       target: 'CAT 2026',
       avatar: 'rocket',
-      // No exp or level property yet (fresh user)
     };
 
     render(
@@ -117,37 +116,35 @@ describe('ProfileView Featured Achievements Showcase', () => {
       />
     );
 
-    // Profile card should strictly show Level 1
-    expect(screen.getByText('LVL 1')).toBeDefined();
-    expect(screen.getByText(/LEVEL 1 PROGRESSION/i)).toBeDefined();
-    expect(screen.getByText(/0 \/ 179 XP/i)).toBeDefined();
+    // Profile card should show candidate details without level or EXP clutter
+    expect(screen.getByText('New Candidate')).toBeDefined();
+    expect(screen.getAllByText(/CAT 2026/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/LVL/i)).toBeNull();
+    expect(screen.queryByText(/LEVEL 1 PROGRESSION/i)).toBeNull();
   });
 
-  it('enforces frame unlock requirements and prevents equipping Level 3 frame at Level 1', () => {
-    const level1ProfileWithLockedFrame = {
+  it('equips cosmetic frame directly without level gating', () => {
+    const profileWithFrame = {
       displayName: 'Novice Aspirant',
       target: 'CAT 2026',
       avatar: 'rocket',
-      level: 1,
-      exp: 0,
-      frameId: 'neon_cyber' // Requires Level 3
+      frameId: 'neon_cyber'
     };
 
     const { container } = render(
       <ProfileView
         user={{ uid: 'novice-001', email: 'novice@prep.io', displayName: 'Novice Aspirant' }}
-        userProfile={level1ProfileWithLockedFrame}
+        userProfile={profileWithFrame}
         tracker={dummyTracker}
         mocks={[]}
         friends={[]}
       />
     );
 
-    // Profile card avatar should render the unlocked Level 1 default frame, not neon_cyber
+    // Profile card avatar should render the equipped frame without arbitrary level gate
     const avatarContainer = container.querySelector('.aspirant-avatar-container');
     expect(avatarContainer).toBeDefined();
-    expect(avatarContainer.classList.contains('frame-default')).toBe(true);
-    expect(avatarContainer.classList.contains('frame-neon_cyber')).toBe(false);
+    expect(avatarContainer.classList.contains('frame-neon_cyber')).toBe(true);
   });
 
   it('renders the clean, basic Edit Aspirant Profile modal with avatar presets and identity fields', () => {
