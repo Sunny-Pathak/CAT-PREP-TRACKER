@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { applyInstantUpdate, dismissUpdateForSession } from '../../utils/versionCheck';
 import { Icons } from './AspirantIcons';
 
-export default function UpdateNotificationToast({ updateData, onDismiss, onOpenPatchNotes }) {
+export default function UpdateNotificationToast({ updateData, onDismiss }) {
   const [isApplying, setIsApplying] = useState(false);
   if (!updateData) return null;
 
@@ -53,17 +53,6 @@ export default function UpdateNotificationToast({ updateData, onDismiss, onOpenP
       </div>
 
       <div className="update-toast-actions">
-        {onOpenPatchNotes && (
-          <button
-            type="button"
-            className="update-toast-btn-notes"
-            onClick={onOpenPatchNotes}
-            title="Inspect What's New & System Updates Hub"
-          >
-            <Icons.FileText size={12} />
-            <span>Patch Notes</span>
-          </button>
-        )}
         <button 
           type="button"
           className="update-toast-btn-apply"

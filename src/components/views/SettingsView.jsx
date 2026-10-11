@@ -49,7 +49,6 @@ export default function SettingsView({
   targetExam = 'cat',
   onSelectTargetExam = () => {},
   onOpenOnboarding = () => {},
-  onOpenPatchNotes = () => {},
   showTopBarThemeSwitch = false,
   onToggleTopBarThemeSwitch = () => {},
   onOpenDataAuditModal = () => {},
@@ -451,18 +450,6 @@ export default function SettingsView({
             <span className="settings-status-dot" />
             <span>{user ? 'Cloud Active' : 'Offline'}</span>
           </div>
-          {onOpenPatchNotes && (
-            <button
-              type="button"
-              className="settings-patch-btn"
-              onClick={onOpenPatchNotes}
-              aria-label="Patch v1.0.88 Notes"
-              title="Inspect What's New & System Updates Hub"
-            >
-              <Icons.FileText size={13} />
-              <span>v1.0.88 Notes</span>
-            </button>
-          )}
         </div>
       </div>
 
@@ -1587,33 +1574,6 @@ export default function SettingsView({
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* SECTION 4: RELEASE NOTES */}
-          <div className="settings-patch-notes-banner">
-            <div className="patch-banner-left">
-              <div className="patch-banner-icon">
-                <Icons.FileText size={20} color="var(--accent-secondary, #c084fc)" />
-              </div>
-              <div>
-                <div className="patch-banner-title">
-                  <span>Patch Notes &amp; Updates</span>
-                  <span className="patch-banner-version-pill">v1.0.88</span>
-                </div>
-                <div className="patch-banner-desc">
-                  Changelog, recent updates, and improvements.
-                </div>
-              </div>
-            </div>
-            <button 
-              type="button" 
-              className="patch-banner-cta-btn"
-              onClick={onOpenPatchNotes}
-              aria-label="Open Patch Notes Hub"
-            >
-              <Icons.Sparkles size={14} />
-              <span>Open Patch Notes Hub</span>
-            </button>
           </div>
 
           {/* Danger Zone: Discrete Progress Reset at Bottom */}

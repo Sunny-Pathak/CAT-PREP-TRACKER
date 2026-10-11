@@ -25,7 +25,6 @@ export { default as EditSessionModal } from './modals/EditSessionModal';
 export { default as EncryptedBackupModal } from './modals/EncryptedBackupModal';
 export { default as MistakeLogModal } from './modals/MistakeLogModal';
 export { default as OnboardingWelcomeModal } from './modals/OnboardingWelcomeModal';
-export { default as PatchNotesHubModal } from './modals/PatchNotesHubModal';
 export { default as PeerInspectorModal } from './modals/PeerInspectorModal';
 export { default as SadCatGuiltTripModal } from './modals/SadCatGuiltTripModal';
 export { default as SanctuaryBazaarModal } from './modals/SanctuaryBazaarModal';

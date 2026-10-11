@@ -62,7 +62,6 @@ const TermsAndPrivacyModal = lazy(() => import('./components/modals/TermsAndPriv
 const OnboardingWelcomeModal = lazy(() => import('./components/modals/OnboardingWelcomeModal'));
 const PeerInspectorModal = lazy(() => import('./components/modals/PeerInspectorModal'));
 const AdaptiveWeekReviewModal = lazy(() => import('./components/modals/AdaptiveWeekReviewModal'));
-const PatchNotesHubModal = lazy(() => import('./components/modals/PatchNotesHubModal'));
 
 import {
   calculateWeekProgress,
@@ -295,7 +294,6 @@ export default function App() {
   const [unlockedThemes, setUnlockedThemes] = useState(() => getUnlockedThemes());
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [redeemPreselectTheme, setRedeemPreselectTheme] = useState(null);
-  const [isPatchNotesOpen, setIsPatchNotesOpen] = useState(false);
   const [isInitialEntrance, setIsInitialEntrance] = useState(false);
 
   // Auto-sanitize any duplicate stacked extended weeks from legacy state
@@ -2827,7 +2825,6 @@ export default function App() {
                 setIsGuestMode(false);
               }}
               timerState={timerState}
-              onOpenPatchNotes={() => setIsPatchNotesOpen(true)}
               onOpenDataAuditModal={() => setIsDataAuditOpen(true)}
               hasUnsyncedCloudChanges={hasUnsyncedCloudChanges}
             />
@@ -3017,7 +3014,6 @@ export default function App() {
               targetExam={state.settings?.targetExam || 'cat'}
               onSelectTargetExam={handleSelectTargetExam}
               onOpenOnboarding={() => setIsOnboardingOpen(true)}
-              onOpenPatchNotes={() => setIsPatchNotesOpen(true)}
               showTopBarThemeSwitch={showTopBarThemeSwitch}
               onToggleTopBarThemeSwitch={handleToggleTopBarThemeSwitch}
               onOpenDataAuditModal={() => setIsDataAuditOpen(true)}
@@ -3171,7 +3167,6 @@ export default function App() {
         <UpdateNotificationToast
           updateData={availableUpdate}
           onDismiss={() => setAvailableUpdate(null)}
-          onOpenPatchNotes={() => setIsPatchNotesOpen(true)}
         />
       )}
 
@@ -3224,22 +3219,6 @@ export default function App() {
             progressData={checkpointWeekData}
             onApplyPlan={handleApplyRecoveryPlan}
             state={state}
-            theme={theme}
-          />
-        </Suspense>
-      )}
-
-      {/* Release Notes & System Updates Hub Modal */}
-      {isPatchNotesOpen && (
-        <Suspense fallback={null}>
-          <PatchNotesHubModal
-            isOpen={isPatchNotesOpen}
-            onClose={() => setIsPatchNotesOpen(false)}
-            onNavigateTab={(tab) => {
-              setActiveTab(tab);
-              setIsPatchNotesOpen(false);
-            }}
-            initialVersion="1.0.88"
             theme={theme}
           />
         </Suspense>
