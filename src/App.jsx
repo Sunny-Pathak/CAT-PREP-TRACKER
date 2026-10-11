@@ -9,7 +9,6 @@ import {
   fetchFriendsProgress,
   updateUserPresence,
   setUserOffline,
-  subscribeToStudyLounge,
   subscribeToFriendRequests,
   subscribeToUserProfile,
   subscribeToFriendsLive,
@@ -33,7 +32,6 @@ import GooeyThemeSwitch from './components/ui/GooeyThemeSwitch';
 
 import DashboardView from './components/views/DashboardView';
 import FloatingTimerWidget from './components/ui/FloatingTimerWidget';
-import ThemeSelectorDropdown from './components/ui/ThemeSelectorDropdown';
 import ThemeSwitchToast from './components/ui/ThemeSwitchToast';
 import { getUnlockedThemes } from './utils/themeRedemption';
 import UpdateNotificationToast from './components/ui/UpdateNotificationToast';
@@ -52,7 +50,6 @@ const MockTrackerView = lazy(() => import('./components/views/MockTrackerView'))
 const ErrorLogView = lazy(() => import('./components/views/ErrorLogView'));
 const ProfileView = lazy(() => import('./components/views/ProfileView'));
 const StudyTimerView = lazy(() => import('./components/views/StudyTimerView'));
-const StudyLounge = lazy(() => import('./components/views/StudyLounge'));
 const LeaderboardComingSoonView = lazy(() => import('./components/views/LeaderboardComingSoonView'));
 const SettingsView = lazy(() => import('./components/views/SettingsView'));
 const BacklogRecoveryView = lazy(() => import('./components/views/BacklogRecoveryView'));

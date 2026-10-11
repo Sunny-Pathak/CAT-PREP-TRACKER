@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import StudyLounge from '../views/StudyLounge';
+import StudyLounge from '../views/StudyLoungeView';
 import AspirantProfileCard from '../ui/AspirantProfileCard';
 import { stripEmojis } from '../../utils/textUtils';
 

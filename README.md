@@ -159,19 +159,11 @@ Tracker/
     ├── App.css                 # Core application styles
     ├── index.css               # Design tokens, themes, typography & utility classes
     │
-    ├── components/             # Reusable UI views & modular widgets
-    │   ├── DashboardView.jsx   # Executive overview & readiness score
-    │   ├── TimelineView.jsx    # 16-week structured syllabus curriculum
-    │   ├── DailyTrackerView.jsx# Daily drills & target counters
-    │   ├── MockTrackerView.jsx # Mock test logs & percentile charts
-    │   ├── StudyTimerView.jsx  # Pomodoro focus session suite
-    │   ├── StudyLounge.jsx     # Live peer study room & leaderboard
-    │   ├── ErrorLogView.jsx    # Mistake audit & classification log
-    │   ├── ProfileView.jsx     # User identity, study matrix & milestones
-    │   ├── SettingsView.jsx    # Themes, typography, schedule & data controls
-    │   ├── AspirantIcons.jsx   # Bespoke animated vector SVG icon collection
-    │   ├── ComicPeekingCatBuddy.jsx # Interactive vector mascot companion
-    │   └── animations/         # GSAP & canvas motion primitives (Dock, Spark, etc.)
+    ├── components/             # Reusable views, modals, widgets & animations
+    │   ├── views/              # Primary cockpit views (DashboardView, StudyLoungeView, etc.)
+    │   ├── modals/             # Contextual dialog workflows & modals
+    │   ├── ui/                 # Reusable UI widgets, avatars & vector icons
+    │   └── animations/         # Motion primitives & interactive timers
     │
     ├── config/
     │   └── examConfig.js       # Dynamic syllabus registry for CAT, JEE, NEET, etc.

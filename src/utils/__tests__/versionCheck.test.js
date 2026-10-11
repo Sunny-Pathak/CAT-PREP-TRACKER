@@ -37,19 +37,21 @@ describe('Version Check & OTA Update Engine', () => {
       expect(res).toBeNull();
     });
 
+    const NEWER_VERSION = '99.0.0';
+
     it('returns update when forced and remote version is strictly newer', async () => {
       window.__FORCE_UPDATE_CHECK__ = true;
       vi.spyOn(global, 'fetch').mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          version: '1.0.99',
+          version: NEWER_VERSION,
           releaseNotes: 'Speed optimizations deployed'
         })
       });
 
       const update = await checkForAppUpdate();
       expect(update).toBeDefined();
-      expect(update.version).toBe('1.0.99');
+      expect(update.version).toBe(NEWER_VERSION);
       delete window.__FORCE_UPDATE_CHECK__;
     });
 
@@ -70,12 +72,12 @@ describe('Version Check & OTA Update Engine', () => {
 
     it('honors session dismissal for a given version', async () => {
       window.__FORCE_UPDATE_CHECK__ = true;
-      dismissUpdateForSession('1.0.99');
+      dismissUpdateForSession(NEWER_VERSION);
 
       vi.spyOn(global, 'fetch').mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          version: '1.0.99',
+          version: NEWER_VERSION,
           releaseNotes: 'Speed optimizations'
         })
       });

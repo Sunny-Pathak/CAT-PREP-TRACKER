@@ -14,7 +14,7 @@ export { default as TimelineView } from './views/TimelineView';
 export { default as ErrorLogView } from './views/ErrorLogView';
 export { default as BacklogRecoveryView } from './views/BacklogRecoveryView';
 export { default as SanctuaryShopView } from './views/SanctuaryShopView';
-export { default as StudyLounge } from './views/StudyLounge';
+export { default as StudyLounge, default as StudyLoungeView } from './views/StudyLoungeView';
 export { default as LeaderboardComingSoonView } from './views/LeaderboardComingSoonView';
 
 // Modals & Dialogue Systems
@@ -65,7 +65,6 @@ export { default as AspirantIcons } from './ui/AspirantIcons';
 export { default as AvatarRenderer } from './ui/AvatarRenderer';
 export { default as CosmeticFrameSvg } from './ui/CosmeticFrameSvg';
 export { default as GamifiedStatusBorderOverlay } from './ui/GamifiedStatusBorderOverlay';
-export { default as GlareHoverCard } from './ui/GlareHoverCard';
 export { default as HeaderProfileDropdown } from './ui/HeaderProfileDropdown';
 export { default as LiquidIntroLoader } from './ui/LiquidIntroLoader';
 export { default as LiquidMetalLogo } from './ui/LiquidMetalLogo';
