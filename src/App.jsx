@@ -490,7 +490,7 @@ export default function App() {
 
   const [availableUpdate, setAvailableUpdate] = useState(null);
 
-  // Auto-check for over-the-air updates on mount and periodically
+  // Auto-check for over-the-air updates on mount, periodically, and on tab visibility/focus
   useEffect(() => {
     const runUpdateCheck = async () => {
       const update = await checkForAppUpdate();
@@ -499,8 +499,25 @@ export default function App() {
       }
     };
     runUpdateCheck();
-    const interval = setInterval(runUpdateCheck, 3 * 60 * 1000);
-    return () => clearInterval(interval);
+    const interval = setInterval(runUpdateCheck, 2 * 60 * 1000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        runUpdateCheck();
+      }
+    };
+    const handleFocus = () => {
+      runUpdateCheck();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   // Collapsible sidebar state
@@ -2826,6 +2843,7 @@ export default function App() {
               }}
               timerState={timerState}
               onOpenDataAuditModal={() => setIsDataAuditOpen(true)}
+              onOpenTerms={() => setIsTermsModalOpen(true)}
               hasUnsyncedCloudChanges={hasUnsyncedCloudChanges}
             />
           </div>
@@ -3030,6 +3048,12 @@ export default function App() {
               dailyHoursGoal={state.settings?.dailyHoursGoal}
               activityHours={state.settings?.activityHours}
               onUpdateStudyCalibration={handleUpdateStudyCalibration}
+              onOpenTerms={() => setIsTermsModalOpen(true)}
+              onTriggerCheckUpdate={async () => {
+                const up = await checkForAppUpdate(true);
+                if (up) setAvailableUpdate(up);
+                return up;
+              }}
             />
           )}
           </Suspense>

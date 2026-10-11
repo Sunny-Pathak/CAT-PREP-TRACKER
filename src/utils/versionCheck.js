@@ -16,16 +16,16 @@ export function isNewerVersion(remote, current) {
   return false;
 }
 
-export async function checkForAppUpdate() {
+export async function checkForAppUpdate(force = false) {
   try {
-    // In local development, avoid popping update banners while editing/using HMR
+    // In local development, avoid popping update banners while editing/using HMR unless forced
     if (typeof window !== 'undefined') {
       const isLocalhost = Boolean(
         window.location.hostname === 'localhost' ||
         window.location.hostname === '127.0.0.1' ||
         window.location.hostname.endsWith('.local')
       );
-      if (isLocalhost && !window.__FORCE_UPDATE_CHECK__) {
+      if (isLocalhost && !window.__FORCE_UPDATE_CHECK__ && !force) {
         return null;
       }
     }
@@ -45,8 +45,8 @@ export async function checkForAppUpdate() {
     const data = await res.json();
     if (!data?.version) return null;
 
-    // Check if user dismissed this update during this active session
-    if (typeof sessionStorage !== 'undefined') {
+    // Check if user dismissed this update during this active session (bypassed if force is true)
+    if (typeof sessionStorage !== 'undefined' && !force) {
       const dismissed = sessionStorage.getItem(`catalyze_dismissed_update_${data.version}`);
       if (dismissed === 'true') return null;
     }
@@ -65,6 +65,15 @@ export async function checkForAppUpdate() {
     console.warn("Update check error:", err);
     return null;
   }
+}
+
+export async function manualCheckForAppUpdate() {
+  const update = await checkForAppUpdate(true);
+  return {
+    hasUpdate: Boolean(update),
+    updateData: update,
+    currentVersion: APP_VERSION
+  };
 }
 
 export function dismissUpdateForSession(version) {

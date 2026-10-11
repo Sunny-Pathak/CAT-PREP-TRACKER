@@ -89,23 +89,36 @@ export default function TermsAndPrivacyModal({ isOpen, onClose }) {
     setActiveSection(id);
     const target = document.getElementById(id);
     const container = scrollContainerRef.current;
-    if (target && container) {
-      if (typeof container.scrollTo === 'function') {
-        container.scrollTo({
-          top: target.offsetTop - 14,
-          behavior: 'smooth'
-        });
-      } else {
+    if (target) {
+      if (typeof target.scrollIntoView === 'function') {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (container) {
         container.scrollTop = target.offsetTop - 14;
       }
     }
   };
 
+  const handleAgree = () => {
+    try {
+      localStorage.setItem('cat_storage_consent', 'accepted');
+    } catch (_e) {}
+    if (onClose) onClose();
+  };
+
   return createPortal(
-    <div className="skiper-tos-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+    <div 
+      className="skiper-tos-backdrop" 
+      onClick={onClose} 
+      role="dialog" 
+      aria-modal="true"
+      data-lenis-prevent="true"
+      onWheel={(e) => e.stopPropagation()}
+    >
       <div 
         className="skiper-tos-modal skiper60-container"
         onClick={(e) => e.stopPropagation()}
+        data-lenis-prevent="true"
+        onWheel={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="skiper-tos-header">
@@ -165,7 +178,12 @@ export default function TermsAndPrivacyModal({ isOpen, onClose }) {
           </aside>
 
           {/* Right Scrollable Content Pane */}
-          <main className="skiper-tos-content" ref={scrollContainerRef}>
+          <main 
+            className="skiper-tos-content" 
+            ref={scrollContainerRef}
+            data-lenis-prevent="true"
+            onWheel={(e) => e.stopPropagation()}
+          >
             
             {/* Section 1: System Requirements */}
             <section id="system-requirements" className="tos-section-block">
@@ -349,7 +367,7 @@ export default function TermsAndPrivacyModal({ isOpen, onClose }) {
           <button 
             type="button" 
             className="tos-confirm-btn"
-            onClick={onClose}
+            onClick={handleAgree}
           >
             I Understand & Agree
           </button>

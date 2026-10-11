@@ -52,6 +52,8 @@ export default function SettingsView({
   showTopBarThemeSwitch = false,
   onToggleTopBarThemeSwitch = () => {},
   onOpenDataAuditModal = () => {},
+  onOpenTerms = () => {},
+  onTriggerCheckUpdate = null,
   syncStatus = 'saved',
   lastSyncedTimeStr = '',
   hasUnsyncedCloudChanges = false,
@@ -122,6 +124,43 @@ export default function SettingsView({
   const [encryptedModalMode, setEncryptedModalMode] = useState('export');
   const [selectedEncryptedFile, setSelectedEncryptedFile] = useState(null);
   const encryptedFileInputRef = React.useRef(null);
+
+  // App Update Check State
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateStatusMsg, setUpdateStatusMsg] = useState(null);
+
+  const handleCheckUpdateClick = async () => {
+    setCheckingUpdate(true);
+    setUpdateStatusMsg(null);
+    try {
+      if (onTriggerCheckUpdate) {
+        const update = await onTriggerCheckUpdate();
+        if (update && update.version) {
+          setUpdateStatusMsg({
+            type: 'success',
+            text: `Update v${update.version} found! Update prompt displayed.`
+          });
+        } else {
+          setUpdateStatusMsg({
+            type: 'info',
+            text: `CATalyze is running the latest build (v1.1.0).`
+          });
+        }
+      } else {
+        setUpdateStatusMsg({
+          type: 'info',
+          text: `CATalyze is running version v1.1.0.`
+        });
+      }
+    } catch {
+      setUpdateStatusMsg({
+        type: 'error',
+        text: 'Unable to check for updates. Please check connection.'
+      });
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
 
   // Dynamic Activity Breakdown Computation
   const activityBreakdown = React.useMemo(() => {
@@ -1574,6 +1613,102 @@ export default function SettingsView({
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* App Version, Updates & Legal Rights */}
+          <div style={{
+            marginTop: '18px',
+            padding: '18px 20px',
+            borderRadius: '12px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Icons.Shield size={14} color="var(--accent-secondary, #c084fc)" />
+                  App Build, Updates &amp; Legal
+                </span>
+                <span style={{ display: 'block', fontSize: '11.5px', color: '#94a3b8', marginTop: '3px' }}>
+                  Running CATalyze build <strong style={{ color: '#ffffff' }}>v1.1.0</strong> • Privacy protected &amp; local-first
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleCheckUpdateClick}
+                  disabled={checkingUpdate}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    background: 'var(--accent-muted, rgba(139, 92, 246, 0.12))',
+                    border: '1px solid var(--accent-border, rgba(139, 92, 246, 0.3))',
+                    color: 'var(--accent-secondary, #c084fc)',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: checkingUpdate ? 'wait' : 'pointer',
+                    transition: 'all 0.18s ease'
+                  }}
+                  title="Check remote server for OTA app updates"
+                >
+                  <Icons.RefreshCw size={12} className={checkingUpdate ? 'animate-spin' : ''} />
+                  <span>{checkingUpdate ? 'Checking Server...' : 'Check for Updates'}</span>
+                </button>
+
+                {onOpenTerms && (
+                  <button
+                    type="button"
+                    onClick={onOpenTerms}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      color: '#ffffff',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.18s ease'
+                    }}
+                    title="View Terms of Service and Privacy Policy"
+                  >
+                    <Icons.Shield size={12} />
+                    <span>Privacy Policy &amp; Terms</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {updateStatusMsg && (
+              <div style={{
+                fontSize: '11.5px',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                background: updateStatusMsg.type === 'success' 
+                  ? 'rgba(34, 197, 94, 0.12)' 
+                  : updateStatusMsg.type === 'error' 
+                  ? 'rgba(239, 68, 68, 0.12)' 
+                  : 'rgba(56, 189, 248, 0.12)',
+                border: updateStatusMsg.type === 'success'
+                  ? '1px solid rgba(34, 197, 94, 0.3)'
+                  : updateStatusMsg.type === 'error'
+                  ? '1px solid rgba(239, 68, 68, 0.3)'
+                  : '1px solid rgba(56, 189, 248, 0.3)',
+                color: updateStatusMsg.type === 'success' ? '#4ade80' : updateStatusMsg.type === 'error' ? '#f87171' : '#38bdf8'
+              }}>
+                {updateStatusMsg.text}
+              </div>
+            )}
           </div>
 
           {/* Danger Zone: Discrete Progress Reset at Bottom */}

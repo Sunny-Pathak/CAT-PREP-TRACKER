@@ -14595,19 +14595,24 @@ body:has(.zen-fullscreen-mode) .mobile-nav-dock {
 
 /* Minimal Streak Boxes (Seamless Inline Telemetry) */
 .minimal-streak-box {
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 0;
-  padding: 0 0 14px 0;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 14px 18px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.minimal-streak-box:hover {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .minimal-streak-box:last-of-type {
-  border-bottom: none;
-  padding-bottom: 0;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 14px 18px;
 }
 
 .streak-box-label {
@@ -23210,8 +23215,8 @@ body:has(.zen-fullscreen-mode) .mobile-nav-dock {
 .streak-analytics-right-col {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  justify-content: space-between;
+  gap: 14px;
+  justify-content: center;
   min-width: 220px;
 }
 
@@ -34826,6 +34831,9 @@ button:hover svg, .nav-link:hover svg, .sidebar-toggle-btn:hover svg {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
   transition: all 0.2s ease;
 }
 
@@ -34837,6 +34845,7 @@ button:hover svg, .nav-link:hover svg, .sidebar-toggle-btn:hover svg {
 .skiper-tos-body {
   display: flex;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -34984,6 +34993,8 @@ button:hover svg, .nav-link:hover svg, .sidebar-toggle-btn:hover svg {
 /* Skiper60 Scrollable Content Pane */
 .skiper-tos-content {
   flex: 1;
+  min-height: 0;
+  position: relative;
   padding: 28px 36px;
   overflow-y: auto;
   scroll-behavior: smooth;
@@ -35213,6 +35224,9 @@ button:hover svg, .nav-link:hover svg, .sidebar-toggle-btn:hover svg {
   font-weight: 700;
   letter-spacing: 0.01em;
   cursor: pointer;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
   box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }

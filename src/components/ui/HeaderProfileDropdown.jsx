@@ -12,6 +12,7 @@ export default function HeaderProfileDropdown({
   onSignIn,
   timerState,
   onOpenDataAuditModal,
+  onOpenTerms,
   hasUnsyncedCloudChanges = false
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -204,6 +205,22 @@ export default function HeaderProfileDropdown({
                     </span>
                   </div>
                   <span className="item-sub">Login history & data inventory</span>
+                </div>
+              </button>
+            )}
+
+            {onOpenTerms && (
+              <button
+                type="button"
+                className="menu-nav-item"
+                onClick={() => handleAction(onOpenTerms)}
+              >
+                <div className="menu-item-icon-box" style={{ background: 'rgba(168, 85, 247, 0.12)', color: 'var(--accent-secondary, #c084fc)' }}>
+                  <Icons.Shield size={15} />
+                </div>
+                <div className="menu-item-text">
+                  <span className="item-title">Privacy Policy &amp; Terms</span>
+                  <span className="item-sub">Data governance &amp; privacy rights</span>
                 </div>
               </button>
             )}
