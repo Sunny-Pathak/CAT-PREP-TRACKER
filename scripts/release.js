@@ -18,8 +18,22 @@ function bumpVersion() {
   if (currentVersion === '0.0.0') currentVersion = '1.0.26';
 
   const parts = currentVersion.split('.').map(Number);
-  parts[2] = (parts[2] || 0) + 1; // Increment patch version
-  const newVersion = parts.join('.');
+  const explicitVersion = process.argv.find(arg => /^\d+\.\d+\.\d+$/.test(arg));
+  let newVersion;
+  if (explicitVersion) {
+    newVersion = explicitVersion;
+    const newParts = newVersion.split('.').map(Number);
+    parts[0] = newParts[0];
+    parts[1] = newParts[1];
+    parts[2] = newParts[2];
+  } else if (parts[2] >= 99 || process.argv.includes('--minor')) {
+    parts[1] = (parts[1] || 0) + 1;
+    parts[2] = 0;
+    newVersion = parts.join('.');
+  } else {
+    parts[2] = (parts[2] || 0) + 1; // Increment patch version
+    newVersion = parts.join('.');
+  }
   const newVersionCode = parts[0] * 10000 + parts[1] * 100 + parts[2];
 
   console.log(`📌 Version Bump: v${currentVersion} -> v${newVersion} (versionCode: ${newVersionCode})`);

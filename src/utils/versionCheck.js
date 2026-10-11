@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.0.100";
+export const APP_VERSION = "1.1.0";
 export const APP_BUILD_TIME = new Date().toISOString();
 
 /**
