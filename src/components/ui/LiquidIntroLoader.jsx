@@ -35,102 +35,122 @@ export default function LiquidIntroLoader({ onComplete, activeTheme = 'dark' }) 
 
     const safeFinish = handleFinish;
 
-    // Safety fallback: guaranteed exit after 3.2s
-    const safetyTimer = setTimeout(() => {
-      safeFinish();
-    }, 3200);
-
-    const tl = gsap.timeline({
-      defaults: { ease: 'power2.out' },
-      onComplete: safeFinish
-    });
-
-    // 1. Initial State (use autoAlpha to avoid phantom click blocks)
+    // 1. Initial State: hidden immediately to prevent FOUT during font check
     gsap.set('.spylt-word', { y: 50, autoAlpha: 0, scale: 0.9, rotateX: 20 });
     gsap.set('.spylt-subtag', { autoAlpha: 0, y: 15 });
     gsap.set('.spylt-counter-wrap', { autoAlpha: 0, scale: 0.9 });
     gsap.set('.spylt-skip-btn', { autoAlpha: 0 });
 
-    // 2. Kinetic Pop-in (Spylt style)
-    tl.to('.spylt-subtag', {
-      autoAlpha: 1,
-      y: 0,
-      duration: 0.4,
-      ease: 'power3.out'
-    })
-    .to('.spylt-word', {
-      y: 0,
-      autoAlpha: 1,
-      scale: 1,
-      rotateX: 0,
-      stagger: 0.1,
-      duration: 0.6,
-      ease: 'back.out(1.7)'
-    }, '-=0.15')
-    .to('.spylt-counter-wrap', {
-      autoAlpha: 1,
-      scale: 1,
-      duration: 0.35
-    }, '-=0.3')
-    .to('.spylt-skip-btn', {
-      autoAlpha: 0.7,
-      duration: 0.3
-    }, '-=0.2');
+    let safetyTimer = null;
+    let isCancelled = false;
 
-    // 3. Counter Rollup directly via DOM ref (0 React re-renders)
-    const counterObj = { val: 0 };
-    tl.to(counterObj, {
-      val: 99.8,
-      duration: 0.7,
-      ease: 'power2.inOut',
-      onUpdate: () => {
-        if (counterValRef.current) {
-          counterValRef.current.textContent = `${counterObj.val.toFixed(1)}%`;
-        }
-      }
-    }, '-=0.35')
+    const startTimeline = () => {
+      if (isCancelled) return;
 
-    // 4. Brief Hold for Impact
-    .to({}, { duration: 0.25 })
+      // Safety fallback: guaranteed exit after 3.2s
+      safetyTimer = setTimeout(() => {
+        safeFinish();
+      }, 3200);
 
-    // 5. Kinetic Text Exit (Dissolves upward)
-    .to('.spylt-word', {
-      y: -40,
-      autoAlpha: 0,
-      stagger: 0.05,
-      duration: 0.35,
-      ease: 'power3.in'
-    })
-    .to('.spylt-subtag, .spylt-counter-wrap, .spylt-skip-btn', {
-      autoAlpha: 0,
-      y: -20,
-      duration: 0.25,
-      ease: 'power2.in'
-    }, '-=0.25');
-
-    // 6. Liquid Curtain Morph & Pull-up (SVG Bezier curve wipe)
-    const path = svgPathRef.current;
-    if (path) {
-      const liquidCurve = "M 0 0 L 100 0 L 100 0 Q 50 80 0 0 Z";
-      const flatTop = "M 0 0 L 100 0 L 100 0 Q 50 0 0 0 Z";
-
-      tl.to(path, {
-        attr: { d: liquidCurve },
-        duration: 0.6,
-        ease: 'power4.inOut'
-      })
-      .to(path, {
-        attr: { d: flatTop },
-        duration: 0.3,
-        ease: 'power2.out'
+      const tl = gsap.timeline({
+        defaults: { ease: 'power2.out' },
+        onComplete: safeFinish
       });
-    }
 
-    // Container fade out
-    tl.to(containerRef.current, {
-      autoAlpha: 0,
-      duration: 0.2
-    }, '-=0.2');
+      // 2. Kinetic Pop-in (Spylt style)
+      tl.to('.spylt-subtag', {
+        autoAlpha: 1,
+        y: 0,
+        duration: 0.4,
+        ease: 'power3.out'
+      })
+      .to('.spylt-word', {
+        y: 0,
+        autoAlpha: 1,
+        scale: 1,
+        rotateX: 0,
+        stagger: 0.1,
+        duration: 0.6,
+        ease: 'back.out(1.7)'
+      }, '-=0.15')
+      .to('.spylt-counter-wrap', {
+        autoAlpha: 1,
+        scale: 1,
+        duration: 0.35
+      }, '-=0.3')
+      .to('.spylt-skip-btn', {
+        autoAlpha: 0.7,
+        duration: 0.3
+      }, '-=0.2');
+
+      // 3. Counter Rollup directly via DOM ref (0 React re-renders)
+      const counterObj = { val: 0 };
+      tl.to(counterObj, {
+        val: 99.8,
+        duration: 0.7,
+        ease: 'power2.inOut',
+        onUpdate: () => {
+          if (counterValRef.current) {
+            counterValRef.current.textContent = `${counterObj.val.toFixed(1)}%`;
+          }
+        }
+      }, '-=0.35')
+
+      // 4. Brief Hold for Impact
+      .to({}, { duration: 0.25 })
+
+      // 5. Kinetic Text Exit (Dissolves upward)
+      .to('.spylt-word', {
+        y: -40,
+        autoAlpha: 0,
+        stagger: 0.05,
+        duration: 0.35,
+        ease: 'power3.in'
+      })
+      .to('.spylt-subtag, .spylt-counter-wrap, .spylt-skip-btn', {
+        autoAlpha: 0,
+        y: -20,
+        duration: 0.25,
+        ease: 'power2.in'
+      }, '-=0.25');
+
+      // 6. Liquid Curtain Morph & Pull-up (SVG Bezier curve wipe)
+      const path = svgPathRef.current;
+      if (path) {
+        const liquidCurve = "M 0 0 L 100 0 L 100 0 Q 50 80 0 0 Z";
+        const flatTop = "M 0 0 L 100 0 L 100 0 Q 50 0 0 0 Z";
+
+        tl.to(path, {
+          attr: { d: liquidCurve },
+          duration: 0.6,
+          ease: 'power4.inOut'
+        })
+        .to(path, {
+          attr: { d: flatTop },
+          duration: 0.3,
+          ease: 'power2.out'
+        });
+      }
+
+      // Container fade out
+      tl.to(containerRef.current, {
+        autoAlpha: 0,
+        duration: 0.2
+      }, '-=0.2');
+    };
+
+    // Guarantee Syne and Playfair Display are decoded before popping in
+    if (typeof document !== 'undefined' && document.fonts && document.fonts.load) {
+      Promise.race([
+        Promise.all([
+          document.fonts.load('900 1rem Syne'),
+          document.fonts.load('italic 400 1rem "Playfair Display"')
+        ]),
+        new Promise((resolve) => setTimeout(resolve, 350))
+      ]).then(startTimeline).catch(startTimeline);
+    } else {
+      startTimeline();
+    }
 
     // Allow Esc key to skip immediately
     const handleKeyDown = (e) => {
@@ -141,7 +161,8 @@ export default function LiquidIntroLoader({ onComplete, activeTheme = 'dark' }) 
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      clearTimeout(safetyTimer);
+      isCancelled = true;
+      if (safetyTimer) clearTimeout(safetyTimer);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, { scope: containerRef });
@@ -153,12 +174,20 @@ export default function LiquidIntroLoader({ onComplete, activeTheme = 'dark' }) 
       data-theme={activeTheme}
       aria-label="Loading CATalyze"
       onClick={handleFinish}
+      style={{
+        width: 'calc(100vw / var(--ui-scale, 1))',
+        height: 'calc(100vh / var(--ui-scale, 1))'
+      }}
     >
       {/* Background Liquid SVG Mask / Curtain */}
       <svg 
         className="liquid-intro-curtain" 
         viewBox="0 0 100 100" 
         preserveAspectRatio="none"
+        style={{
+          width: 'calc(100vw / var(--ui-scale, 1))',
+          height: 'calc(100vh / var(--ui-scale, 1))'
+        }}
       >
         <path 
           ref={svgPathRef} 
