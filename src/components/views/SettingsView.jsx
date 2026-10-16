@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import gsap from 'gsap';
 import { 
   signUpUser, 
   logInUser, 
@@ -372,25 +373,95 @@ export default function SettingsView({
     }, 300);
   };
 
+  const specimenContentRef = useRef(null);
+
   const handleFontChange = (fontFamily) => {
+    if (fontFamily === selectedFont) return;
+    try {
+      playSoftZenChime(0.14);
+    } catch {
+      // Audio fallback
+    }
+
     setSelectedFont(fontFamily);
     localStorage.setItem('catalyze_font_choice', fontFamily);
     document.documentElement.style.setProperty('--font-sans', `'${fontFamily}', -apple-system, BlinkMacSystemFont, sans-serif`);
+
+    if (specimenContentRef.current) {
+      gsap.fromTo(
+        specimenContentRef.current,
+        { opacity: 0.65, letterSpacing: '0.015em' },
+        { opacity: 1, letterSpacing: 'normal', duration: 0.24, ease: 'power2.out', clearProps: 'opacity,letterSpacing' }
+      );
+    }
   };
 
-  const handleScaleChange = (scaleVal) => {
+  const zoomTweenRef = useRef(null);
+  const zoomProxyRef = useRef({
+    scale: parseFloat(document.documentElement.style.zoom) || Number(fontScale) / 100 || 1
+  });
+
+  useEffect(() => {
+    return () => {
+      if (zoomTweenRef.current) {
+        zoomTweenRef.current.kill();
+      }
+    };
+  }, []);
+
+  const handleScaleChange = (scaleVal, immediate = false) => {
+    try {
+      playSoftZenChime(0.12);
+    } catch {
+      // Audio fallback
+    }
+
     setFontScale(scaleVal);
     localStorage.setItem('catalyze_font_scale', scaleVal);
-    const ratio = Number(scaleVal) / 100;
-    document.documentElement.style.setProperty('--ui-scale', ratio);
-    document.documentElement.style.zoom = ratio;
-    document.documentElement.style.setProperty('--ui-font-scale', ratio);
-    document.documentElement.style.fontSize = `${14 * ratio}px`;
-    window.dispatchEvent(new CustomEvent('catalyze_scale_change', { detail: { ratio } }));
+    const targetRatio = Number(scaleVal) / 100;
+
+    if (immediate) {
+      if (zoomTweenRef.current) zoomTweenRef.current.kill();
+      zoomProxyRef.current.scale = targetRatio;
+      document.documentElement.style.setProperty('--ui-scale', targetRatio);
+      document.documentElement.style.zoom = targetRatio;
+      document.documentElement.style.setProperty('--ui-font-scale', targetRatio);
+      document.documentElement.style.fontSize = `${14 * targetRatio}px`;
+      window.dispatchEvent(new CustomEvent('catalyze_scale_change', { detail: { ratio: targetRatio } }));
+      return;
+    }
+
+    if (zoomTweenRef.current) {
+      zoomTweenRef.current.kill();
+    }
+
+    const currentZoom = parseFloat(document.documentElement.style.zoom) || zoomProxyRef.current.scale || 1;
+    zoomProxyRef.current.scale = currentZoom;
+
+    // Simple, clean, fluid smooth linear/ease-out transition without any bounce or reload
+    zoomTweenRef.current = gsap.to(zoomProxyRef.current, {
+      scale: targetRatio,
+      duration: 0.28,
+      ease: 'power2.out',
+      onUpdate: () => {
+        const val = zoomProxyRef.current.scale;
+        document.documentElement.style.zoom = val;
+        document.documentElement.style.setProperty('--ui-scale', val);
+        document.documentElement.style.setProperty('--ui-font-scale', val);
+        document.documentElement.style.fontSize = `${14 * val}px`;
+      },
+      onComplete: () => {
+        document.documentElement.style.zoom = targetRatio;
+        document.documentElement.style.setProperty('--ui-scale', targetRatio);
+        document.documentElement.style.setProperty('--ui-font-scale', targetRatio);
+        document.documentElement.style.fontSize = `${14 * targetRatio}px`;
+        window.dispatchEvent(new CustomEvent('catalyze_scale_change', { detail: { ratio: targetRatio } }));
+      }
+    });
   };
 
   const handleBoldBoostToggle = (e) => {
-    const isChecked = e.target.checked;
+    const isChecked = typeof e?.target?.checked === 'boolean' ? e.target.checked : !boldBoost;
     setBoldBoost(isChecked);
     localStorage.setItem('catalyze_bold_boost', isChecked ? 'true' : 'false');
     document.documentElement.classList.toggle('ui-bold-boost', isChecked);
@@ -481,7 +552,7 @@ export default function SettingsView({
       {/* Sleek Minimal Header Strip */}
       <div className="settings-minimal-header-strip">
         <h1 className="settings-hero-headline minimal-headline">
-          SETTINGS <span className="minimal-headline-italic">&amp; Preferences</span>
+          SETTINGS <span className="minimal-headline-italic" style={{ color: 'rgba(248, 250, 252, 0.72)', textShadow: 'none', fontWeight: 400 }}>&amp; Preferences</span>
         </h1>
 
         <div className="settings-header-actions">
@@ -555,89 +626,182 @@ export default function SettingsView({
           CATEGORY 1: APPEARANCE & THEMES
          ======================================================== */}
       {activeTab === 'themes' && (
-        <div className="settings-pane-content fade-in">
+        <div className="settings-pane-content fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
           
-          {/* Visual Theme Selection Cards */}
-          <div className="settings-sub-panel">
-            <div className="sub-panel-header">
+          {/* SYSTEM TELEMETRY STRIP - CLEAN & MINIMAL, NO PULSING */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 20px',
+            background: 'rgba(255, 255, 255, 0.025)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '10px',
+            fontSize: '12.5px',
+            flexWrap: 'wrap',
+            gap: '14px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background: '#10b981',
+                flexShrink: 0
+              }} />
+              <span style={{ fontWeight: 600, color: '#f1f5f9' }}>
+                Active Theme: {currentTheme === 'neon-orchid' ? 'Neon Orchid' : 'Catalyze Obsidian Dark'}
+              </span>
+              <span style={{ color: '#475569' }}>•</span>
+              <span style={{ color: '#94a3b8' }}>
+                Style: <strong style={{ color: '#e2e8f0', fontWeight: 600 }}>High Contrast Obsidian</strong>
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => onSelectTheme('dark')}
+                className="minimal-btn-secondary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600
+                }}
+                title="Reset to default Obsidian Dark theme"
+              >
+                <Icons.Moon size={12} />
+                <span>Default Dark</span>
+              </button>
+            </div>
+          </div>
+
+          {/* TWO-COLUMN THEME GRID MATCHING IMAGE 3 */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
+            gap: '20px',
+            width: '100%'
+          }}>
+            {/* THEME 1: CATALYZE OBSIDIAN DARK */}
+            <div 
+              style={{
+                background: 'rgba(18, 16, 26, 0.75)',
+                border: currentTheme === 'dark' ? '1.5px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '14px',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: '20px',
+                cursor: 'pointer'
+              }}
+              onClick={(e) => {
+                tactileClick(e);
+                onSelectTheme('dark');
+              }}
+            >
               <div>
-                <h3 className="sub-panel-title">Visual Themes</h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#09090b', border: '1px solid rgba(255, 255, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+                      <Icons.Moon size={14} />
+                    </div>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                      Catalyze Obsidian Dark
+                    </h4>
+                  </div>
+                  <span style={{
+                    fontSize: '10.5px',
+                    color: currentTheme === 'dark' ? '#38bdf8' : '#94a3b8',
+                    background: currentTheme === 'dark' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    border: currentTheme === 'dark' ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    fontWeight: 600
+                  }}>
+                    {currentTheme === 'dark' ? 'Active' : 'Select'}
+                  </span>
+                </div>
+                <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                  High-contrast deep black with silk dither depth.
+                </p>
+
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  {['#08070d', '#0f0d18', '#171424', '#8b5cf6'].map((c, i) => (
+                    <span key={i} style={{ width: '14px', height: '14px', borderRadius: '50%', background: c, border: '1px solid rgba(255, 255, 255, 0.15)' }} />
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <span>Default UI theme</span>
+                <span style={{ color: currentTheme === 'dark' ? '#38bdf8' : '#94a3b8', fontWeight: 600 }}>
+                  {currentTheme === 'dark' ? 'Current Active' : 'Click to Apply'}
+                </span>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '16px' }}>
-              {/* Catalyze Obsidian Dark */}
-              <div 
-                className={`theme-card-tile ${currentTheme === 'dark' ? 'active' : ''}`} 
-                onClick={(e) => {
-                  tactileClick(e);
-                  onSelectTheme('dark');
-                }}
-                style={{ cursor: 'pointer' }}
-                title="Select Dark Obsidian theme"
-              >
-                <div className="theme-card-head">
-                  <div className="theme-card-icon-wrap" style={{ color: '#ffffff', background: '#09090b' }}>
-                    <Icons.Moon size={18} />
+            {/* THEME 2: NEON ORCHID */}
+            <div 
+              style={{
+                background: 'rgba(18, 16, 26, 0.75)',
+                border: currentTheme === 'neon-orchid' ? '1.5px solid rgba(255, 112, 191, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '14px',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: '20px',
+                cursor: 'pointer'
+              }}
+              onClick={(e) => {
+                tactileClick(e);
+                onSelectTheme('neon-orchid');
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#462c7d', border: '1px solid rgba(255, 112, 191, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff70bf' }}>
+                      <Icons.Sparkles size={14} />
+                    </div>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: currentTheme === 'neon-orchid' ? '#ff70bf' : '#f8fafc', letterSpacing: '-0.01em' }}>
+                      Neon Orchid
+                    </h4>
                   </div>
-                  <div className="theme-card-badges">
-                    {currentTheme === 'dark' ? (
-                      <span className="theme-active-tag">
-                        <Icons.Check size={10} /> Active
-                      </span>
-                    ) : (
-                      <span className="theme-pill-tag">Select</span>
-                    )}
-                  </div>
-                </div>
-                <div className="theme-card-meta">
-                  <span className="theme-title">Catalyze Obsidian Dark</span>
-                  <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px', display: 'block' }}>
-                    High-contrast deep black with silk dither depth.
+                  <span style={{
+                    fontSize: '10.5px',
+                    color: currentTheme === 'neon-orchid' ? '#ff70bf' : '#94a3b8',
+                    background: currentTheme === 'neon-orchid' ? 'rgba(255, 112, 191, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    border: currentTheme === 'neon-orchid' ? '1px solid rgba(255, 112, 191, 0.35)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    fontWeight: 600
+                  }}>
+                    {currentTheme === 'neon-orchid' ? 'Active' : 'Select'}
                   </span>
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
-                    {['#08070d', '#0f0d18', '#171424', '#8b5cf6'].map((c, i) => (
-                      <span key={i} style={{ width: '12px', height: '12px', borderRadius: '50%', background: c, border: '1px solid rgba(255,255,255,0.1)' }} />
-                    ))}
-                  </div>
+                </div>
+                <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                  Retro space indigo, purple, and vivid rose pink gradient.
+                </p>
+
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  {['#462C7D', '#831C91', '#D552A3', '#FF70BF'].map((c, i) => (
+                    <span key={i} style={{ width: '14px', height: '14px', borderRadius: '50%', background: c, border: '1px solid rgba(255, 255, 255, 0.15)' }} />
+                  ))}
                 </div>
               </div>
 
-              {/* Neon Orchid (Color Hunt Palette) */}
-              <div 
-                className={`theme-card-tile ${currentTheme === 'neon-orchid' ? 'active' : ''}`} 
-                onClick={(e) => {
-                  tactileClick(e);
-                  onSelectTheme('neon-orchid');
-                }}
-                style={{ cursor: 'pointer' }}
-                title="Select Neon Orchid theme"
-              >
-                <div className="theme-card-head">
-                  <div className="theme-card-icon-wrap" style={{ color: '#ff70bf', background: '#462c7d' }}>
-                    <Icons.Sparkles size={18} />
-                  </div>
-                  <div className="theme-card-badges">
-                    {currentTheme === 'neon-orchid' ? (
-                      <span className="theme-active-tag" style={{ background: 'rgba(255, 112, 191, 0.15)', borderColor: 'rgba(255, 112, 191, 0.4)', color: '#ff70bf' }}>
-                        <Icons.Check size={10} /> Active
-                      </span>
-                    ) : (
-                      <span className="theme-pill-tag" style={{ color: '#ff70bf', borderColor: 'rgba(255, 112, 191, 0.3)' }}>Select</span>
-                    )}
-                  </div>
-                </div>
-                <div className="theme-card-meta">
-                  <span className="theme-title" style={{ color: currentTheme === 'neon-orchid' ? '#ff70bf' : undefined }}>Neon Orchid</span>
-                  <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px', display: 'block' }}>
-                    Retro space indigo, purple, and vivid rose pink gradient.
-                  </span>
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
-                    {['#462C7D', '#831C91', '#D552A3', '#FF70BF'].map((c, i) => (
-                      <span key={i} style={{ width: '12px', height: '12px', borderRadius: '50%', background: c, border: '1px solid rgba(255,255,255,0.1)' }} />
-                    ))}
-                  </div>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <span>Vibrant Focus Palette</span>
+                <span style={{ color: currentTheme === 'neon-orchid' ? '#ff70bf' : '#94a3b8', fontWeight: 600 }}>
+                  {currentTheme === 'neon-orchid' ? 'Current Active' : 'Click to Apply'}
+                </span>
               </div>
             </div>
           </div>
@@ -648,104 +812,298 @@ export default function SettingsView({
           CATEGORY 2: TYPOGRAPHY STUDIO & UI SCALING
          ======================================================== */}
       {activeTab === 'typography' && (
-        <div className="settings-pane-content fade-in">
+        <div className="settings-pane-content fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
           
-          {/* Font Family Selection Grid */}
-          <div className="settings-sub-panel">
-            <div className="sub-panel-header">
-              <div>
-                <h3 className="sub-panel-title">Interface Font Family</h3>
-              </div>
+          {/* SYSTEM TELEMETRY STRIP - CLEAN & MINIMAL, NO PULSING */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 20px',
+            background: 'rgba(255, 255, 255, 0.025)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '10px',
+            fontSize: '12.5px',
+            flexWrap: 'wrap',
+            gap: '14px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background: '#10b981',
+                flexShrink: 0
+              }} />
+              <span style={{ fontWeight: 600, color: '#f1f5f9' }}>
+                Typeface: {selectedFont}
+              </span>
+              <span style={{ color: '#475569' }}>•</span>
+              <span style={{ color: '#94a3b8' }}>
+                Zoom: <strong style={{ color: '#e2e8f0', fontWeight: 600 }}>{fontScale}%</strong>
+              </span>
+              <span style={{ color: '#475569' }}>•</span>
+              <span style={{ color: '#94a3b8' }}>
+                Boldness: <strong style={{ color: '#e2e8f0', fontWeight: 600 }}>{boldBoost ? 'High Contrast' : 'Standard'}</strong>
+              </span>
             </div>
 
-            <div className="font-family-grid">
-              {FONTS.map(f => {
-                const isSelected = selectedFont === f.id;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    className={`font-card-btn ${isSelected ? 'active' : ''}`}
-                    onClick={() => handleFontChange(f.id)}
-                  >
-                    <div className="font-card-top">
-                      <span className="font-sample-name" style={{ fontFamily: f.id }}>
-                        {f.label}
-                      </span>
-                      {isSelected && (
-                        <span className="font-active-badge">
-                          <Icons.Check size={11} /> Selected
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  handleFontChange('Plus Jakarta Sans');
+                  handleScaleChange('100');
+                  if (boldBoost) {
+                    setBoldBoost(false);
+                    localStorage.setItem('catalyze_bold_boost', 'false');
+                    document.documentElement.classList.remove('ui-bold-boost');
+                  }
+                }}
+                className="minimal-btn-secondary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600
+                }}
+                title="Reset typography settings to defaults"
+              >
+                <Icons.RotateCcw size={12} />
+                <span>Reset Defaults</span>
+              </button>
+            </div>
+          </div>
+
+          {/* TWO-COLUMN GRID MATCHING IMAGE 3 */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
+            gap: '20px',
+            width: '100%'
+          }}>
+            {/* CARD 1: FONT FAMILY SELECTION */}
+            <div style={{
+              background: 'rgba(18, 16, 26, 0.75)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '20px'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                    Interface Font Family
+                  </h4>
+                  <span style={{ fontSize: '10.5px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.25)', fontWeight: 600 }}>
+                    Active: {selectedFont}
+                  </span>
+                </div>
+                <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                  Select typeface for all study modules, daily logs, and analytics.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '10px' }}>
+                  {FONTS.map((f) => {
+                    const isSelected = selectedFont === f.id;
+                    return (
+                      <div
+                        key={f.id}
+                        onClick={() => handleFontChange(f.id)}
+                        role="button"
+                        tabIndex={0}
+                        style={{
+                          cursor: 'pointer',
+                          padding: '12px 14px',
+                          background: isSelected ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.025)',
+                          border: isSelected ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                          transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#ffffff' : '#cbd5e1', fontFamily: f.id }}>
+                            {f.label}
+                          </span>
+                          {isSelected && (
+                            <span style={{ color: '#38bdf8' }}>
+                              <Icons.Check size={12} />
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: '11px', color: '#94a3b8', lineHeight: 1.3 }}>
+                          {f.sub}
                         </span>
-                      )}
-                    </div>
-                    <span className="font-sub-desc">{f.sub}</span>
-                    <span className="font-specimen" style={{ fontFamily: f.id }}>
-                      Aa Bb Gg 123
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                        <span style={{ fontSize: '11px', fontFamily: f.id, color: isSelected ? '#38bdf8' : '#64748b', marginTop: '2px' }}>
+                          Aa Bb Gg 123
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-          {/* UI Scaling & High-Legibility Bold Boost */}
-          <div className="settings-sub-panel typography-controls-panel">
-            <div className="sub-panel-header">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <span>Active Typeface: <strong style={{ color: '#e2e8f0', fontFamily: selectedFont }}>{selectedFont}</strong></span>
+                <span>Real-time CSS variable apply</span>
+              </div>
+            </div>
+
+            {/* CARD 2: UI SCALING & BOLD BOOST */}
+            <div style={{
+              background: 'rgba(18, 16, 26, 0.75)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '20px'
+            }}>
               <div>
-                <h3 className="sub-panel-title">UI Scaling &amp; Legibility</h3>
-              </div>
-            </div>
-
-            <div className="typography-controls-grid">
-              {/* Scale Control */}
-              <div className="typo-control-card">
-                <div className="typo-control-meta">
-                  <span className="control-title">UI Zoom &amp; Font Scale</span>
-                  <span className="control-value-pill">{fontScale}%</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                    UI Scaling &amp; Legibility
+                  </h4>
+                  <span style={{ fontSize: '10.5px', color: '#94a3b8', background: 'rgba(255, 255, 255, 0.06)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.1)', fontWeight: 600 }}>
+                    {fontScale}% Scale
+                  </span>
                 </div>
-                <div className="scale-buttons-row">
-                  {[
-                    { val: '90', label: '90% Compact' },
-                    { val: '100', label: '100% Balanced' },
-                    { val: '110', label: '110% Comfort' },
-                    { val: '120', label: '120% Large' }
-                  ].map(s => (
-                    <button
-                      key={s.val}
-                      type="button"
-                      className={`scale-btn ${fontScale === s.val ? 'active' : ''}`}
-                      onClick={() => handleScaleChange(s.val)}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                  Adjust interface density and font weight for long reading sessions.
+                </p>
 
-              {/* Bold Boost Control */}
-              <div className="typo-control-card">
-                <div className="typo-control-meta">
-                  <span className="control-title">Bold Text Boost</span>
-                  <label className="cyber-toggle-wrap">
-                    <input 
-                      type="checkbox" 
-                      checked={boldBoost} 
-                      onChange={handleBoldBoostToggle}
-                      className="cyber-toggle-input"
-                    />
-                    <span className="cyber-toggle-track">
-                      <span className="cyber-toggle-thumb" />
+                {/* Scale buttons */}
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', marginBottom: '8px' }}>
+                    INTERFACE ZOOM
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                    {[
+                      { val: '90', label: '90%' },
+                      { val: '100', label: '100%' },
+                      { val: '110', label: '110%' },
+                      { val: '120', label: '120%' }
+                    ].map(s => {
+                      const isSel = fontScale === s.val;
+                      return (
+                        <button
+                          key={s.val}
+                          type="button"
+                          onClick={() => handleScaleChange(s.val)}
+                          style={{
+                            padding: '8px 10px',
+                            background: isSel ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                            border: isSel ? '1px solid rgba(255, 255, 255, 0.28)' : '1px solid rgba(255, 255, 255, 0.07)',
+                            borderRadius: '6px',
+                            color: isSel ? '#ffffff' : '#94a3b8',
+                            fontSize: '12px',
+                            fontWeight: isSel ? 700 : 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+                          }}
+                        >
+                          {s.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Bold Text Boost Toggle */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 14px',
+                  background: 'rgba(255, 255, 255, 0.025)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  borderRadius: '8px',
+                  marginBottom: '14px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>
+                      Bold Text Boost
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                      Enhance letterforms for high legibility
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', color: boldBoost ? '#34d399' : '#64748b', fontWeight: 600 }}>
+                      {boldBoost ? 'Enabled' : 'Standard'}
                     </span>
-                  </label>
+                    <label className="cyber-toggle-wrap" style={{ margin: 0 }}>
+                      <input 
+                        type="checkbox" 
+                        checked={boldBoost} 
+                        onChange={handleBoldBoostToggle}
+                        className="cyber-toggle-input"
+                      />
+                      <span className="cyber-toggle-track">
+                        <span className="cyber-toggle-thumb" />
+                      </span>
+                    </label>
+                  </div>
                 </div>
-                <div className="bold-status-chip">
-                  <span className={`status-dot ${boldBoost ? 'active' : ''}`} />
-                  <span>{boldBoost ? 'Enabled' : 'Standard'}</span>
+
+                {/* Live Reading Specimen Preview */}
+                <div 
+                  style={{
+                    padding: '14px 16px',
+                    background: 'rgba(255, 255, 255, 0.025)',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}
+                >
+                  <div ref={specimenContentRef} className="font-specimen-container" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                        Live Reading Specimen
+                      </span>
+                      <span style={{ fontSize: '10.5px', color: '#38bdf8', fontFamily: selectedFont, fontWeight: 600 }}>
+                        {selectedFont} • {fontScale}%
+                      </span>
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      color: '#f1f5f9',
+                      lineHeight: 1.5,
+                      fontFamily: selectedFont,
+                      fontWeight: boldBoost ? 700 : 400
+                    }}>
+                      CAT Quantitative Aptitude, DILR Sets &amp; Reading Comprehension.
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#94a3b8',
+                      fontFamily: selectedFont,
+                      fontWeight: boldBoost ? 600 : 400
+                    }}>
+                      0123456789 • α β γ • ∑ (x - μ)² / N = σ²
+                    </div>
+                  </div>
                 </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <span>Zoom Scale: <strong style={{ color: '#cbd5e1' }}>{fontScale}%</strong></span>
+                <span>Bold: <strong style={{ color: '#cbd5e1' }}>{boldBoost ? 'Enabled' : 'Standard'}</strong></span>
               </div>
             </div>
           </div>
-
         </div>
       )}
 
@@ -753,1003 +1111,979 @@ export default function SettingsView({
           CATEGORY 3: SCHEDULE & SOUNDS
          ======================================================== */}
       {activeTab === 'schedule' && (
-        <div className="settings-pane-content fade-in">
+        <div className="settings-pane-content fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
           
-          {/* 1. Preparation Baseline Schedule */}
-          <div className="settings-sub-panel">
-            <div className="sub-panel-header">
-              <div>
-                <h3 className="sub-panel-title">Preparation Baseline Schedule</h3>
-              </div>
+          {/* SYSTEM TELEMETRY STRIP - CLEAN & MINIMAL, NO PULSING */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 20px',
+            background: 'rgba(255, 255, 255, 0.025)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '10px',
+            fontSize: '12.5px',
+            flexWrap: 'wrap',
+            gap: '14px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background: '#10b981',
+                flexShrink: 0
+              }} />
+              <span style={{ fontWeight: 600, color: '#f1f5f9' }}>
+                Start Date: {startDate || 'Not Set'}
+              </span>
+              <span style={{ color: '#475569' }}>•</span>
+              <span style={{ color: '#94a3b8' }}>
+                Days Elapsed: <strong style={{ color: '#e2e8f0', fontWeight: 600 }}>{daysElapsed !== null ? `${daysElapsed}d` : '0d'}</strong>
+              </span>
+              <span style={{ color: '#475569' }}>•</span>
+              <span style={{ color: '#94a3b8' }}>
+                Goal: <strong style={{ color: '#e2e8f0', fontWeight: 600 }}>{targetDailyHours.toFixed(1)} hrs / day</strong>
+              </span>
             </div>
 
-            <div className="schedule-setting-card" style={{
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {onTriggerNotification && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    tactileClick(e);
+                    onTriggerNotification();
+                  }}
+                  className="minimal-btn-secondary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '7px 14px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: 600
+                  }}
+                  title="Trigger Demo Toast Notification"
+                >
+                  <Icons.Bell size={12} />
+                  <span>Trigger Demo Toast</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* TWO-COLUMN GRID MATCHING IMAGE 3 */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
+            gap: '20px',
+            width: '100%'
+          }}>
+            {/* CARD 1: PREPARATION BASELINE SCHEDULE */}
+            <div style={{
               background: 'rgba(18, 16, 26, 0.75)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: '14px',
-              padding: '20px'
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '20px'
             }}>
-              <div className="schedule-input-row">
-                <div className="schedule-field-group">
-                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent-secondary, #c084fc)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Prep Start Date
-                  </label>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                    Preparation Baseline Schedule
+                  </h4>
+                  <span style={{ fontSize: '10.5px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.25)', fontWeight: 600 }}>
+                    CAT Target Window
+                  </span>
+                </div>
+                <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                  Set your preparation start date to calculate timeline days and pacing.
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                   <ThemedDatePicker 
                     value={startDate || ""}
                     onChange={(newDate) => onUpdateStartDate && onUpdateStartDate(newDate)}
                   />
-                </div>
 
-                <div className="schedule-telemetry-pills">
                   {daysElapsed !== null && (
-                    <div className="sched-pill" style={{ background: 'rgba(255, 255, 255, 0.04)', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
-                      <span style={{ color: 'var(--accent-secondary, #c084fc)', fontSize: '13px', lineHeight: 1 }}>•</span>
-                      <span style={{ color: '#e2e8f0', fontWeight: 600 }}>{daysElapsed} Days Since Start</span>
-                    </div>
+                    <span style={{
+                      fontSize: '11.5px',
+                      color: '#cbd5e1',
+                      padding: '7px 12px',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '6px',
+                      fontWeight: 600
+                    }}>
+                      {daysElapsed} Days Since Start
+                    </span>
                   )}
-                  <div className="sched-pill highlight" style={{ background: 'var(--accent-muted, rgba(168, 85, 247, 0.12))', borderColor: 'var(--accent-border, rgba(168, 85, 247, 0.35))', color: 'var(--accent-secondary, #d8b4fe)' }}>
-                    <Icons.Target size={13} />
-                    <span>CAT Target Window</span>
-                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* 2. Preparation Timeline & Pacing Horizon (Rich Feature) */}
-          <div className="settings-sub-panel" style={{ marginTop: '20px' }}>
-            <div className="sub-panel-header">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <span>Cadence: Sunday Mocks • Saturday Buffer</span>
+                <span>Real-time milestone tracker</span>
+              </div>
+            </div>
+
+            {/* CARD 2: ASPIRANT OPERATING PROFILE & DAILY GOAL */}
+            <div style={{
+              background: 'rgba(18, 16, 26, 0.75)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '20px'
+            }}>
               <div>
-                <h3 className="sub-panel-title">Preparation Timeline &amp; Pacing</h3>
-              </div>
-            </div>
-
-            {/* Operating Profile / Persona Selector */}
-            <div style={{ marginTop: '10px', marginBottom: '14px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent-secondary, #c084fc)', letterSpacing: '0.06em', marginBottom: '8px', textTransform: 'uppercase' }} className="font-mono">
-                Aspirant Operating Profile
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
-                <div
-                  onClick={(e) => {
-                    tactileClick(e);
-                    handleSelectPersona('working_professional');
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  style={{
-                    cursor: 'pointer',
-                    padding: '14px 16px',
-                    borderRadius: '12px',
-                    background: selectedPersona === 'working_professional' ? 'var(--accent-muted, rgba(168, 85, 247, 0.15))' : 'rgba(18, 16, 26, 0.75)',
-                    border: `1.5px solid ${selectedPersona === 'working_professional' ? 'var(--accent-border-hover, rgba(168, 85, 247, 0.55))' : 'rgba(255, 255, 255, 0.08)'}`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#ffffff' }}>Working Professional</span>
-                    <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '2px 7px', borderRadius: '4px', color: 'var(--accent-secondary, #d8b4fe)', background: 'var(--accent-muted, rgba(168, 85, 247, 0.22))', border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.35))' }} className="font-mono">
-                      ~2.5–3.5 H / D
-                    </span>
-                  </div>
-                  <p style={{ margin: 0, fontSize: '11.5px', color: '#94a3b8' }}>
-                    Evenings &amp; weekends · Lean high-yield pacing
-                  </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                    Aspirant Profile &amp; Daily Goal
+                  </h4>
+                  <span style={{ fontSize: '10.5px', color: '#94a3b8', background: 'rgba(255, 255, 255, 0.06)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.1)', fontWeight: 600 }}>
+                    {selectedPersona === 'working_professional' ? 'Working Pro' : 'Student'}
+                  </span>
                 </div>
+                <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                  Calibrate study intensity and daily question quotas.
+                </p>
 
-                <div
-                  onClick={(e) => {
-                    tactileClick(e);
-                    handleSelectPersona('college_student');
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  style={{
-                    cursor: 'pointer',
-                    padding: '14px 16px',
-                    borderRadius: '12px',
-                    background: selectedPersona === 'college_student' ? 'var(--accent-muted, rgba(168, 85, 247, 0.15))' : 'rgba(18, 16, 26, 0.75)',
-                    border: `1.5px solid ${selectedPersona === 'college_student' ? 'var(--accent-border-hover, rgba(168, 85, 247, 0.55))' : 'rgba(255, 255, 255, 0.08)'}`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#ffffff' }}>Student / College Aspirant</span>
-                    <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '2px 7px', borderRadius: '4px', color: 'var(--accent-secondary, #d8b4fe)', background: 'var(--accent-muted, rgba(168, 85, 247, 0.22))', border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.35))' }} className="font-mono">
-                      ~3.5–6.0 H / D
-                    </span>
-                  </div>
-                  <p style={{ margin: 0, fontSize: '11.5px', color: '#94a3b8' }}>
-                    Full-time study · Comprehensive syllabus depth
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Preparation Horizon Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginTop: '12px' }}>
-              {TIMELINE_HORIZONS.map((h) => {
-                const isSel = timelineHorizon === h.id;
-                const displayH = selectedPersona === 'working_professional' 
-                  ? Math.max(2.0, Number((h.dailyHours * 0.75).toFixed(1))) 
-                  : h.dailyHours;
-
-                return (
+                {/* Persona Selection */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', marginBottom: '14px' }}>
                   <div
-                    key={h.id}
                     onClick={(e) => {
                       tactileClick(e);
-                      handleSelectTimeline(h.id);
+                      handleSelectPersona('working_professional');
                     }}
                     role="button"
                     tabIndex={0}
                     style={{
                       cursor: 'pointer',
-                      padding: '16px',
-                      background: isSel ? 'var(--accent-muted, rgba(168, 85, 247, 0.15))' : 'rgba(18, 16, 26, 0.75)',
-                      border: isSel ? '1.5px solid var(--accent-border-hover, rgba(168, 85, 247, 0.6))' : '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '12px',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      background: selectedPersona === 'working_professional' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.025)',
+                      border: selectedPersona === 'working_professional' ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '5px',
-                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                      boxShadow: isSel ? '0 0 16px var(--accent-glow, rgba(168, 85, 247, 0.18))' : 'none'
+                      gap: '3px',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 700, color: isSel ? '#ffffff' : '#f1f5f9' }}>
-                        {h.name}
+                      <span style={{ fontSize: '12.5px', fontWeight: 600, color: selectedPersona === 'working_professional' ? '#ffffff' : '#cbd5e1' }}>
+                        Working Professional
                       </span>
-                      <span style={{
-                        fontFamily: 'var(--font-mono, monospace)',
-                        fontSize: '9.5px',
-                        fontWeight: 800,
-                        padding: '2px 7px',
-                        borderRadius: '4px',
-                        color: isSel ? '#ffffff' : '#94a3b8',
-                        background: isSel ? 'var(--accent-muted-hover, rgba(168, 85, 247, 0.3))' : 'rgba(255, 255, 255, 0.05)',
-                        border: `1px solid ${isSel ? 'var(--accent-border-hover, rgba(168, 85, 247, 0.5))' : 'rgba(255, 255, 255, 0.08)'}`
-                      }}>
-                        {h.badge}
+                      <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', color: '#94a3b8', background: 'rgba(255, 255, 255, 0.05)' }}>
+                        ~2.5–3.5h
                       </span>
                     </div>
-                    <div style={{ fontSize: '12px', color: isSel ? '#f3e8ff' : '#cbd5e1', fontWeight: 700, marginTop: '2px' }}>
-                      {displayH.toFixed(1)} hrs / day • {h.durationWeeks} Weeks
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      Evenings &amp; weekends pacing
+                    </span>
+                  </div>
+
+                  <div
+                    onClick={(e) => {
+                      tactileClick(e);
+                      handleSelectPersona('college_student');
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    style={{
+                      cursor: 'pointer',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      background: selectedPersona === 'college_student' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.025)',
+                      border: selectedPersona === 'college_student' ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '3px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: 600, color: selectedPersona === 'college_student' ? '#ffffff' : '#cbd5e1' }}>
+                        Student / College Aspirant
+                      </span>
+                      <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', color: '#94a3b8', background: 'rgba(255, 255, 255, 0.05)' }}>
+                        ~3.5–6.0h
+                      </span>
                     </div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px', lineHeight: 1.4 }}>
-                      {h.description}
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      Comprehensive full-time depth
+                    </span>
+                  </div>
+                </div>
+
+                {/* Parameter Stepper & Activity Breakdown */}
+                <div style={{
+                  padding: '12px 14px',
+                  background: 'rgba(255, 255, 255, 0.025)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>Daily Goal:</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleAdjustHours(-0.5)}
+                        disabled={targetDailyHours <= 1.5}
+                        style={{
+                          padding: '4px 10px',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '5px',
+                          color: '#ffffff',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: targetDailyHours <= 1.5 ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        -0.5h
+                      </button>
+                      <strong style={{ fontSize: '13px', color: '#f1f5f9', minWidth: '85px', textAlign: 'center' }}>
+                        {targetDailyHours.toFixed(1)} hrs / day
+                      </strong>
+                      <button
+                        type="button"
+                        onClick={() => handleAdjustHours(0.5)}
+                        disabled={targetDailyHours >= 10.0}
+                        style={{
+                          padding: '4px 10px',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '5px',
+                          color: '#ffffff',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: targetDailyHours >= 10.0 ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        +0.5h
+                      </button>
                     </div>
                   </div>
-                );
-              })}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#64748b', paddingTop: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                    <span>Theory <strong style={{ color: '#cbd5e1' }}>{activityBreakdown.concept}h</strong></span>
+                    <span>•</span>
+                    <span>Drills <strong style={{ color: '#cbd5e1' }}>{activityBreakdown.practice}h</strong></span>
+                    <span>•</span>
+                    <span>Analysis <strong style={{ color: '#cbd5e1' }}>{activityBreakdown.analysis}h</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <span>Selected: <strong style={{ color: '#cbd5e1' }}>{selectedPersona === 'working_professional' ? 'Working Professional' : 'Student'}</strong></span>
+                <span>{targetDailyHours.toFixed(1)}h daily target</span>
+              </div>
             </div>
 
-            {/* Parameter Adjustment: Daily Study Goal & Activity Distribution */}
+            {/* CARD 3: PREPARATION TIMELINE & PACING */}
+            {(() => {
+              const activeHorizon = TIMELINE_HORIZONS.find((h) => h.id === timelineHorizon) || TIMELINE_HORIZONS[1];
+              return (
+                <div style={{
+                  background: 'rgba(18, 16, 26, 0.75)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '14px',
+                  padding: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: '20px'
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                      <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                        Preparation Timeline &amp; Pacing
+                      </h4>
+                      <span style={{ fontSize: '10.5px', color: '#94a3b8', background: 'rgba(255, 255, 255, 0.06)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.1)', fontWeight: 600 }}>
+                        {activeHorizon.badge}
+                      </span>
+                    </div>
+                    <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                      Select study duration to calibrate daily question targets and study hours.
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                      {TIMELINE_HORIZONS.map((h) => {
+                        const isSel = timelineHorizon === h.id;
+                        const displayH = selectedPersona === 'working_professional' 
+                          ? Math.max(2.0, Number((h.dailyHours * 0.75).toFixed(1))) 
+                          : h.dailyHours;
+
+                        return (
+                          <div
+                            key={h.id}
+                            onClick={(e) => {
+                              tactileClick(e);
+                              handleSelectTimeline(h.id);
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            style={{
+                              cursor: 'pointer',
+                              padding: '10px 12px',
+                              background: isSel ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.025)',
+                              border: isSel ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '8px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '3px',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '12.5px', fontWeight: 600, color: isSel ? '#ffffff' : '#cbd5e1' }}>
+                                {h.name}
+                              </span>
+                              <span style={{
+                                fontSize: '9px',
+                                fontWeight: 700,
+                                padding: '1px 5px',
+                                borderRadius: '3px',
+                                color: isSel ? '#ffffff' : '#64748b',
+                                background: isSel ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.04)'
+                              }}>
+                                {h.badge}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                              {displayH.toFixed(1)} hrs/day • {h.durationWeeks}w
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <span>Active Pace: <strong style={{ color: '#cbd5e1' }}>{activeHorizon.name}</strong></span>
+                    <span>{activeHorizon.dailyHours} hrs / day target</span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* CARD 4: DAILY QUOTA TRACKING & ROLLOVER MODE */}
             <div style={{
-              marginTop: '14px',
-              padding: '16px 20px',
               background: 'rgba(18, 16, 26, 0.75)',
-              border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.25))',
-              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '24px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px'
+              justifyContent: 'space-between',
+              gap: '20px'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                <div>
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>Daily Study Goal Parameter</span>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                    Daily Quota Tracking &amp; Rollover
+                  </h4>
+                  <span style={{ fontSize: '10.5px', color: '#94a3b8', background: 'rgba(255, 255, 255, 0.06)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.1)', fontWeight: 600 }}>
+                    {quotaRolloverMode === 'strict' ? 'Strict' : 'Rollover'}
+                  </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="font-mono">
-                  <button
-                    type="button"
-                    onClick={() => handleAdjustHours(-0.5)}
-                    disabled={targetDailyHours <= 1.5}
+                <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                  Define behavior when daily question targets are unfinished.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
+                  <div 
+                    onClick={(e) => {
+                      tactileClick(e);
+                      onSelectQuotaRolloverMode && onSelectQuotaRolloverMode('strict');
+                    }}
+                    role="button"
+                    tabIndex={0}
                     style={{
-                      padding: '5px 12px',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      borderRadius: '6px',
-                      color: '#ffffff',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      cursor: targetDailyHours <= 1.5 ? 'not-allowed' : 'pointer'
+                      cursor: 'pointer',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      background: quotaRolloverMode === 'strict' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.025)',
+                      border: quotaRolloverMode === 'strict' ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      transition: 'all 0.15s ease'
                     }}
                   >
-                    -0.5h
-                  </button>
-                  <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--accent-secondary, #c084fc)', minWidth: '95px', textAlign: 'center' }}>
-                    {targetDailyHours.toFixed(1)} hrs / day
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleAdjustHours(0.5)}
-                    disabled={targetDailyHours >= 10.0}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: quotaRolloverMode === 'strict' ? '#ffffff' : '#cbd5e1' }}>
+                        Strict Mode
+                      </span>
+                      {quotaRolloverMode === 'strict' && <Icons.Check size={13} color="#38bdf8" />}
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', lineHeight: 1.4 }}>
+                      Quotas reset to 0 at midnight. Fresh daily start.
+                    </p>
+                  </div>
+
+                  <div 
+                    onClick={(e) => {
+                      tactileClick(e);
+                      onSelectQuotaRolloverMode && onSelectQuotaRolloverMode('rollover');
+                    }}
+                    role="button"
+                    tabIndex={0}
                     style={{
-                      padding: '5px 12px',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      borderRadius: '6px',
-                      color: '#ffffff',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      cursor: targetDailyHours >= 10.0 ? 'not-allowed' : 'pointer'
+                      cursor: 'pointer',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      background: quotaRolloverMode === 'rollover' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.025)',
+                      border: quotaRolloverMode === 'rollover' ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      transition: 'all 0.15s ease'
                     }}
                   >
-                    +0.5h
-                  </button>
-                </div>
-              </div>
-
-              {/* Live Activity Breakdown Pill Strip */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                fontSize: '11px',
-                paddingTop: '6px',
-                borderTop: '1px solid rgba(255, 255, 255, 0.06)'
-              }} className="font-mono">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-tertiary, #a78bfa)' }} />
-                  <span style={{ color: '#94a3b8' }}>THEORY</span>
-                  <span style={{ color: '#ffffff', fontWeight: 800 }}>{activityBreakdown.concept}h</span>
-                </div>
-                <span style={{ color: '#475569' }}>/</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-secondary, #c084fc)' }} />
-                  <span style={{ color: '#94a3b8' }}>DRILLS</span>
-                  <span style={{ color: '#ffffff', fontWeight: 800 }}>{activityBreakdown.practice}h</span>
-                </div>
-                <span style={{ color: '#475569' }}>/</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-color, #d8b4fe)' }} />
-                  <span style={{ color: '#94a3b8' }}>ANALYSIS</span>
-                  <span style={{ color: '#ffffff', fontWeight: 800 }}>{activityBreakdown.analysis}h</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. Daily Quota Tracking & Rollover Mode Selector */}
-          <div className="settings-sub-panel" style={{ marginTop: '20px' }}>
-            <div className="sub-panel-header">
-              <div>
-                <h3 className="sub-panel-title">Daily Quota Tracking &amp; Rollover Mode</h3>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px', marginTop: '10px' }}>
-              <div 
-                onClick={(e) => {
-                  tactileClick(e);
-                  onSelectQuotaRolloverMode && onSelectQuotaRolloverMode('strict');
-                }}
-                style={{
-                  padding: '16px',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  background: quotaRolloverMode === 'strict' ? 'var(--accent-muted, rgba(168, 85, 247, 0.15))' : 'rgba(18, 16, 26, 0.75)',
-                  border: quotaRolloverMode === 'strict' ? '1.5px solid var(--accent-border-hover, rgba(168, 85, 247, 0.55))' : '1px solid rgba(255, 255, 255, 0.08)',
-                  boxShadow: quotaRolloverMode === 'strict' ? '0 0 16px var(--accent-glow, rgba(168, 85, 247, 0.15))' : 'none',
-                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: quotaRolloverMode === 'strict' ? '#ffffff' : '#e2e8f0' }}>
-                    Strict Mode (Default)
-                  </span>
-                  {quotaRolloverMode === 'strict' && <Icons.Check size={16} color="var(--accent-secondary, #c084fc)" />}
-                </div>
-                <p style={{ margin: 0, fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.5 }}>
-                  Daily quotas reset to 0 at midnight. Fresh slate every morning.
-                </p>
-              </div>
-
-              <div 
-                onClick={(e) => {
-                  tactileClick(e);
-                  onSelectQuotaRolloverMode && onSelectQuotaRolloverMode('rollover');
-                }}
-                style={{
-                  padding: '16px',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  background: quotaRolloverMode === 'rollover' ? 'var(--accent-muted, rgba(168, 85, 247, 0.15))' : 'rgba(18, 16, 26, 0.75)',
-                  border: quotaRolloverMode === 'rollover' ? '1.5px solid var(--accent-border-hover, rgba(168, 85, 247, 0.55))' : '1px solid rgba(255, 255, 255, 0.08)',
-                  boxShadow: quotaRolloverMode === 'rollover' ? '0 0 16px var(--accent-glow, rgba(168, 85, 247, 0.15))' : 'none',
-                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: quotaRolloverMode === 'rollover' ? '#ffffff' : '#e2e8f0' }}>
-                    Rollover Mode (Study Debt)
-                  </span>
-                  {quotaRolloverMode === 'rollover' && <Icons.Check size={16} color="var(--accent-secondary, #c084fc)" />}
-                </div>
-                <p style={{ margin: 0, fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.5 }}>
-                  Unfinished drills roll into your Weekend Catch-Up backlog.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 4. Weekly Mock & Review Cadence */}
-          <div className="settings-sub-panel" style={{ marginTop: '20px' }}>
-            <div className="sub-panel-header">
-              <div>
-                <h3 className="sub-panel-title">Weekly Mock &amp; Review Cadence</h3>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginTop: '10px' }}>
-              <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(18, 16, 26, 0.75)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent-secondary, #c084fc)', letterSpacing: '0.06em' }}>Primary Mock Test Day</span>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#f4f4f5', marginTop: '4px' }}>Sunday (Full 2-Hour Simulation)</div>
-              </div>
-
-              <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(18, 16, 26, 0.75)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent-tertiary, #d8b4fe)', letterSpacing: '0.06em' }}>Buffer &amp; Catch-Up Day</span>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#f4f4f5', marginTop: '4px' }}>Saturday (Backlog Clearance)</div>
-              </div>
-            </div>
-          </div>
-
-
-
-          {/* Notification Toast Simulator */}
-          {onTriggerNotification && (
-            <div className="settings-sub-panel" style={{ marginTop: '20px' }}>
-              <div className="audio-test-card" style={{
-                background: 'rgba(18, 16, 26, 0.75)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '12px',
-                padding: '16px 20px'
-              }}>
-                <div className="audio-card-meta">
-                  <div className="audio-title-row">
-                    <Icons.CheckCircle size={16} color="var(--accent-secondary, #c084fc)" />
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>In-App Toast Notification</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: quotaRolloverMode === 'rollover' ? '#ffffff' : '#cbd5e1' }}>
+                        Rollover Mode
+                      </span>
+                      {quotaRolloverMode === 'rollover' && <Icons.Check size={13} color="#38bdf8" />}
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', lineHeight: 1.4 }}>
+                      Unfinished drills roll into weekend backlog.
+                    </p>
                   </div>
                 </div>
-                <button 
-                  type="button" 
-                  className="audio-preview-btn secondary"
-                  onClick={(e) => {
-                    tactileClick(e);
-                    onTriggerNotification();
-                  }}
-                >
-                  <Icons.Bell size={13} />
-                  <span>Trigger Demo Toast</span>
-                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <span>Daily Rollover Rule</span>
+                <span style={{ color: '#cbd5e1', fontWeight: 600 }}>{quotaRolloverMode === 'strict' ? 'Fresh Daily Slate' : 'Backlog Tracking'}</span>
               </div>
             </div>
-          )}
-
+          </div>
         </div>
       )}
 
       {/* ========================================================
-          CATEGORY 4: CLOUD ACCOUNT & PORTABILITY
+          CATEGORY 4: CLOUD ACCOUNT & PORTABILITY (DE-SLOPPED)
          ======================================================== */}
       {activeTab === 'cloud' && (
-        <div className="settings-pane-content fade-in">
+        <div className="settings-pane-content fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
           
-          {/* SECTION 1: DATA BACKUP & RESTORE */}
-          <div className="settings-sub-panel">
-            <div className="sub-panel-header">
-              <div>
-                <h3 className="sub-panel-title">Data Backup &amp; Portability</h3>
-              </div>
+          {/* SYSTEM TELEMETRY STRIP */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 20px',
+            background: 'rgba(255, 255, 255, 0.025)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '10px',
+            fontSize: '12.5px',
+            flexWrap: 'wrap',
+            gap: '14px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background: hasUnsyncedCloudChanges ? '#f59e0b' : '#10b981',
+                boxShadow: hasUnsyncedCloudChanges ? '0 0 8px rgba(245, 158, 11, 0.35)' : '0 0 8px rgba(16, 185, 129, 0.35)',
+                flexShrink: 0
+              }} />
+              <span style={{ fontWeight: 600, color: '#f1f5f9' }}>
+                {hasUnsyncedCloudChanges ? 'Local Changes Pending Cloud Sync' : 'All Data Stored Locally'}
+              </span>
+              <span style={{ color: '#475569' }}>•</span>
+              <span style={{ color: '#94a3b8' }}>
+                Last synced: <strong style={{ color: '#e2e8f0', fontWeight: 600 }}>{lastSyncedTimeStr || 'Current active session'}</strong>
+              </span>
             </div>
 
-            <div style={{
-              background: 'rgba(18, 16, 26, 0.75)',
-              border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.22))',
-              borderRadius: '14px',
-              padding: '20px 24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', maxWidth: '500px' }}>
-                  <div style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '10px',
-                    background: 'var(--accent-muted, rgba(168, 85, 247, 0.12))',
-                    border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.28))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--accent-secondary, #c084fc)',
-                    flexShrink: 0
-                  }}>
-                    <Icons.Shield size={20} />
-                  </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#f8fafc' }}>
-                        Encrypted Snapshot Backup
-                      </h4>
-                      <span style={{
-                        fontSize: '10px',
-                        fontWeight: 800,
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        background: 'var(--accent-muted, rgba(168, 85, 247, 0.12))',
-                        border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.28))',
-                        color: 'var(--accent-secondary, #d8b4fe)',
-                        letterSpacing: '0.04em'
-                      }} className="font-mono">
-                        AES-256 GCM
-                      </span>
-                    </div>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8', lineHeight: 1.45 }}>
-                      Download an encrypted snapshot of your syllabus, daily practice logs, and mistake vault directly to your drive.
-                    </p>
-                  </div>
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={onTriggerManualSync}
+                disabled={!user}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: user ? '#f8fafc' : '#64748b',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: !user ? 'not-allowed' : 'pointer',
+                  opacity: !user ? 0.6 : 1,
+                  transition: 'all 0.15s ease'
+                }}
+                title={!user ? 'Sign in to sync with cloud' : 'Force cloud synchronization now'}
+              >
+                <Icons.RefreshCw size={11} />
+                <span>Sync Now</span>
+              </button>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEncryptedModalMode('export');
-                      setIsEncryptedModalOpen(true);
-                    }}
-                    className="minimal-btn-primary"
-                    style={{
-                      fontSize: '12px',
-                      padding: '9px 18px',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    <Icons.Download size={13} />
-                    <span>Download Backup</span>
-                    <span className="btn-arrow">→</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => encryptedFileInputRef.current?.click()}
-                    className="minimal-btn-secondary"
-                    style={{
-                      fontSize: '12px',
-                      padding: '9px 16px',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    <Icons.Upload size={13} />
-                    <span>Restore Backup</span>
-                  </button>
-
-                  <input
-                    type="file"
-                    ref={encryptedFileInputRef}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      setSelectedEncryptedFile(file);
-                      setEncryptedModalMode('import');
-                      setIsEncryptedModalOpen(true);
-                      e.target.value = '';
-                    }}
-                    style={{ display: 'none' }}
-                    accept=".enc,.json"
-                  />
-                  <input type="file" ref={fileInputRef} onChange={onImport} style={{ display: 'none' }} accept=".json" />
-                </div>
-              </div>
-
-              {/* Developer options inline link */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingTop: '12px',
-                borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-                fontSize: '11px',
-                color: '#64748b'
-              }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <Icons.Lock size={11} color="var(--accent-secondary, #c084fc)" />
-                  Client-side encrypted with your master passkey
-                </span>
-                <button
-                  type="button"
-                  onClick={onExport}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#94a3b8',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    textDecoration: 'underline'
-                  }}
-                  title="Export raw JSON without encryption"
-                >
-                  Export as JSON
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={onOpenDataAuditModal}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#f8fafc',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Icons.Activity size={11} />
+                <span>View Storage Ledger</span>
+              </button>
             </div>
           </div>
 
-          {/* SECTION 2: CLOUD ACCOUNT & MULTI-DEVICE SYNC */}
-          <div className="settings-sub-panel">
-            <div className="sub-panel-header">
+          {/* TWO-COLUMN SETTINGS GRID UTILIZING FULL CONTAINER SPACE */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
+            gap: '20px',
+            width: '100%'
+          }}>
+
+            {/* CARD 1: ENCRYPTED LOCAL BACKUPS */}
+            <div style={{
+              background: 'rgba(18, 16, 26, 0.75)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '20px'
+            }}>
               <div>
-                <h3 className="sub-panel-title">Cloud Synchronization</h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                    Encrypted Snapshot Backup
+                  </h4>
+                  <span style={{ fontSize: '10.5px', color: '#94a3b8', fontFamily: 'monospace', background: 'rgba(255, 255, 255, 0.06)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                    AES-256 GCM
+                  </span>
+                </div>
+                <p style={{ margin: '0 0 14px 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                  Download an encrypted snapshot of your syllabus, daily practice logs, and mistake vault directly to your drive.
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', color: '#64748b' }}>
+                  <span>Client-side encrypted with your master passkey</span>
+                  <span>•</span>
+                  <button
+                    type="button"
+                    onClick={onExport}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      fontSize: '11.5px',
+                      textDecoration: 'underline'
+                    }}
+                    title="Export raw JSON without encryption"
+                  >
+                    Export raw JSON
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEncryptedModalMode('export');
+                    setIsEncryptedModalOpen(true);
+                  }}
+                  className="minimal-btn-secondary"
+                  style={{
+                    fontSize: '12px',
+                    padding: '9px 18px',
+                    borderRadius: '6px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.18)',
+                    color: '#ffffff',
+                    fontWeight: 600
+                  }}
+                >
+                  <Icons.Download size={13} />
+                  <span>Download Backup</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => encryptedFileInputRef.current?.click()}
+                  className="minimal-btn-secondary"
+                  style={{
+                    fontSize: '12px',
+                    padding: '9px 16px',
+                    borderRadius: '6px'
+                  }}
+                >
+                  <Icons.Upload size={13} />
+                  <span>Restore Backup</span>
+                </button>
+
+                <input
+                  type="file"
+                  ref={encryptedFileInputRef}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setSelectedEncryptedFile(file);
+                    setEncryptedModalMode('import');
+                    setIsEncryptedModalOpen(true);
+                    e.target.value = '';
+                  }}
+                  style={{ display: 'none' }}
+                  accept=".enc,.json"
+                />
+                <input type="file" ref={fileInputRef} onChange={onImport} style={{ display: 'none' }} accept=".json" />
               </div>
             </div>
 
-            {user ? (
-              <div className="cloud-account-card" style={{
-                background: 'rgba(18, 16, 26, 0.75)',
-                border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.25))',
-                borderRadius: '14px',
-                padding: '20px 24px'
-              }}>
-                <div className="cloud-account-left">
+            {/* CARD 2: CROSS-DEVICE CLOUD SYNC */}
+            <div style={{
+              background: 'rgba(18, 16, 26, 0.75)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '20px'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                    Cross-Device Cloud Sync
+                  </h4>
+                  <span style={{ fontSize: '10.5px', color: user ? '#34d399' : '#94a3b8', background: user ? 'rgba(52, 211, 153, 0.12)' : 'rgba(255, 255, 255, 0.06)', padding: '2px 8px', borderRadius: '4px', border: user ? '1px solid rgba(52, 211, 153, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)', fontWeight: 600 }}>
+                    {user ? 'Authenticated' : 'Local Standalone'}
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                  Connect your account to mirror your study logs, streak progress, and section percentiles across mobile and desktop.
+                </p>
+              </div>
+
+              <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              {user ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                   <AvatarRenderer 
                     avatar={profAvatar}
                     name={profName}
                     avatarBg={profAvatarBg}
-                    size={52}
+                    size={38}
                     status="online"
                   />
-                  <div className="cloud-account-info">
-                    <div className="cloud-name-row">
-                      <span className="cloud-display-name">{user.displayName || profName}</span>
-                    </div>
-                    <span className="cloud-email">{user.email}</span>
-                    <div className="cloud-id-row">
-                      <span className="cloud-status-badge" style={{ color: 'var(--accent-secondary, #c084fc)' }}>
-                        <Icons.Check size={12} color="var(--accent-secondary, #c084fc)" />
-                        <span>Cloud Synced</span>
-                      </span>
-                    </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>{user.displayName || profName}</span>
+                    <span style={{ fontSize: '11.5px', color: '#64748b' }}>{user.email}</span>
                   </div>
-                </div>
-
-                <div className="cloud-account-actions">
                   <button 
                     type="button" 
-                    className="cloud-signout-btn"
+                    className="minimal-btn-secondary"
                     onClick={handleLogOut}
+                    style={{
+                      marginLeft: '8px',
+                      padding: '7px 14px',
+                      fontSize: '11.5px',
+                      borderRadius: '6px'
+                    }}
                   >
-                    <Icons.LogOut size={14} />
+                    <Icons.LogOut size={12} />
                     <span>Sign Out</span>
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div style={{
-                background: 'rgba(18, 16, 26, 0.75)',
-                border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.25))',
-                borderRadius: '14px',
-                padding: '20px 24px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '16px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', maxWidth: '500px' }}>
-                    <div style={{
-                      width: '42px',
-                      height: '42px',
-                      borderRadius: '10px',
-                      background: 'var(--accent-muted, rgba(168, 85, 247, 0.12))',
-                      border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.28))',
-                      display: 'flex',
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={handleGoogleAuth}
+                    disabled={loading}
+                    className="minimal-btn-secondary"
+                    style={{
+                      padding: '9px 18px',
+                      fontSize: '12px',
+                      borderRadius: '6px',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--accent-secondary, #c084fc)',
-                      flexShrink: 0
+                      gap: '8px'
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                    </svg>
+                    <span>Continue with Google</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailAuth(!showEmailAuth)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#64748b',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      padding: '2px 0'
+                    }}
+                  >
+                    {showEmailAuth ? 'Hide email sign-in' : 'Sign in with email'}
+                  </button>
+
+                  {/* Collapsible Email/Password Form */}
+                  {showEmailAuth && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '14px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      width: '280px'
                     }}>
-                      <Icons.Cloud size={20} />
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#f8fafc' }}>
-                          Cross-Device Cloud Sync
-                        </h4>
-                        <span style={{
-                          fontSize: '10px',
-                          fontWeight: 800,
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          background: 'var(--accent-muted, rgba(168, 85, 247, 0.15))',
-                          border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.3))',
-                          color: 'var(--accent-secondary, #d8b4fe)',
-                          letterSpacing: '0.04em'
-                        }} className="font-mono">
-                          MULTI-DEVICE
-                        </span>
+                      <div className="auth-tab-switch-row" style={{ marginBottom: '12px' }}>
+                        <button 
+                          type="button" 
+                          className={`auth-tab-btn ${!isSignUp ? 'active' : ''}`}
+                          onClick={() => setIsSignUp(false)}
+                          style={{ fontSize: '11px', padding: '4px 10px' }}
+                        >
+                          Log In
+                        </button>
+                        <button 
+                          type="button" 
+                          className={`auth-tab-btn ${isSignUp ? 'active' : ''}`}
+                          onClick={() => setIsSignUp(true)}
+                          style={{ fontSize: '11px', padding: '4px 10px' }}
+                        >
+                          Create Account
+                        </button>
                       </div>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8', lineHeight: 1.45 }}>
-                        Connect your account to mirror your study logs, streak progress, and section percentiles across mobile and desktop.
-                      </p>
-                    </div>
-                  </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                    <button
-                      type="button"
-                      className="auth-google-btn"
-                      onClick={handleGoogleAuth}
-                      disabled={loading}
-                      style={{
-                        margin: 0,
-                        padding: '10px 20px',
-                        fontSize: '12.5px',
-                        fontWeight: 600,
-                        borderRadius: '8px',
-                        background: 'rgba(255, 255, 255, 0.07)',
-                        border: '1px solid rgba(255, 255, 255, 0.18)',
-                        color: '#ffffff',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        cursor: 'pointer',
-                        transition: 'all 0.18s ease'
-                      }}
-                    >
-                      <svg className="google-svg-logo" width="16" height="16" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                      </svg>
-                      <span>Continue with Google</span>
-                    </button>
+                      <form className="cloud-auth-form" onSubmit={handleAuth}>
+                        {isSignUp && (
+                          <div className="auth-form-field" style={{ marginBottom: '8px' }}>
+                            <div className="auth-input-container">
+                              <Icons.User size={13} className="auth-icon" />
+                              <input 
+                                type="text" 
+                                placeholder="Display Name" 
+                                value={displayName}
+                                onChange={(e) => setDisplayName(e.target.value)}
+                                required
+                                style={{ fontSize: '12px' }}
+                              />
+                            </div>
+                          </div>
+                        )}
 
-                    <button
-                      type="button"
-                      onClick={() => setShowEmailAuth(!showEmailAuth)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#94a3b8',
-                        fontSize: '11px',
-                        cursor: 'pointer',
-                        textDecoration: 'underline',
-                        padding: '2px 4px'
-                      }}
-                    >
-                      {showEmailAuth ? 'Hide email sign-in' : 'Sign in with email'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Collapsible Email/Password Form */}
-                {showEmailAuth && (
-                  <div style={{
-                    paddingTop: '16px',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-                    maxWidth: '480px'
-                  }}>
-                    <div className="auth-tab-switch-row" style={{ marginBottom: '14px' }}>
-                      <button 
-                        type="button" 
-                        className={`auth-tab-btn ${!isSignUp ? 'active' : ''}`}
-                        onClick={() => setIsSignUp(false)}
-                      >
-                        Log In
-                      </button>
-                      <button 
-                        type="button" 
-                        className={`auth-tab-btn ${isSignUp ? 'active' : ''}`}
-                        onClick={() => setIsSignUp(true)}
-                      >
-                        Create Account
-                      </button>
-                    </div>
-
-                    <form className="cloud-auth-form" onSubmit={handleAuth}>
-                      {isSignUp && (
-                        <div className="auth-form-field">
-                          <label>Display Name</label>
+                        <div className="auth-form-field" style={{ marginBottom: '8px' }}>
                           <div className="auth-input-container">
-                            <Icons.User size={14} className="auth-icon" />
+                            <Icons.Mail size={13} className="auth-icon" />
                             <input 
-                              type="text" 
-                              placeholder="e.g. Rahul Sharma" 
-                              value={displayName}
-                              onChange={(e) => setDisplayName(e.target.value)}
+                              type="email" 
+                              placeholder="aspirant@gmail.com" 
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
                               required
+                              style={{ fontSize: '12px' }}
                             />
                           </div>
                         </div>
-                      )}
 
-                      <div className="auth-form-field">
-                        <label>Email Address</label>
-                        <div className="auth-input-container">
-                          <Icons.Mail size={14} className="auth-icon" />
-                          <input 
-                            type="email" 
-                            placeholder="aspirant@gmail.com" 
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                          />
+                        <div className="auth-form-field" style={{ marginBottom: '10px' }}>
+                          <div className="auth-input-container">
+                            <Icons.Key size={13} className="auth-icon" />
+                            <input 
+                              type="password" 
+                              placeholder="••••••••" 
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              required
+                              style={{ fontSize: '12px' }}
+                            />
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="auth-form-field">
-                        <label>Password</label>
-                        <div className="auth-input-container">
-                          <Icons.Key size={14} className="auth-icon" />
-                          <input 
-                            type="password" 
-                            placeholder="••••••••" 
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
+                        <button 
+                          type="submit" 
+                          className="minimal-btn-primary" 
+                          disabled={loading} 
+                          style={{ width: '100%', justifyContent: 'center', padding: '8px 12px', fontSize: '11.5px', borderRadius: '6px' }}
+                        >
+                          {loading ? 'Processing...' : (isSignUp ? 'Create & Sync' : 'Log In & Sync')}
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
-                      <button type="submit" className="auth-primary-btn" disabled={loading} style={{ marginTop: '4px' }}>
-                        {loading ? 'Processing...' : (isSignUp ? 'Create Account & Sync' : 'Log In & Sync')}
-                      </button>
-                    </form>
+            {/* CARD 3: APP BUILD, UPDATES & LEGAL */}
+            <div style={{
+              background: 'rgba(18, 16, 26, 0.75)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '20px'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <div style={{ fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                    CATalyze Build <span style={{ color: '#ffffff', fontWeight: 700 }}>v1.1.0</span>
+                  </div>
+                  <span style={{ fontSize: '10.5px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.25)', fontWeight: 600 }}>
+                    Stable Channel
+                  </span>
+                </div>
+                <div style={{ fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                  Local-first client architecture with optional end-to-end cloud persistence. Your prep logs stay private to your devices.
+                </div>
+
+                {updateStatusMsg && (
+                  <div style={{
+                    fontSize: '11.5px',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    marginTop: '12px',
+                    background: updateStatusMsg.type === 'success' 
+                      ? 'rgba(34, 197, 94, 0.08)' 
+                      : updateStatusMsg.type === 'error' 
+                      ? 'rgba(239, 68, 68, 0.08)' 
+                      : 'rgba(56, 189, 248, 0.08)',
+                    border: updateStatusMsg.type === 'success'
+                      ? '1px solid rgba(34, 197, 94, 0.25)'
+                      : updateStatusMsg.type === 'error'
+                      ? '1px solid rgba(239, 68, 68, 0.25)'
+                      : '1px solid rgba(56, 189, 248, 0.25)',
+                    color: updateStatusMsg.type === 'success' ? '#4ade80' : updateStatusMsg.type === 'error' ? '#f87171' : '#38bdf8'
+                  }}>
+                    {updateStatusMsg.text}
                   </div>
                 )}
               </div>
-            )}
-          </div>
 
-          {/* SECTION 3: STORAGE & SYNC STATUS */}
-          <div className="settings-sub-panel" style={{ marginBottom: '8px' }}>
-            <div className="sub-panel-header">
-              <div>
-                <h3 className="sub-panel-title">Storage Ledger &amp; Status</h3>
-              </div>
-            </div>
-
-            <div 
-              className="audit-settings-summary-card"
-              style={{
-                padding: '18px 24px',
-                borderRadius: '14px',
-                background: 'rgba(18, 16, 26, 0.75)',
-                border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.22))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '16px'
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div>
-                  <span 
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      padding: '3px 10px',
-                      borderRadius: '999px',
-                      background: 'var(--accent-muted, rgba(168, 85, 247, 0.12))',
-                      border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.28))',
-                      color: 'var(--accent-secondary, #d8b4fe)',
-                      letterSpacing: '0.04em'
-                    }}
-                    className="font-mono"
-                  >
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-secondary, #c084fc)' }} />
-                    {hasUnsyncedCloudChanges ? 'LOCAL CHANGES QUEUED' : 'ALL DATA SAVED LOCALLY'}
-                  </span>
-                </div>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                  Last sync timestamp: <strong style={{ color: '#e2e8f0', fontWeight: 600 }}>{lastSyncedTimeStr || 'Current active session'}</strong>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={onTriggerManualSync}
-                  disabled={!user}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    background: 'var(--accent-muted, rgba(139, 92, 246, 0.12))',
-                    border: '1px solid var(--accent-border, rgba(139, 92, 246, 0.3))',
-                    color: 'var(--accent-secondary, #c084fc)',
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    cursor: !user ? 'not-allowed' : 'pointer',
-                    opacity: !user ? 0.5 : 1,
-                    transition: 'all 0.18s ease'
-                  }}
-                  title={!user ? 'Sign in to sync with cloud' : 'Force cloud synchronization now'}
-                >
-                  <Icons.RefreshCw size={12} />
-                  <span>Sync Now</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onOpenDataAuditModal}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    background: 'var(--accent-muted-hover, rgba(139, 92, 246, 0.18))',
-                    border: '1px solid var(--accent-border-hover, rgba(139, 92, 246, 0.4))',
-                    color: '#ffffff',
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    transition: 'all 0.18s ease'
-                  }}
-                >
-                  <Icons.Activity size={12} />
-                  <span>View Storage Ledger</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* App Version, Updates & Legal Rights */}
-          <div style={{
-            marginTop: '18px',
-            padding: '18px 20px',
-            borderRadius: '12px',
-            background: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-              <div>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Icons.Shield size={14} color="var(--accent-secondary, #c084fc)" />
-                  App Build, Updates &amp; Legal
-                </span>
-                <span style={{ display: 'block', fontSize: '11.5px', color: '#94a3b8', marginTop: '3px' }}>
-                  Running CATalyze build <strong style={{ color: '#ffffff' }}>v1.1.0</strong> • Privacy protected &amp; local-first
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <button
                   type="button"
                   onClick={handleCheckUpdateClick}
                   disabled={checkingUpdate}
+                  className="minimal-btn-secondary"
                   style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    background: 'var(--accent-muted, rgba(139, 92, 246, 0.12))',
-                    border: '1px solid var(--accent-border, rgba(139, 92, 246, 0.3))',
-                    color: 'var(--accent-secondary, #c084fc)',
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    cursor: checkingUpdate ? 'wait' : 'pointer',
-                    transition: 'all 0.18s ease'
+                    padding: '8px 16px',
+                    fontSize: '11.5px',
+                    borderRadius: '6px'
                   }}
                   title="Check remote server for OTA app updates"
                 >
-                  <Icons.RefreshCw size={12} className={checkingUpdate ? 'animate-spin' : ''} />
-                  <span>{checkingUpdate ? 'Checking Server...' : 'Check for Updates'}</span>
+                  <Icons.RefreshCw size={11} className={checkingUpdate ? 'animate-spin' : ''} />
+                  <span>{checkingUpdate ? 'Checking...' : 'Check for Updates'}</span>
                 </button>
 
                 {onOpenTerms && (
                   <button
                     type="button"
                     onClick={onOpenTerms}
+                    className="minimal-btn-secondary"
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '8px 14px',
-                      borderRadius: '8px',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      color: '#ffffff',
-                      fontSize: '12px',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      transition: 'all 0.18s ease'
+                      padding: '8px 16px',
+                      fontSize: '11.5px',
+                      borderRadius: '6px'
                     }}
                     title="View Terms of Service and Privacy Policy"
                   >
-                    <Icons.Shield size={12} />
-                    <span>Privacy Policy &amp; Terms</span>
+                    <Icons.Shield size={11} />
+                    <span>Privacy &amp; Terms</span>
                   </button>
                 )}
               </div>
             </div>
 
-            {updateStatusMsg && (
-              <div style={{
-                fontSize: '11.5px',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                background: updateStatusMsg.type === 'success' 
-                  ? 'rgba(34, 197, 94, 0.12)' 
-                  : updateStatusMsg.type === 'error' 
-                  ? 'rgba(239, 68, 68, 0.12)' 
-                  : 'rgba(56, 189, 248, 0.12)',
-                border: updateStatusMsg.type === 'success'
-                  ? '1px solid rgba(34, 197, 94, 0.3)'
-                  : updateStatusMsg.type === 'error'
-                  ? '1px solid rgba(239, 68, 68, 0.3)'
-                  : '1px solid rgba(56, 189, 248, 0.3)',
-                color: updateStatusMsg.type === 'success' ? '#4ade80' : updateStatusMsg.type === 'error' ? '#f87171' : '#38bdf8'
-              }}>
-                {updateStatusMsg.text}
+            {/* CARD 4: DANGER ZONE (RESET) */}
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.03)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              borderRadius: '14px',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '20px'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <div style={{ fontSize: '15px', fontWeight: 600, color: '#f87171', letterSpacing: '-0.01em' }}>
+                    Reset Preparation Progress
+                  </div>
+                  <span style={{ fontSize: '10.5px', color: '#f87171', background: 'rgba(239, 68, 68, 0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.25)', fontWeight: 600 }}>
+                    Destructive Action
+                  </span>
+                </div>
+                <div style={{ fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                  Irreversibly clear all local study logs, mock test scores, mistake vault entries, and restore syllabus to default.
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Danger Zone: Discrete Progress Reset at Bottom */}
-          <div style={{
-            marginTop: '18px',
-            padding: '16px 20px',
-            borderRadius: '12px',
-            background: 'rgba(239, 68, 68, 0.04)',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}>
-            <div>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#f87171', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Icons.AlertTriangle size={14} />
-                Reset Progress
-              </span>
-              <span style={{ display: 'block', fontSize: '11.5px', color: '#94a3b8', marginTop: '3px' }}>
-                Reset all study logs and return to default syllabus.
-              </span>
+              <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(239, 68, 68, 0.12)' }}>
+                <button
+                  type="button"
+                  onClick={onReset}
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    padding: '8px 18px',
+                    borderRadius: '6px',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    color: '#fca5a5',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  Reset All Progress
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={onReset}
-              style={{
-                fontSize: '12px',
-                fontWeight: 700,
-                padding: '7px 16px',
-                borderRadius: '8px',
-                background: 'rgba(239, 68, 68, 0.12)',
-                color: '#fca5a5',
-                border: '1px solid rgba(239, 68, 68, 0.38)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Reset Progress
-            </button>
+
           </div>
 
         </div>
@@ -1760,222 +2094,273 @@ export default function SettingsView({
           CATEGORY 5: TARGET EXAM & BLUEPRINT
          ======================================================== */}
       {activeTab === 'exam' && (
-        <div className="settings-pane-content fade-in">
-          {/* Active Exam Spotlight Card */}
+        <div className="settings-pane-content fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
           {(() => {
             const activeExam = getActiveExamConfig(targetExam);
-            const allExamsList = getAllExams().filter(exam => exam.id === 'cat');
+            const activeHorizon = TIMELINE_HORIZONS.find((h) => h.id === timelineHorizon) || TIMELINE_HORIZONS[1];
+
             return (
               <>
-                <div className="settings-sub-panel">
-                  <div className="sub-panel-header">
-                    <div>
-                      <h3 className="sub-panel-title">Active Preparation Target</h3>
-                    </div>
+                {/* SYSTEM TELEMETRY STRIP - CLEAN & MINIMAL, NO PULSING */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px 20px',
+                  background: 'rgba(255, 255, 255, 0.025)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '10px',
+                  fontSize: '12.5px',
+                  flexWrap: 'wrap',
+                  gap: '14px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <span style={{
+                      width: '7px',
+                      height: '7px',
+                      borderRadius: '50%',
+                      background: '#10b981',
+                      flexShrink: 0
+                    }} />
+                    <span style={{ fontWeight: 600, color: '#f1f5f9' }}>
+                      {activeExam.name}
+                    </span>
+                    <span style={{ color: '#475569' }}>•</span>
+                    <span style={{ color: '#94a3b8' }}>
+                      Pacing: <strong style={{ color: '#e2e8f0', fontWeight: 600 }}>{activeHorizon.name} ({activeHorizon.badge})</strong>
+                    </span>
+                    <span style={{ color: '#475569' }}>•</span>
+                    <span style={{ color: '#94a3b8' }}>
+                      Goal: <strong style={{ color: '#e2e8f0', fontWeight: 600 }}>{activeHorizon.dailyHours} hrs / day</strong>
+                    </span>
                   </div>
-                  <div 
-                    className="theme-spotlight-card" 
-                    style={{ 
-                      borderColor: activeExam.color,
-                      background: `linear-gradient(135deg, rgba(13, 19, 34, 0.95) 0%, rgba(20, 29, 52, 0.95) 100%)`
-                    }}
-                  >
-                    <div className="spotlight-left">
-                      <div className="spotlight-title-row">
-                        <span className="spotlight-icon" style={{ color: activeExam.color }}>
-                          <Icons.Target size={20} />
-                        </span>
-                        <span className="spotlight-name" style={{ color: activeExam.color }}>
-                          {activeExam.name}
-                        </span>
-                        <span className="spotlight-active-badge">
-                          <Icons.Check size={11} />
-                          <span>Active Target</span>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={onOpenOnboarding}
+                      className="minimal-btn-secondary"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '7px 14px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600
+                      }}
+                      title="Open Setup Dialog"
+                    >
+                      <Icons.Sliders size={12} />
+                      <span>Open Setup Dialog</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* PRIMARY TWO-COLUMN SETTINGS GRID MATCHING IMAGE 3 */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
+                  gap: '20px',
+                  width: '100%'
+                }}>
+                  {/* CARD 1: ACTIVE PREPARATION TARGET */}
+                  <div style={{
+                    background: 'rgba(18, 16, 26, 0.75)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '14px',
+                    padding: '24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '20px'
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                        <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                          Active Preparation Target
+                        </h4>
+                        <span style={{ fontSize: '10.5px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.25)', fontWeight: 600 }}>
+                          Active Target
                         </span>
                       </div>
-                      <p className="spotlight-desc">
+                      <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
                         {activeExam.targetAudience}
                       </p>
 
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         {activeExam.sections.map((sec, idx) => (
-                          <span key={idx} style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '6px', background: 'rgba(0, 0, 0, 0.45)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                            <strong style={{ color: sec.color }}>{sec.shortName}</strong> {sec.name}
+                          <span key={idx} style={{
+                            fontSize: '11px',
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            color: '#cbd5e1'
+                          }}>
+                            <strong style={{ color: sec.color, fontWeight: 700, marginRight: '5px' }}>{sec.shortName}</strong>
+                            {sec.name}
                           </span>
                         ))}
                       </div>
                     </div>
 
-                    <div className="spotlight-right">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
                       <button
                         type="button"
-                        className="vip-gallery-link-btn"
-                        onClick={() => onOpenOnboarding()}
-                        style={{ background: 'var(--accent-muted, rgba(139, 92, 246, 0.12))', borderColor: 'var(--accent-color, #8b5cf6)' }}
+                        onClick={onOpenOnboarding}
+                        className="minimal-btn-secondary"
+                        style={{
+                          padding: '8px 16px',
+                          fontSize: '11.5px',
+                          borderRadius: '6px'
+                        }}
                       >
-                        <Icons.Sparkles size={14} />
-                        <span>Open Setup Dialog</span>
+                        <Icons.Compass size={12} />
+                        <span>Reconfigure Exam Target</span>
                       </button>
                     </div>
                   </div>
-                </div>
 
-                {/* Preparation Horizon & Pacing Selector */}
-                <div className="settings-sub-panel" style={{ marginTop: '20px' }}>
-                  <div className="sub-panel-header">
+                  {/* CARD 2: PREPARATION TIMELINE & PACING */}
+                  <div style={{
+                    background: 'rgba(18, 16, 26, 0.75)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '14px',
+                    padding: '24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '20px'
+                  }}>
                     <div>
-                      <h3 className="sub-panel-title">Preparation Timeline &amp; Pacing</h3>
-                    </div>
-                  </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                        <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                          Preparation Timeline &amp; Pacing
+                        </h4>
+                        <span style={{ fontSize: '10.5px', color: '#94a3b8', background: 'rgba(255, 255, 255, 0.06)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.1)', fontWeight: 600 }}>
+                          {activeHorizon.badge}
+                        </span>
+                      </div>
+                      <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: 1.55 }}>
+                        Select study duration to calibrate daily question targets and study hours.
+                      </p>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginTop: '12px' }}>
-                    {TIMELINE_HORIZONS.map((h) => {
-                      const isSel = timelineHorizon === h.id;
-
-                      return (
-                        <div
-                          key={h.id}
-                          onClick={() => handleSelectTimeline(h.id)}
-                          role="button"
-                          tabIndex={0}
-                          style={{
-                            cursor: 'pointer',
-                            padding: '16px',
-                            background: isSel ? 'var(--accent-muted, rgba(168, 85, 247, 0.15))' : 'rgba(18, 18, 26, 0.85)',
-                            border: isSel ? '1.5px solid var(--accent-border-hover, rgba(168, 85, 247, 0.65))' : '1px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '6px',
-                            transition: 'all 0.15s ease',
-                            boxShadow: isSel ? '0 0 20px var(--accent-glow, rgba(168, 85, 247, 0.18))' : 'none'
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>
-                              {h.name}
-                            </span>
-                            <span style={{
-                              fontFamily: 'var(--font-mono, monospace)',
-                              fontSize: '9.5px',
-                              fontWeight: 800,
-                              padding: '2px 7px',
-                              borderRadius: '4px',
-                              color: isSel ? '#ffffff' : '#94a3b8',
-                              background: isSel ? 'var(--accent-muted-hover, rgba(168, 85, 247, 0.28))' : 'rgba(255, 255, 255, 0.05)',
-                              border: `1px solid ${isSel ? 'var(--accent-border, rgba(168, 85, 247, 0.5))' : 'rgba(255, 255, 255, 0.08)'}`
-                            }}>
-                              {h.badge}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '12px', color: isSel ? '#ffffff' : '#f1f5f9', fontWeight: 700, marginTop: '2px' }}>
-                            {h.dailyHours} hrs / day • {h.durationWeeks} Weeks
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px', lineHeight: 1.4 }}>
-                            {h.description}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Active Exam Section & Detailed Topics Blueprint */}
-                <div className="settings-sub-panel" style={{ marginTop: '20px' }}>
-                  <div className="sub-panel-header">
-                    <div>
-                      <h3 className="sub-panel-title">Syllabus Modules &amp; Targets</h3>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '12px' }}>
-                    {activeExam.sections.map((sec) => {
-                      const adjQuotas = getAdjustedDailyQuotas(activeExam.id, timelineHorizon);
-                      const currentQuota = adjQuotas[sec.slotKey] || sec.defaultDailyQuota;
-
-                      return (
-                        <div 
-                          key={sec.slotKey} 
-                          style={{ 
-                            background: 'rgba(18, 18, 26, 0.85)', 
-                            border: '1px solid rgba(255, 255, 255, 0.1)', 
-                            borderTop: '2px solid var(--accent-border, rgba(168, 85, 247, 0.45))',
-                            borderRadius: '12px', 
-                            padding: '16px' 
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '11px', fontWeight: 800, padding: '2px 7px', borderRadius: '5px', color: 'var(--accent-secondary, #d8b4fe)', background: 'var(--accent-muted, rgba(168, 85, 247, 0.15))', border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.3))' }}>
-                                {sec.shortName}
-                              </span>
-                              <span style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>
-                                {sec.name}
-                              </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                        {TIMELINE_HORIZONS.map((h) => {
+                          const isSel = timelineHorizon === h.id;
+                          return (
+                            <div
+                              key={h.id}
+                              onClick={() => handleSelectTimeline(h.id)}
+                              role="button"
+                              tabIndex={0}
+                              style={{
+                                cursor: 'pointer',
+                                padding: '10px 12px',
+                                background: isSel ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.025)',
+                                border: isSel ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '3px',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '12.5px', fontWeight: 600, color: isSel ? '#ffffff' : '#cbd5e1' }}>
+                                  {h.name}
+                                </span>
+                                <span style={{
+                                  fontSize: '9px',
+                                  fontWeight: 700,
+                                  padding: '1px 5px',
+                                  borderRadius: '3px',
+                                  color: isSel ? '#ffffff' : '#64748b',
+                                  background: isSel ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.04)'
+                                }}>
+                                  {h.badge}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                {h.dailyHours} hrs/day • {h.durationWeeks}w
+                              </div>
                             </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                      <span>Selected: <strong style={{ color: '#cbd5e1' }}>{activeHorizon.name}</strong></span>
+                      <span>{activeHorizon.dailyHours} hrs / day target</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SYLLABUS MODULES & TARGETS GRID - 3 COLUMNS MATCHING IMAGE 3 AESTHETIC */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+                  gap: '20px',
+                  width: '100%'
+                }}>
+                  {activeExam.sections.map((sec) => {
+                    const adjQuotas = getAdjustedDailyQuotas(activeExam.id, timelineHorizon);
+                    const currentQuota = adjQuotas[sec.slotKey] || sec.defaultDailyQuota;
+
+                    return (
+                      <div
+                        key={sec.slotKey}
+                        style={{
+                          background: 'rgba(18, 16, 26, 0.75)',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          borderRadius: '14px',
+                          padding: '24px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: '16px'
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                            <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                              {sec.name}
+                            </h4>
+                            <span style={{ fontSize: '10.5px', color: sec.color || '#38bdf8', background: 'rgba(255, 255, 255, 0.05)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.1)', fontWeight: 600 }}>
+                              {sec.shortName}
+                            </span>
                           </div>
 
-                          <div style={{
-                            fontSize: '11.5px',
-                            color: '#cbd5e1',
-                            marginBottom: '12px',
-                            padding: '7px 10px',
-                            borderRadius: '6px',
-                            background: 'rgba(0, 0, 0, 0.4)',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between'
-                          }}>
-                            <span>Active Daily Target:</span>
-                            <strong style={{ color: 'var(--accent-secondary, #c084fc)', fontWeight: 800 }}>{currentQuota} {sec.unit}</strong>
+                          <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '14px' }}>
+                            Daily Target: <strong style={{ color: '#f1f5f9' }}>{currentQuota} {sec.unit}</strong>
                           </div>
 
-                          {/* Specific Modules & Targets */}
                           {sec.modules && sec.modules.length > 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                               {sec.modules.map((m, mIdx) => {
                                 const parenIndex = m.name.indexOf('(');
-                                const titlePart = parenIndex !== -1 ? m.name.substring(0, parenIndex).trim() : m.name;
-                                const subPart = parenIndex !== -1 ? m.name.substring(parenIndex) : '';
+                                const cleanTitle = parenIndex !== -1 ? m.name.substring(0, parenIndex).trim() : m.name;
 
                                 return (
-                                  <div 
-                                    key={mIdx} 
-                                    style={{ 
+                                  <div
+                                    key={mIdx}
+                                    style={{
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'space-between',
-                                      flexWrap: 'wrap',
-                                      gap: '10px',
-                                      background: 'rgba(255, 255, 255, 0.03)', 
-                                      padding: '8px 10px', 
-                                      borderRadius: '8px', 
-                                      border: '1px solid rgba(255, 255, 255, 0.05)' 
+                                      padding: '8px 12px',
+                                      background: 'rgba(255, 255, 255, 0.025)',
+                                      borderRadius: '6px',
+                                      border: '1px solid rgba(255, 255, 255, 0.05)'
                                     }}
                                   >
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '160px', flex: '1 1 auto' }}>
-                                      <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#f8fafc' }}>
-                                        {titlePart}
-                                      </span>
-                                      {subPart && (
-                                        <span style={{ fontSize: '10.5px', color: '#94a3b8', lineHeight: 1.3 }}>
-                                          {subPart}
-                                        </span>
-                                      )}
-                                    </div>
+                                    <span style={{ fontSize: '12px', color: '#e2e8f0', fontWeight: 500 }}>
+                                      {cleanTitle}
+                                    </span>
                                     {m.targetScore && (
-                                      <span style={{ 
-                                        fontSize: '11px', 
-                                        fontWeight: 700, 
-                                        color: 'var(--accent-secondary, #d8b4fe)', 
-                                        background: 'var(--accent-muted, rgba(168, 85, 247, 0.12))', 
-                                        border: '1px solid var(--accent-border, rgba(168, 85, 247, 0.28))', 
-                                        padding: '3px 8px', 
-                                        borderRadius: '6px', 
-                                        whiteSpace: 'nowrap',
-                                        flexShrink: 0 
-                                      }}>
+                                      <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>
                                         Target: {m.targetScore}
                                       </span>
                                     )}
@@ -1985,18 +2370,36 @@ export default function SettingsView({
                             </div>
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                              {sec.topics.map((top, tIdx) => (
-                                <div key={tIdx} style={{ fontSize: '11.5px', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <span style={{ color: 'var(--accent-secondary, #c084fc)' }}>•</span>
-                                  <span>{top}</span>
-                                </div>
-                              ))}
+                              {sec.topics.map((top, tIdx) => {
+                                const parenIndex = top.indexOf('(');
+                                const cleanTop = parenIndex !== -1 ? top.substring(0, parenIndex).trim() : top;
+                                return (
+                                  <div
+                                    key={tIdx}
+                                    style={{
+                                      fontSize: '12px',
+                                      color: '#cbd5e1',
+                                      padding: '8px 12px',
+                                      background: 'rgba(255, 255, 255, 0.025)',
+                                      borderRadius: '6px',
+                                      border: '1px solid rgba(255, 255, 255, 0.05)'
+                                    }}
+                                  >
+                                    {cleanTop}
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                          <span>{sec.modules?.length || sec.topics?.length} Modules</span>
+                          <span>{currentQuota} {sec.unit} / day</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             );

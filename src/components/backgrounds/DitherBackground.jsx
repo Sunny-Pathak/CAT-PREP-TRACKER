@@ -369,9 +369,20 @@ function DitherBackground({
     let lastFrameTime = 0;
     const TARGET_INTERVAL = 1000 / 30; // 30 FPS cap cuts GPU utilization by >60%
 
+    let scaleDebounceTimer = null;
+    const handleScaleChange = () => {
+      if (scaleDebounceTimer) clearTimeout(scaleDebounceTimer);
+      scaleDebounceTimer = setTimeout(() => {
+        resize();
+      }, 150);
+    };
+
     const resize = () => {
-      const displayWidth = window.innerWidth;
-      const displayHeight = window.innerHeight;
+      const scaleRatio = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
+      // Size the canvas buffer with extra margin (min 0.88) so it covers 90%, 100%, 110%, 120% without WebGL buffer reallocation
+      const coverageRatio = Math.min(scaleRatio, 0.88);
+      const displayWidth = window.innerWidth / coverageRatio;
+      const displayHeight = window.innerHeight / coverageRatio;
       // Downscale internal resolution for authentic retro pixel density & 75% GPU reduction
       // On mobile screens, 0.4x provides authentic pixelated grain while rendering <50k total pixels
       const scale = propsRef.current.isMobile ? 0.4 : 0.5;
@@ -388,6 +399,8 @@ function DitherBackground({
 
     resize();
     window.addEventListener('resize', resize, { passive: true });
+    window.addEventListener('catalyze_scale_change', handleScaleChange);
+    window.addEventListener('aspiranto_scale_change', handleScaleChange);
 
     const render = (now) => {
       animationFrameId = requestAnimationFrame(render);
@@ -449,10 +462,13 @@ function DitherBackground({
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      if (scaleDebounceTimer) clearTimeout(scaleDebounceTimer);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('pointermove', handleMouseMove);
       window.removeEventListener('resize', resize);
+      window.removeEventListener('catalyze_scale_change', handleScaleChange);
+      window.removeEventListener('aspiranto_scale_change', handleScaleChange);
       canvas.removeEventListener('webglcontextlost', handleContextLost);
       if (gl) {
         gl.deleteProgram(program);
@@ -472,8 +488,10 @@ function DitherBackground({
           position: 'fixed',
           top: 0,
           left: 0,
-          width: '100vw',
-          height: '100vh',
+          width: 'calc(100vw / var(--ui-scale, 1))',
+          height: 'calc(100vh / var(--ui-scale, 1))',
+          minWidth: 'calc(100vw / var(--ui-scale, 1))',
+          minHeight: 'calc(100vh / var(--ui-scale, 1))',
           pointerEvents: 'none',
           zIndex: 0,
           background: 'radial-gradient(ellipse at 50% 30%, rgba(56, 189, 248, 0.08) 0%, transparent 70%)'
@@ -491,8 +509,10 @@ function DitherBackground({
         position: 'fixed',
         top: 0,
         left: 0,
-        width: '100vw',
-        height: '100vh',
+        width: 'calc(100vw / var(--ui-scale, 1))',
+        height: 'calc(100vh / var(--ui-scale, 1))',
+        minWidth: 'calc(100vw / var(--ui-scale, 1))',
+        minHeight: 'calc(100vh / var(--ui-scale, 1))',
         pointerEvents: 'none',
         zIndex: 0,
         opacity: disabled ? 0 : opacity,

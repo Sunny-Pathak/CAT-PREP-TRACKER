@@ -15,6 +15,20 @@
     <meta property="og:type" content="website" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Silkscreen:wght@400;700&family=Sora:wght@400;600;700;800&family=Space+Grotesk:wght@400;600;700&family=Syne:wght@400;600;700;800;900&family=VT323&display=swap" />
+    <script>
+      (function() {
+        try {
+          var s = localStorage.getItem('catalyze_font_scale') || localStorage.getItem('aspiranto_font_scale') || '100';
+          var r = Number(s) / 100;
+          if (r && r !== 1) {
+            document.documentElement.style.setProperty('--ui-scale', r);
+            document.documentElement.style.zoom = r;
+            document.documentElement.style.setProperty('--ui-font-scale', r);
+            document.documentElement.style.fontSize = (14 * r) + 'px';
+          }
+        } catch (e) {}
+      })();
+    </script>
     <title>CATalyze</title>
   </head>
   <body>
