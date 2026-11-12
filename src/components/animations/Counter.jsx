@@ -6,7 +6,7 @@ import React, { useMemo } from 'react';
  * Mechanical vertical odometer/rolling digit animation for numbers.
  */
 
-function DigitColumn({ digit, height = '1em' }) {
+function DigitColumn({ digit, height = '1.25em' }) {
   const parsed = parseInt(digit, 10);
   const isNumber = !isNaN(parsed);
 

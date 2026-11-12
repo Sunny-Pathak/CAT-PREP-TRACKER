@@ -25,6 +25,9 @@ function WeekContributionHeatmap({
 
   const activeMonth = todayPos.activeMonth;
   const activeWeek = todayPos.activeWeek;
+  const monthNum = parseInt((activeMonth || '').replace(/\D/g, ''), 10) || 1;
+  const weekNum = parseInt((activeWeek || '').replace(/\D/g, ''), 10) || 1;
+  const globalWeek = Math.max(1, (monthNum - 1) * 4 + weekNum);
 
   const weekObj = useMemo(() => {
     const monthWeeks = tracker[activeMonth] || Object.values(tracker)[0] || [];
@@ -51,7 +54,7 @@ function WeekContributionHeatmap({
       if (dayObj.varcCompleted) tasksDone++;
       if (dayObj.customCompleted) tasksDone++;
 
-      const hasCustom = Boolean(dayObj.hasCustomObjective);
+      const hasCustom = Boolean(dayObj.hasCustomObjective || dayObj.customCompleted);
       const totalQuotasNeeded = hasCustom ? 4 : 3;
 
       let level = 0;
@@ -74,6 +77,7 @@ function WeekContributionHeatmap({
       return {
         ...dayObj,
         tasksDone,
+        totalQuotasNeeded,
         totalQs,
         studyHours,
         level,
@@ -89,32 +93,36 @@ function WeekContributionHeatmap({
     return daysData.reduce((acc, d) => acc + d.tasksDone, 0);
   }, [daysData]);
 
+  const totalWeekQuotasNeeded = useMemo(() => {
+    return daysData.reduce((acc, d) => acc + (d.totalQuotasNeeded || 3), 0) || 21;
+  }, [daysData]);
+
   const totalWeekHours = useMemo(() => {
     return daysData.reduce((acc, d) => acc + d.studyHours, 0);
   }, [daysData]);
 
+  const weekSpanLabel = useMemo(() => {
+    const first = daysData[0]?.dateFormatted;
+    const last = daysData[daysData.length - 1]?.dateFormatted;
+    if (first && last && first !== last) return `${first} – ${last}`;
+    return first || '';
+  }, [daysData]);
+
   return (
     <div className="activity-heatmap-wrapper week-heatmap-minimal">
-      {/* Header matching normal heatmap */}
+      {/* Clean typographic header without nested pill boxes */}
       <div className="heatmap-header-row">
-        <div className="heatmap-month-tabs">
-          <span className="month-tab-btn active font-mono">
-            {activeWeek} • {activeMonth}
-          </span>
-          <span className="week-mini-summary-tag font-mono">
-            {totalWeekClearedQuotas} / 21 Quotas • {totalWeekHours.toFixed(1)}h
-          </span>
+        <div className="week-heatmap-heading">
+          <span className="week-heading-label">Week {globalWeek}</span>
+          {weekSpanLabel && (
+            <span className="week-heading-dates">{weekSpanLabel}</span>
+          )}
         </div>
 
-        <div className="heatmap-legend-box">
-          <span className="legend-label">Less</span>
-          <span className="heatmap-square level-0"></span>
-          <span className="heatmap-square level-1"></span>
-          <span className="heatmap-square level-2"></span>
-          <span className="heatmap-square level-3"></span>
-          <span className="heatmap-square level-4"></span>
-          <span className="legend-label">More</span>
-        </div>
+        <span className="week-mini-summary-tag font-mono">
+          <span>{totalWeekClearedQuotas}/{totalWeekQuotasNeeded} Quotas</span>
+          <span className="week-summary-hours">{totalWeekHours.toFixed(1)}h</span>
+        </span>
       </div>
 
       {/* 7-Day Clean Heatmap Matrix Row */}
@@ -124,18 +132,24 @@ function WeekContributionHeatmap({
             key={day.day}
             className={`week-matrix-col ${day.isToday ? 'is-today' : ''} ${day.isPrior ? 'is-prior-col' : ''}`}
             onClick={() => onNavigateToDay && onNavigateToDay(activeMonth, activeWeek, day.day)}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ' ') && onNavigateToDay) {
+                e.preventDefault();
+                onNavigateToDay(activeMonth, activeWeek, day.day);
+              }
+            }}
             onMouseEnter={() => setHoveredDay(day)}
             onMouseLeave={() => setHoveredDay(null)}
             role="button"
             tabIndex={0}
-            title={day.isPrior ? `Prior to prep start date (${day.dateFormatted})` : `${day.day}: ${day.tasksDone}/3 quotas cleared • ${day.studyHours}h studied`}
+            title={day.isPrior ? `Prior to prep start date (${day.dateFormatted})` : `${day.day}: ${day.tasksDone}/${day.totalQuotasNeeded} quotas cleared, ${day.studyHours}h studied`}
           >
             <span className="week-matrix-day-lbl">{day.shortDay}</span>
             <div 
               className={`heatmap-square week-heatmap-square level-${day.level} ${day.isPrior ? 'is-prior-day' : ''} ${day.isToday ? 'today-pulse-tile' : ''}`} 
             />
-            <span className={`week-matrix-sub-lbl font-mono ${day.tasksDone === 3 ? 'all-clear' : ''}`}>
-              {day.isPrior ? '-' : `${day.tasksDone}/3`}
+            <span className={`week-matrix-sub-lbl font-mono ${day.tasksDone >= day.totalQuotasNeeded ? 'all-clear' : ''}`}>
+              {day.isPrior ? '-' : `${day.tasksDone}/${day.totalQuotasNeeded}`}
             </span>
           </div>
         ))}
@@ -145,11 +159,11 @@ function WeekContributionHeatmap({
       <div className="heatmap-footer-note">
         {hoveredDay ? (
           <span>
-            <strong>{hoveredDay.day} ({hoveredDay.dateFormatted})</strong>: {hoveredDay.isPrior ? 'Prior to official preparation start date' : `${hoveredDay.tasksDone}/3 quotas cleared • ${hoveredDay.studyHours}h focus • ${hoveredDay.totalQs} questions`}
+            <strong>{hoveredDay.day} ({hoveredDay.dateFormatted})</strong>: {hoveredDay.isPrior ? 'Prior to official preparation start date' : `${hoveredDay.tasksDone}/${hoveredDay.totalQuotasNeeded} quotas cleared, ${hoveredDay.studyHours}h focus, ${hoveredDay.totalQs} questions`}
           </span>
         ) : (
           <span>
-            {totalWeekClearedQuotas > 0 ? `${totalWeekClearedQuotas} of 21 quotas completed this week` : 'No study drills completed yet this week'}
+            {totalWeekClearedQuotas > 0 ? `${totalWeekClearedQuotas} of ${totalWeekQuotasNeeded} quotas completed this week` : 'No study drills completed yet this week'}
           </span>
         )}
       </div>

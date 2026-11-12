@@ -16,12 +16,18 @@ describe('Mobile View & Component Test Cases', () => {
     mockState = getInitialState();
   });
 
-  it('renders DashboardView with real OS/web date badge and action buttons', () => {
+  it('renders DashboardView with real OS/web date badge, clean week progress kicker, non-clipping counter, and action buttons', () => {
     const setActiveTab = () => {};
-    render(<DashboardView state={mockState} setActiveTab={setActiveTab} friends={[]} />);
+    const { container } = render(<DashboardView state={mockState} setActiveTab={setActiveTab} friends={[]} />);
     
     expect(screen.getByText(/Current Study Focus/i)).toBeDefined();
     expect(screen.getByText(/Quant Questions/i)).toBeDefined();
+    expect(screen.queryByText(/Month \d+\s*•\s*Week \d+/i)).toBeNull();
+    expect(screen.getByText(/Week \d+ of 16/i)).toBeDefined();
+    expect(container.querySelector('.hero-progress-track')).not.toBeNull();
+    const digitWindow = container.querySelector('.counter-digit-window');
+    expect(digitWindow).not.toBeNull();
+    expect(digitWindow.style.height).toBe('1.25em');
   });
 
   it('renders DailyTrackerView with TODAY jump button and day cards', () => {

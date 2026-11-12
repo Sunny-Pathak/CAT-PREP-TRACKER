@@ -47,7 +47,7 @@ function StudyContributionHeatmap({ tracker = {}, startDateStr = '', compact = f
           const totalQs = qCount + lrdiCount + varcCount + customCount;
           const studyHours = Number(dayObj.studyHours) || 0;
 
-          const hasCustom = Boolean(dayObj.hasCustomObjective);
+          const hasCustom = Boolean(dayObj.hasCustomObjective || dayObj.customCompleted);
           const totalQuotasNeeded = hasCustom ? 4 : 3;
 
           let level = 0;
@@ -78,6 +78,7 @@ function StudyContributionHeatmap({ tracker = {}, startDateStr = '', compact = f
             dayName: DAY_NAMES[dIdx] || `Day ${dIdx + 1}`,
             dayNumber: dayObj.day || `Day ${dIdx + 1}`,
             tasksDone,
+            totalQuotasNeeded,
             totalQs,
             studyHours,
             level,
@@ -94,6 +95,7 @@ function StudyContributionHeatmap({ tracker = {}, startDateStr = '', compact = f
             weekName: weekObj.week || `Week ${wIdx + 1}`,
             dayName: DAY_NAMES[cellData.length],
             tasksDone: 0,
+            totalQuotasNeeded: 3,
             totalQs: 0,
             level: 0
           });
@@ -110,7 +112,7 @@ function StudyContributionHeatmap({ tracker = {}, startDateStr = '', compact = f
     });
 
     return { allWeeksByMonth: weeksMap, totalActiveDays: activeDays, totalTasksDone: tasksCount };
-  }, [tracker]);
+  }, [tracker, startDateStr]);
 
   // Filter weeks to display based on selectedMonth
   const displayedWeeks = useMemo(() => {
@@ -229,7 +231,7 @@ function StudyContributionHeatmap({ tracker = {}, startDateStr = '', compact = f
               <strong>Prior to prep start date ({hoveredCell.dayName}, {hoveredCell.month} {hoveredCell.weekName})</strong>
             ) : (
               <>
-                <strong>{hoveredCell.tasksDone}/3 tasks done</strong> ({hoveredCell.totalQs} Qs{hoveredCell.studyHours > 0 ? ` • ${hoveredCell.studyHours}h` : ''}) • {hoveredCell.dayName}, {hoveredCell.month} ({hoveredCell.weekName})
+                <strong>{hoveredCell.tasksDone}/{hoveredCell.totalQuotasNeeded || 3} tasks done</strong> ({hoveredCell.totalQs} Qs{hoveredCell.studyHours > 0 ? `, ${hoveredCell.studyHours}h` : ''}) — {hoveredCell.dayName}, {hoveredCell.month} ({hoveredCell.weekName})
               </>
             )}
           </span>

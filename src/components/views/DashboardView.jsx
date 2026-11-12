@@ -32,6 +32,7 @@ function DashboardView({
     let totalQuant = 0;
     let totalLrdi = 0;
     let totalVarc = 0;
+    let totalHours = 0;
     let _totalDays = 0;
     const allDays = [];
 
@@ -41,6 +42,8 @@ function DashboardView({
           totalQuant += Number(day.quantCount) || 0;
           totalLrdi += Number(day.lrdiCount) || 0;
           totalVarc += Number(day.varcCount) || 0;
+          const dayHrs = Number(day.studyHours) || (day.sessions || []).reduce((acc, s) => acc + (s.durationMinutes || 0) / 60, 0);
+          totalHours += dayHrs;
           _totalDays++;
 
           const isDayDone = day.quantCompleted || day.lrdiCompleted || day.varcCompleted;
@@ -67,13 +70,14 @@ function DashboardView({
       totalQuantSolved: totalQuant,
       totalLrdidSolved: totalLrdi,
       totalVarcSolved: totalVarc,
+      totalHoursStudied: totalHours,
       activeStreak: streak,
       mocksTaken: taken,
       allDaysChronological: allDays
     };
   }, [tracker, mocks]);
 
-  const { totalQuantSolved, totalLrdidSolved, totalVarcSolved, activeStreak, mocksTaken, allDaysChronological } = metrics;
+  const { totalQuantSolved, totalLrdidSolved, totalVarcSolved, totalHoursStudied, activeStreak, mocksTaken, allDaysChronological } = metrics;
 
   const grandTargets = {
     quant: 3160,
@@ -96,8 +100,21 @@ function DashboardView({
   const todayWeekObj = todayMonthObj?.find(w => w.week === todayPos.activeWeek);
   const todayDayObj = todayWeekObj?.days?.find(d => d.day === todayPos.todayDayName || d.day === todayPos.dayName);
   const todayStudyHours = todayDayObj?.studyHours || (todayDayObj?.sessions || []).reduce((acc, s) => acc + (s.durationMinutes || 0) / 60, 0);
-  const todaySessions = todayDayObj?.sessions || [];
-  const todayDoneTasks = (todayDayObj?.quantCompleted ? 1 : 0) + (todayDayObj?.lrdiCompleted ? 1 : 0) + (todayDayObj?.varcCompleted ? 1 : 0);
+  const hasTodayCustom = Boolean(todayDayObj?.hasCustomObjective || todayDayObj?.customCompleted);
+  const todayTotalQuotas = hasTodayCustom ? 4 : 3;
+  const todayDoneTasks =
+    (todayDayObj?.quantCompleted ? 1 : 0) +
+    (todayDayObj?.lrdiCompleted ? 1 : 0) +
+    (todayDayObj?.varcCompleted ? 1 : 0) +
+    (todayDayObj?.customCompleted ? 1 : 0);
+
+  // Macro timeline indicator (without "Month X • Week Y" label)
+  const monthNum = parseInt((todayPos.activeMonth || '').replace(/\D/g, ''), 10) || 1;
+  const weekNum = parseInt((todayPos.activeWeek || '').replace(/\D/g, ''), 10) || 1;
+  const totalWeeks = Math.max(16, (Object.keys(tracker || {}).length || 4) * 4);
+  const globalWeek = Math.min(totalWeeks, Math.max(1, (monthNum - 1) * 4 + weekNum));
+  const totalDaysCount = totalWeeks * 7;
+  const currentDayNum = todayPos.diffDays >= 0 ? Math.min(totalDaysCount, todayPos.diffDays + 1) : 1;
 
   // Online and studying buddies
   const onlineFriends = React.useMemo(() => {
@@ -108,8 +125,22 @@ function DashboardView({
     <div className="dashboard-clean-container">
       {/* Minimalist Editorial Hero Header */}
       <div className="minimal-hero-section">
-        <div className="minimal-hero-tag">
-          <span>{todayPos.activeMonth} • {todayPos.activeWeek}</span>
+        <div
+          className="minimal-hero-kicker"
+          title={`Week ${globalWeek} of ${totalWeeks}, Day ${currentDayNum} of ${totalDaysCount}`}
+        >
+          <div className="hero-kicker-left">
+            <span className="hero-progress-track" aria-hidden="true">
+              <span
+                className="hero-progress-fill"
+                style={{ width: `${Math.round((globalWeek / totalWeeks) * 100)}%` }}
+              />
+            </span>
+            <span className="hero-kicker-week">Week {globalWeek} of {totalWeeks}</span>
+          </div>
+          {todayPos.todayDateStr && (
+            <span className="hero-kicker-date">{todayPos.todayDateStr}</span>
+          )}
         </div>
 
         <div className="minimal-hero-main">
@@ -146,7 +177,8 @@ function DashboardView({
           <div className="horizon-stat-item">
             <span className="horizon-stat-lbl">Daily Drills</span>
             <span className="horizon-stat-val">
-              <span className="font-mono-val"><Counter value={todayDoneTasks} /></span> <span className="horizon-unit">/ 3 Done</span>
+              <span className="font-mono-val"><Counter value={todayDoneTasks} /></span>{' '}
+              <span className="horizon-unit">/ {todayTotalQuotas} Done</span>
             </span>
           </div>
           <div className="horizon-divider"></div>
@@ -244,7 +276,7 @@ function DashboardView({
           <div>
             <h3 className="minimal-section-title">Study Consistency</h3>
             <p className="minimal-section-subtitle">
-              Daily practice log and active streaks.
+              Weekly quota progress and 16-week practice log.
             </p>
           </div>
         </div>
@@ -270,27 +302,27 @@ function DashboardView({
           <div className="streak-analytics-right-col">
             <div className="minimal-streak-box">
               <div className="streak-box-label">
-                <Icons.Flame size={14} color="#ff3344" />
-                <span>ACTIVE STREAK</span>
+                <span style={{ color: '#a855f7', display: 'inline-flex' }}><Icons.Calendar size={14} /></span>
+                <span>CONSISTENCY RECORD</span>
               </div>
               <div className="streak-box-value">
-                <Counter value={activeStreak} /> <span className="streak-box-unit">{activeStreak === 1 ? 'Day' : 'Days'}</span>
+                <Counter value={allDaysChronological.filter(d => d.isDone).length} /> <span className="streak-box-unit">/ {totalDaysCount} Days</span>
               </div>
               <div className="streak-box-desc">
-                {activeStreak > 0 ? "Momentum active! Keep the streak alive." : "Complete today's drill to start your streak."}
+                Active study days logged across {totalWeeks} weeks.
               </div>
             </div>
 
             <div className="minimal-streak-box">
               <div className="streak-box-label">
-                <Icons.Calendar size={14} color="#a855f7" />
-                <span>CONSISTENCY RECORD</span>
+                <span style={{ color: '#38bdf8', display: 'inline-flex' }}><Icons.Clock size={14} /></span>
+                <span>TOTAL PRACTICE</span>
               </div>
               <div className="streak-box-value">
-                <Counter value={allDaysChronological.filter(d => d.isDone).length} /> <span className="streak-box-unit">/ 112 Days</span>
+                <span className="font-mono-val">{totalHoursStudied.toFixed(1)}</span> <span className="streak-box-unit">hrs</span>
               </div>
               <div className="streak-box-desc">
-                Active study days logged across 16 weeks.
+                Cumulative focus hours recorded across all sessions.
               </div>
             </div>
           </div>
